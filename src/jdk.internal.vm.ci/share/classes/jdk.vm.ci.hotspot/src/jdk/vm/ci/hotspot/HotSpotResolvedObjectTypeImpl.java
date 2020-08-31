@@ -738,6 +738,7 @@ final class HotSpotResolvedObjectTypeImpl extends HotSpotResolvedJavaType implem
     }
 
     static class SortByOffset implements Comparator<ResolvedJavaField> {
+        @Override
         public int compare(ResolvedJavaField a, ResolvedJavaField b) {
             return a.getOffset() - b.getOffset();
         }

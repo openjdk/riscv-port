@@ -29,8 +29,6 @@ import static jdk.internal.misc.Unsafe.ADDRESS_SIZE;
 
 import java.lang.annotation.Annotation;
 
-import jdk.internal.vm.annotation.Stable;
-
 import jdk.vm.ci.meta.JavaConstant;
 import jdk.vm.ci.meta.JavaType;
 import jdk.vm.ci.meta.ResolvedJavaType;
