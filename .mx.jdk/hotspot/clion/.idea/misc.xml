@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$">
+    <contentRoot DIR="$PROJECT_DIR$/../../.." />
+  </component>
+  <component name="CidrRootsConfiguration">
+    <sourceRoots>
+      <file path="$PROJECT_DIR$/../../../src/hotspot/cpu/x86" />
+      <file path="$PROJECT_DIR$/../../../src/hotspot/os/linux" />
+      <file path="$PROJECT_DIR$/../../../src/hotspot/os_cpu/linux_x86" />
+      <file path="$PROJECT_DIR$/../../../src/hotspot/share" />
+      <file path="$PROJECT_DIR$/../../../src/java.base/share/native/include" />
+      <file path="$PROJECT_DIR$/../../../src/java.base/unix/native/include" />
+    </sourceRoots>
+    <excludeRoots>
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/buildtools" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/configure-support" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/hotspot/variant-server/buildtools" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/hotspot/variant-server/libjvm" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/hotspot/variant-server/support" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/hotspot/variant-server/tools" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/jdk" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/jdk/modules" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/make-support" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/gensrc" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/headers" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/jrtfs_classes" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/modules_conf" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/modules_legal" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/modules_libs" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/native" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/rmic" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/src" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/src-rev" />
+      <file path="$PROJECT_DIR$/../../../build/linux-x86_64-normal-server-slowdebug/support/symbols" />
+    </excludeRoots>
+  </component>
+  <component name="JavaScriptSettings">
+    <option name="languageLevel" value="ES6" />
+  </component>
+</project>
