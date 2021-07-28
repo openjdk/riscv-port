@@ -6,7 +6,7 @@ local run_test_spec = "test/hotspot/jtreg/compiler/jvmci";
 local labsjdk_builder_version = "deb287745d1aaec85f962e13e950ea03e6038b54";
 
 {
-    overlay: "b1131ae4cf023d296bafb29b3c8eef692da958d1",
+    overlay: "de70fec80b4947d9ef25c39e059b01ef38dfc387",
     specVersion: "2",
 
     OSBase:: {
@@ -78,7 +78,7 @@ local labsjdk_builder_version = "deb287745d1aaec85f962e13e950ea03e6038b54";
         os:: "darwin",
         name+: "-darwin",
         # JDK 17 switched to Xcode 12.4 which requires 10.15.4
-        # at a minimum (GR-32429)
+        # at a minimum (GR-32439)
         capabilities+: ["darwin_catalina_7"]
     },
 
