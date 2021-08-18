@@ -3,10 +3,10 @@ local defs = import "defs.jsonnet";
 # https://github.com/graalvm/labs-openjdk-17/blob/master/doc/testing.md
 local run_test_spec = "test/hotspot/jtreg/compiler/jvmci";
 
-local labsjdk_builder_version = "deb287745d1aaec85f962e13e950ea03e6038b54";
+local labsjdk_builder_version = "0ae6a84d4d7c9a103f696bffbb2ac807575ab28c";
 
 {
-    overlay: "b1131ae4cf023d296bafb29b3c8eef692da958d1",
+    overlay: "de70fec80b4947d9ef25c39e059b01ef38dfc387",
     specVersion: "2",
 
     OSBase:: {
@@ -53,19 +53,28 @@ local labsjdk_builder_version = "deb287745d1aaec85f962e13e950ea03e6038b54";
             image: defs.linux_docker_image_amd64_musl
         },
     },
-    LinuxAMD64:: self.Linux + self.AMD64{
+
+    LinuxAMD64(for_jdk_build):: self.Linux + self.AMD64 {
         docker: {
-            image: defs.linux_docker_image_amd64
+            image: defs.linux_docker_image_amd64,
+            mount_modules: !for_jdk_build # needed for installing the devtoolset package below
         },
-        packages : {
+        packages : if for_jdk_build then {
             # devkit_platform_revisions in make/conf/jib-profiles.js
             "devkit:gcc10.3.0-OL6.4+1" : "==0"
+        } else {
+            # When building/testing GraalVM, do not use a devkit as it is known not to
+            # work well when dynamically linking libstdc++.
+            devtoolset: "==7"
         },
     },
-    LinuxAArch64:: self.Linux + self.AArch64 {
-        packages : {
+    LinuxAArch64(for_jdk_build):: self.Linux + self.AArch64 {
+        packages : if for_jdk_build then {
             # devkit_platform_revisions in make/conf/jib-profiles.js
             "devkit:gcc10.3.0-OL7.6+1" : "==0"
+        } else {
+            # See GR-26071 as well as comment in self.LinuxAMD64
+            devtoolset: "==7"
         },
     },
     Darwin:: self.OSBase + {
@@ -78,7 +87,7 @@ local labsjdk_builder_version = "deb287745d1aaec85f962e13e950ea03e6038b54";
         os:: "darwin",
         name+: "-darwin",
         # JDK 17 switched to Xcode 12.4 which requires 10.15.4
-        # at a minimum (GR-32429)
+        # at a minimum (GR-32439)
         capabilities+: ["darwin_catalina_7"]
     },
 
@@ -364,18 +373,16 @@ local labsjdk_builder_version = "deb287745d1aaec85f962e13e950ea03e6038b54";
     },
 
     local build_confs = [
-        self.LinuxAMD64,
-        self.LinuxAArch64,
+        self.LinuxAMD64(true),
+        self.LinuxAArch64(true),
         self.Darwin + self.AMD64,
         self.Windows + self.AMD64
     ],
 
     local graal_confs = [
-        self.LinuxAMD64,
+        self.LinuxAMD64(false),
+        self.LinuxAArch64(false),
         self.Darwin + self.AMD64,
-
-        # Cannot use devkit (GR-26071)
-        self.Linux + self.AArch64,
     ],
 
     local amd64_musl_confs = [
