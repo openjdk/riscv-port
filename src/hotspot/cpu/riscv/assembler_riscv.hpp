@@ -255,6 +255,7 @@ class InternalAddress: public Address {
 
 class Assembler : public AbstractAssembler {
 public:
+  #include "assembler_riscv_c.hpp"
 
   enum { instruction_size = 4 };
 
@@ -2000,7 +2001,7 @@ enum Nf {
   // zero extend word
   void zext_w(Register Rd, Register Rs);
 
-  Assembler(CodeBuffer* code) : AbstractAssembler(code) {
+  Assembler(CodeBuffer* code) : AbstractAssembler(code), _in_compressible_region(false) {
   }
 
   // Stack overflow checking
@@ -2021,7 +2022,5 @@ enum Nf {
   virtual ~Assembler() {}
 
 };
-
-class BiasedLockingCounters;
 
 #endif // CPU_RISCV_ASSEMBLER_RISCV_HPP

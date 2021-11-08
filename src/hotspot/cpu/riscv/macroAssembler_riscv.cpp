@@ -1308,7 +1308,10 @@ int MacroAssembler::pd_patch_instruction_size(address branch, address target) {
     int64_t imm = (intptr_t)target;
     return patch_imm_in_li32(branch, (int32_t)imm);
   } else {
-    tty->print_cr("pd_patch_instruction_size: instruction 0x%x could not be patched!\n", *(unsigned*)branch);
+#ifdef ASSERT
+    tty->print_cr("pd_patch_instruction_size: instruction 0x%x at " INTPTR_FORMAT " could not be patched!\n", *(unsigned*)branch, p2i(branch));
+    Disassembler::decode(branch - 10, branch + 10);
+#endif
     ShouldNotReachHere();
   }
   return -1;

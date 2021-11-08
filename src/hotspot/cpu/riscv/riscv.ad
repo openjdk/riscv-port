@@ -1156,14 +1156,13 @@ bool needs_acquiring_load_reserved(const Node *n)
 
 int MachCallStaticJavaNode::ret_addr_offset()
 {
-  // call should be a simple jal
-  int off = 4;
-  return off;
+  // jal
+  return 1 * NativeInstruction::instruction_size;
 }
 
 int MachCallDynamicJavaNode::ret_addr_offset()
 {
-  return 28; // movptr, jal
+  return 7 * NativeInstruction::instruction_size; // movptr, jal
 }
 
 int MachCallRuntimeNode::ret_addr_offset() {
@@ -1171,13 +1170,13 @@ int MachCallRuntimeNode::ret_addr_offset() {
   //   jal(addr)
   // or with far branches
   //   jal(trampoline_stub)
-  // for real runtime callouts it will be five instructions
+  // for real runtime callouts it will be 11 instructions
   // see riscv64_enc_java_to_runtime
-  //   la(t1, retaddr)
-  //   la(t0, RuntimeAddress(addr))
-  //   addi(sp, sp, -2 * wordSize)
-  //   sd(t1, Address(sp, wordSize))
-  //   jalr(t0)
+  //   la(t1, retaddr)                ->  auipc + addi
+  //   la(t0, RuntimeAddress(addr))   ->  lui + addi + slli + addi + slli + addi
+  //   addi(sp, sp, -2 * wordSize)    ->  addi
+  //   sd(t1, Address(sp, wordSize))  ->  sd
+  //   jalr(t0)                       ->  jalr
   CodeBlob *cb = CodeCache::find_blob(_entry_point);
   if (cb != NULL) {
     return 1 * NativeInstruction::instruction_size;
