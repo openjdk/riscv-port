@@ -2328,6 +2328,13 @@ void MacroAssembler::cmpxchg_narrow_value(Register addr, Register expected,
 
     bind(fail);
     srl(result, tmp, shift);
+
+    if (size == int8) {
+      sign_ext(result, result, registerSize - 8);
+    } else {
+      // size == int16 case
+      sign_ext(result, result, registerSize - 16);
+    }
   }
 }
 
