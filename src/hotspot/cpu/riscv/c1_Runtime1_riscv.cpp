@@ -260,7 +260,7 @@ static OopMap* generate_oop_map(StubAssembler* sasm, bool save_fpu_registers) {
 
   // cpu_regs, caller save registers only, see FrameMap::initialize
   // in c1_FrameMap_riscv64.cpp for detail.
-  const static Register caller_save_cpu_regs[FrameMap::max_nof_caller_save_cpu_regs] = {x3, x7, x10, x11, x12,
+  const static Register caller_save_cpu_regs[FrameMap::max_nof_caller_save_cpu_regs] = {x7, x10, x11, x12,
                                                                                         x13, x14, x15, x16, x17,
                                                                                         x28,  x29, x30, x31};
   for (int i = 0; i < FrameMap::max_nof_caller_save_cpu_regs; i++) {
