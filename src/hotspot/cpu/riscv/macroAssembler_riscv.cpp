@@ -2479,7 +2479,7 @@ void MacroAssembler::atomic_incw(Register counter_addr, Register tmp) {
   lr_w(tmp, counter_addr);
   addw(tmp, tmp, 1);
   // if we store+flush with no intervening write tmp wil be zero
-  sc_w(tmp, counter_addr, tmp);
+  sc_w(tmp, tmp, counter_addr);
   bnez(tmp, retry_load);
 }
 
