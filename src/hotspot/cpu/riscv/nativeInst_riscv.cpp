@@ -147,8 +147,12 @@ void NativeCall::set_destination_mt_safe(address dest, bool assert_lock) {
   }
 
   // Patch the call.
-  guarantee(trampoline_stub_addr != NULL, "we need a trampoline");
-  set_destination(trampoline_stub_addr);
+  if (Assembler::reachable_from_branch_at(addr_call, dest)) {
+    set_destination(dest);
+  } else {
+    assert (trampoline_stub_addr != NULL, "we need a trampoline");
+    set_destination(trampoline_stub_addr);
+  }
 
   ICache::invalidate_range(addr_call, instruction_size);
 }
