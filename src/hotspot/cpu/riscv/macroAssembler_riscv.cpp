@@ -1118,18 +1118,19 @@ void MacroAssembler::pop_call_clobbered_registers_except(RegSet exclude) {
   pop_reg(RegSet::of(x7) + RegSet::range(x10, x17) + RegSet::range(x28, x31) - exclude, sp);
 }
 
-// Push all the integer registers, except zr(x0) & sp(x2).
+// Push all the integer registers, except zr(x0) & sp(x2) & gp(x3) & tp(x4).
 void MacroAssembler::pusha() {
-  push_reg(0xfffffffa, sp);
+  push_reg(0xffffffe2, sp);
 }
 
+// Pop all the integer registers, except zr(x0) & sp(x2) & gp(x3) & tp(x4).
 void MacroAssembler::popa() {
-  pop_reg(0xfffffffa, sp);
+  pop_reg(0xffffffe2, sp);
 }
 
 void MacroAssembler::push_CPU_state(bool save_vectors, int vector_size_in_bytes) {
-  // integer registers, except zr(x0) & ra(x1) & sp(x2)
-  push_reg(0xfffffff8, sp);
+  // integer registers, except zr(x0) & ra(x1) & sp(x2) & gp(x3) & tp(x4)
+  push_reg(0xffffffe0, sp);
 
   // float registers
   addi(sp, sp, - 32 * wordSize);
@@ -1164,8 +1165,8 @@ void MacroAssembler::pop_CPU_state(bool restore_vectors, int vector_size_in_byte
   }
   addi(sp, sp, 32 * wordSize);
 
-  // integer registers, except zr(x0) & ra(x1) & sp(x2)
-  pop_reg(0xfffffff8, sp);
+  // integer registers, except zr(x0) & ra(x1) & sp(x2) & gp(x3) & tp(x4)
+  pop_reg(0xffffffe0, sp);
 }
 
 static int patch_offset_in_jal(address branch, int64_t offset) {
