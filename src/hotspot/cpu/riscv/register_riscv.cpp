@@ -39,7 +39,7 @@ const int ConcreteRegisterImpl::max_vpr =
 
 const char* RegisterImpl::name() const {
   const char* names[number_of_registers] = {
-    "zr", "ra", "sp", "gp", "tp", "lr", "x6", "x7", "fp", "x9",
+    "zr", "ra", "sp", "gp", "tp", "x5", "x6", "x7", "fp", "x9",
     "c_rarg0", "c_rarg1", "c_rarg2", "c_rarg3", "c_rarg4", "c_rarg5", "c_rarg6", "c_rarg7",
     "x18", "x19", "esp", "xdispatch", "xbcp", "xthread", "xlocals",
     "xmonitors", "xcpool", "xheapbase", "x28", "x29", "x30", "xmethod"
