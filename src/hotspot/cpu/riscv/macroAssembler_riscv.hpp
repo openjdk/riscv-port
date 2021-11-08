@@ -136,7 +136,7 @@ class MacroAssembler: public Assembler {
   void super_call_VM_leaf(address entry_point, Register arg_0, Register arg_1, Register arg_2, Register arg_3);
 
   // last Java Frame (fills frame anchor)
-  void set_last_Java_frame(Register last_java_sp, Register last_java_fp, address last_java_pc, Register temp);
+  void set_last_Java_frame(Register last_java_sp, Register last_java_fp, address last_java_pc, Register temp, bool compressible = true);
   void set_last_Java_frame(Register last_java_sp, Register last_java_fp, Label &last_java_pc, Register temp);
   void set_last_Java_frame(Register last_java_sp, Register last_java_fp, Register last_java_pc,Register temp);
 
@@ -357,13 +357,13 @@ class MacroAssembler: public Assembler {
   }
 
   // prints msg, dumps registers and stops execution
-  void stop(const char* msg);
+  void stop(const char* msg, bool compressible = true);
 
   static void debug64(char* msg, int64_t pc, int64_t regs[]);
 
   void unimplemented(const char* what = "");
 
-  void should_not_reach_here() { stop("should not reach here"); }
+  void should_not_reach_here(bool compressible = true) { stop("should not reach here", compressible); }
 
   static address target_addr_for_insn(address insn_addr);
 
@@ -398,6 +398,7 @@ class MacroAssembler: public Assembler {
  public:
   // Standard pseudoinstruction
   void nop();
+  void nop_nc();
   void mv(Register Rd, Register Rs) ;
   void notr(Register Rd, Register Rs);
   void neg(Register Rd, Register Rs);
@@ -444,13 +445,13 @@ class MacroAssembler: public Assembler {
   void fsflagsi(unsigned imm);
 
   void beqz(Register Rs, const address &dest);
+  void bnez(Register Rs, const address &dest);
   void blez(Register Rs, const address &dest);
   void bgez(Register Rs, const address &dest);
   void bltz(Register Rs, const address &dest);
   void bgtz(Register Rs, const address &dest);
-  void bnez(Register Rs, const address &dest);
   void la(Register Rd, Label &label);
-  void la(Register Rd, const address &dest);
+  void la(Register Rd, const address &dest, bool compressible = true);
   void la(Register Rd, const Address &adr);
   //label
   void beqz(Register Rs, Label &l, bool is_far = false);
@@ -471,6 +472,12 @@ class MacroAssembler: public Assembler {
   void double_bge(FloatRegister Rs1, FloatRegister Rs2, Label &l, bool is_far = false, bool is_unordered = false);
   void double_blt(FloatRegister Rs1, FloatRegister Rs2, Label &l, bool is_far = false, bool is_unordered = false);
   void double_bgt(FloatRegister Rs1, FloatRegister Rs2, Label &l, bool is_far = false, bool is_unordered = false);
+
+  // C-Ext: incompressible version
+  void beqz_nc(Register Rs, const address &dest);
+  void bnez_nc(Register Rs, const address &dest);
+  void beqz_nc(Register Rs, Label &l, bool is_far = false);
+  void bnez_nc(Register Rs, Label &l, bool is_far = false);
 
   void push_reg(RegSet regs, Register stack) { if (regs.bits()) { push_reg(regs.bits(), stack); } }
   void pop_reg(RegSet regs, Register stack) { if (regs.bits()) { pop_reg(regs.bits(), stack); } }
@@ -612,6 +619,12 @@ class MacroAssembler: public Assembler {
 
   void la_patchable(Register reg1, const Address &dest, int32_t &offset);
 
+  // Note: programmers should use these functions
+  //       if wanting to write the same logic - to prevent from misuse.
+  void ld_patchable(Register Rd, const Address &dest, Register tmp);
+  void addi_patchable(Register Rd, const Address &dest, Register tmp);
+  void jalr_patchable(Register Rd, const Address &dest, Register tmp);
+
   virtual void _call_Unimplemented(address call_site) {
     mv(t1, call_site);
   }
@@ -633,7 +646,7 @@ class MacroAssembler: public Assembler {
   void build_frame(int framesize);
   void remove_frame(int framesize);
 
-  void reserved_stack_check();
+  void reserved_stack_check(bool compressible = true);
 
   void get_polling_page(Register dest, relocInfo::relocType rtype);
   address read_polling_page(Register r, int32_t offset, relocInfo::relocType rtype);
@@ -788,11 +801,9 @@ private:
 
   void ld_constant(Register dest, const Address &const_addr) {
     if (NearCpool) {
-      ld(dest, const_addr);
+      ld_nc(dest, const_addr);
     } else {
-      int32_t offset = 0;
-      la_patchable(dest, InternalAddress(const_addr.target()), offset);
-      ld(dest, Address(dest, offset));
+      ld_patchable(dest, InternalAddress(const_addr.target()), dest);
     }
   }
 

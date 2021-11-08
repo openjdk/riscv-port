@@ -40,7 +40,7 @@ void LIR_Assembler::patching_epilog(PatchingStub* patch, LIR_PatchCode patch_cod
   // We must have enough patching space so that call can be inserted.
   // We cannot use fat nops here, since the concurrent code rewrite may transiently
   // create the illegal instruction sequence.
-  while ((intx) _masm->pc() - (intx) patch->pc_start() < NativeGeneralJump::instruction_size) {
+  while ((intx) _masm->pc() - (intx) patch->pc_start() < NOT_RISCV(NativeGeneralJump::instruction_size) RISCV_ONLY(NativeGeneralJump::get_instruction_size()) ) {
     _masm->nop();
   }
   patch->install(_masm, patch_code, obj, info);

@@ -34,6 +34,7 @@
 #include "memory/resourceArea.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/sharedRuntime.hpp"
+#include "nativeInst_riscv.hpp"
 
 int AbstractAssembler::code_fill_byte() {
   return 0;
@@ -80,6 +81,11 @@ void Assembler::subw(Register Rd, Register Rn, int64_t decrement, Register temp)
 }
 
 void Assembler::li(Register Rd, int64_t imm) {
+  if (UseRVC && is_imm_in_range(imm, 6, 0) && Rd != x0) {
+    li_c(Rd, imm);
+    return;
+  }
+
   // int64_t is in range 0x8000 0000 0000 0000 ~ 0x7fff ffff ffff ffff
   int shift = 12;
   int64_t upper = imm, lower = imm;
@@ -124,18 +130,18 @@ void Assembler::li64(Register Rd, int64_t imm) {
    lo = (lo << 52) >> 52;
    up -= lo;
    up = (int32_t)up;
-   lui(Rd, up);
-   addi(Rd, Rd, lo);
+   lui_nc(Rd, up);
+   addi_nc(Rd, Rd, lo);
 
    // Load the rest 32 bits.
    slli(Rd, Rd, 12);
-   addi(Rd, Rd, (int32_t)lower >> 20);
+   addi_nc(Rd, Rd, (int32_t)lower >> 20);
    slli(Rd, Rd, 12);
    lower = ((int32_t)imm << 12) >> 20;
-   addi(Rd, Rd, lower);
+   addi_nc(Rd, Rd, lower);
    slli(Rd, Rd, 8);
    lower = imm & 0xff;
-   addi(Rd, Rd, lower);
+   addi_nc(Rd, Rd, lower);
 }
 
 void Assembler::li32(Register Rd, int32_t imm) {
@@ -145,40 +151,48 @@ void Assembler::li32(Register Rd, int32_t imm) {
   upper -= lower;
   upper = (int32_t)upper;
   // lui Rd, imm[31:12] + imm[11]
-  lui(Rd, upper);
+  lui_nc(Rd, upper);
   // use addiw to distinguish li32 to li64
-  addiw(Rd, Rd, lower);
+  addiw_nc(Rd, Rd, lower);
 }
 
-#define INSN(NAME, REGISTER)                                       \
+#define INSN(NAME, REGISTER, C)                                    \
   void Assembler::NAME(const address &dest, Register temp) {       \
     assert_cond(dest != NULL);                                     \
     int64_t distance = dest - pc();                                \
     if (is_imm_in_range(distance, 20, 1)) {                        \
-      jal(REGISTER, distance);                                     \
+      EMIT_MAY_COMPRESS_NAME(C, jal, (REGISTER, distance));        \
     } else {                                                       \
       assert(temp != noreg, "temp must not be empty register!");   \
       int32_t offset = 0;                                          \
-      movptr_with_offset(temp, dest, offset);                      \
-      jalr(REGISTER, temp, offset);                                \
+      movptr_with_offset(temp, dest, offset, C);                   \
+      EMIT_MAY_COMPRESS_NAME(C, jalr, (REGISTER, temp, offset));   \
     }                                                              \
   }                                                                \
   void Assembler::NAME(Label &l, Register temp) {                  \
-    jal(REGISTER, l, temp);                                        \
+    EMIT_MAY_COMPRESS_NAME(C, jal, (REGISTER, l, temp));           \
   }                                                                \
 
-  INSN(j,   x0);
-  INSN(jal, x1);
+  INSN(j,      x0, COMPRESSIBLE);
+  INSN(jal,    x1, COMPRESSIBLE);
+
+  // C-Ext: incompressible version
+  INSN(j_nc,   x0, NOT_COMPRESSIBLE);
+  INSN(jal_nc, x1, NOT_COMPRESSIBLE);
 
 #undef INSN
 
-#define INSN(NAME, REGISTER)                                       \
+#define INSN(NAME, REGISTER, C)                                    \
   void Assembler::NAME(Register Rs) {                              \
-    jalr(REGISTER, Rs, 0);                                         \
+    EMIT_MAY_COMPRESS_NAME(C, jalr, (REGISTER, Rs, 0));            \
   }
 
-  INSN(jr,   x0);
-  INSN(jalr, x1);
+  INSN(jr,      x0, COMPRESSIBLE);
+  INSN(jalr,    x1, COMPRESSIBLE);
+
+  // C-Ext: incompressible version
+  INSN(jr_nc,   x0, NOT_COMPRESSIBLE);
+  INSN(jalr_nc, x1, NOT_COMPRESSIBLE);
 
 #undef INSN
 
@@ -186,32 +200,36 @@ void Assembler::ret() {
   jalr(x0, x1, 0);
 }
 
-#define INSN(NAME, REGISTER)                                      \
-  void Assembler::NAME(const address &dest, Register temp) {      \
-    assert_cond(dest != NULL);                                    \
-    assert(temp != noreg, "temp must not be empty register!");    \
-    int64_t distance = dest - pc();                               \
-    if (is_offset_in_range(distance, 32)) {                       \
-      auipc(temp, distance + 0x800);                              \
-      jalr(REGISTER, temp, ((int32_t)distance << 20) >> 20);      \
-    } else {                                                      \
-      int32_t offset = 0;                                         \
-      movptr_with_offset(temp, dest, offset);                     \
-      jalr(REGISTER, temp, offset);                               \
-    }                                                             \
+#define INSN(NAME, REGISTER, C)                                                             \
+  void Assembler::NAME(const address &dest, Register temp) {                                \
+    assert_cond(dest != NULL);                                                              \
+    assert(temp != noreg, "temp must not be empty register!");                              \
+    int64_t distance = dest - pc();                                                         \
+    if (is_offset_in_range(distance, 32)) {                                                 \
+      auipc(temp, distance + 0x800);                                                        \
+      EMIT_MAY_COMPRESS_NAME(C, jalr, (REGISTER, temp, ((int32_t)distance << 20) >> 20));   \
+    } else {                                                                                \
+      int32_t offset = 0;                                                                   \
+      movptr_with_offset(temp, dest, offset, C);                                            \
+      EMIT_MAY_COMPRESS_NAME(C, jalr, (REGISTER, temp, offset));                            \
+    }                                                                                       \
   }
 
-  INSN(call, x1);
-  INSN(tail, x0);
+  INSN(call,    x1, COMPRESSIBLE);
+  INSN(tail,    x0, COMPRESSIBLE);
+
+  // C-Ext: incompressible version
+  INSN(call_nc, x1, NOT_COMPRESSIBLE);
+  INSN(tail_nc, x0, NOT_COMPRESSIBLE);
 
 #undef INSN
 
-#define INSN(NAME, REGISTER)                                   \
+#define INSN(NAME, REGISTER, NAME_NC)                          \
   void Assembler::NAME(const Address &adr, Register temp) {    \
     switch(adr.getMode()) {                                    \
       case Address::literal: {                                 \
         code_section()->relocate(pc(), adr.rspec());           \
-        NAME(adr.target(), temp);                              \
+        NAME_NC(adr.target(), temp);                           \
         break;                                                 \
       }                                                        \
       case Address::base_plus_offset:{                         \
@@ -225,10 +243,14 @@ void Assembler::ret() {
     }                                                          \
   }
 
-  INSN(j,    x0);
-  INSN(jal,  x1);
-  INSN(call, x1);
-  INSN(tail, x0);
+  INSN(j,      x0, j_nc);
+  INSN(jal,    x1, jal_nc);
+  INSN(call,   x1, call_nc);
+  INSN(tail,   x0, tail_nc);
+
+  // C-Ext: incompressible version
+  INSN(j_nc,   x0, j_nc);
+  INSN(jal_nc, x1, jal_nc);
 
 #undef INSN
 
@@ -237,7 +259,7 @@ void Assembler::wrap_label(Register r1, Register r2, Label &L, compare_and_branc
   if (is_far) {
     Label done;
     (this->*neg_insn)(r1, r2, done, /* is_far */ false);
-    j(L);
+    j_nc(L);
     bind(done);
   } else {
     if (L.is_bound()) {
@@ -267,7 +289,25 @@ void Assembler::wrap_label(Register Rt, Label &L, jal_jalr_insn insn) {
   }
 }
 
-void Assembler::movptr_with_offset(Register Rd, address addr, int32_t &offset) {
+void Assembler::wrap_label(Label &L, j_c_insn insn) {
+  if (L.is_bound()) {
+    (this->*insn)(target(L));
+  } else {
+    L.add_patch_at(code(), locator());
+    (this->*insn)(pc());
+  }
+}
+
+void Assembler::wrap_label(Label &L, Register r, compare_and_branch_c_insn insn) {
+  if (L.is_bound()) {
+    (this->*insn)(r, target(L));
+  } else {
+    L.add_patch_at(code(), locator());
+    (this->*insn)(r, pc());
+  }
+}
+
+void Assembler::movptr_with_offset(Register Rd, address addr, int32_t &offset, bool compressible) {
   uintptr_t imm64 = (uintptr_t)addr;
 #ifndef PRODUCT
   {
@@ -283,26 +323,26 @@ void Assembler::movptr_with_offset(Register Rd, address addr, int32_t &offset) {
   lower = (lower << 52) >> 52;
   upper -= lower;
   upper = (int32_t)upper;
-  lui(Rd, upper);
-  addi(Rd, Rd, lower);
+  EMIT_MAY_COMPRESS_INST(compressible, lui, (Rd, upper));
+  EMIT_MAY_COMPRESS_INST(compressible, addi, (Rd, Rd, lower));
 
   // Load the rest 16 bits.
   slli(Rd, Rd, 11);
-  addi(Rd, Rd, (imm64 >> 5) & 0x7ff);
+  EMIT_MAY_COMPRESS_INST(compressible, addi, (Rd, Rd, (imm64 >> 5) & 0x7ff));
   slli(Rd, Rd, 5);
 
   // Here, remove the addi instruct and return the offset directly. This offset will be used by following jalr/ld.
   offset = imm64 & 0x1f;
 }
 
-void Assembler::movptr(Register Rd, uintptr_t imm64) {
-  movptr(Rd, (address)imm64);
+void Assembler::movptr(Register Rd, uintptr_t imm64, bool compressible) {
+  movptr(Rd, (address)imm64, compressible);
 }
 
-void Assembler::movptr(Register Rd, address addr) {
+void Assembler::movptr(Register Rd, address addr, bool compressible) {
   int offset = 0;
-  movptr_with_offset(Rd, addr, offset);
-  addi(Rd, Rd, offset);
+  movptr_with_offset(Rd, addr, offset, compressible);
+  EMIT_MAY_COMPRESS_INST(compressible, addi, (Rd, Rd, offset));
 }
 
 void Assembler::ifence() {

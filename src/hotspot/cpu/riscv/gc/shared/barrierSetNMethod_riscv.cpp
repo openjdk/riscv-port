@@ -36,11 +36,21 @@
 #include "utilities/debug.hpp"
 
 class NativeNMethodBarrier: public NativeInstruction {
+public:
+  enum {
+    total_normal_guard_offset     = 12 * instruction_size,
+    total_compressed_guard_offset = 10 * instruction_size + 2 * compressed_instruction_size,
+
+    total_normal_size             = total_normal_guard_offset + 4,
+    total_compressed_size         = total_compressed_guard_offset + 4,
+  };
+
+private:
   address instruction_address() const { return addr_at(0); }
 
   int *guard_addr() {
-    /* auipc + lwu + fence + lwu + beq + lui + addi + slli + addi + slli + jalr + j */
-    return reinterpret_cast<int*>(instruction_address() + 12 * 4);
+    /* auipc + lwu + fence + lwu + beq + lui + addi + (C)slli + addi + (C)slli + jalr + j */
+    return reinterpret_cast<int*>(instruction_address() + guard_offset());
   }
 
 public:
@@ -53,28 +63,55 @@ public:
   }
 
   void verify() const;
+
+  static int guard_offset() {
+    return UseRVC ? total_compressed_guard_offset : total_normal_guard_offset;
+  }
 };
+
+int nmethod_barrier_guard_offset() {
+  return NativeNMethodBarrier::guard_offset();
+}
 
 // Store the instruction bitmask, bits and name for checking the barrier.
 struct CheckInsn {
   uint32_t mask;
   uint32_t bits;
   const char *name;
+  int instruction_size;
 };
 
 static const struct CheckInsn barrierInsn[] = {
-  { 0x00000fff, 0x00000297, "auipc  t0, 0           "},
-  { 0x000fffff, 0x0002e283, "lwu    t0, 48(t0)      "},
-  { 0xffffffff, 0x0aa0000f, "fence  ir, ir          "},
-  { 0x000fffff, 0x000be303, "lwu    t1, 112(xthread)"},
-  { 0x01fff07f, 0x00628063, "beq    t0, t1, skip    "},
-  { 0x00000fff, 0x000002b7, "lui    t0, imm0        "},
-  { 0x000fffff, 0x00028293, "addi   t0, t0, imm1    "},
-  { 0xffffffff, 0x00b29293, "slli   t0, t0, 11      "},
-  { 0x000fffff, 0x00028293, "addi   t0, t0, imm2    "},
-  { 0xffffffff, 0x00529293, "slli   t0, t0, 5       "},
-  { 0x000fffff, 0x000280e7, "jalr   ra, imm3(t0)    "},
-  { 0x00000fff, 0x0000006f, "j      skip            "}
+  { 0x00000fff, 0x00000297, "auipc  t0, 0           ", NativeInstruction::instruction_size},
+  { 0x000fffff, 0x0002e283, "lwu    t0, 48(t0)      ", NativeInstruction::instruction_size},
+  { 0xffffffff, 0x0aa0000f, "fence  ir, ir          ", NativeInstruction::instruction_size},
+  { 0x000fffff, 0x000be303, "lwu    t1, 36(xthread) ", NativeInstruction::instruction_size},
+  { 0x01fff07f, 0x00628063, "beq    t0, t1, skip    ", NativeInstruction::instruction_size},
+  { 0x00000fff, 0x000002b7, "lui    t0, imm0        ", NativeInstruction::instruction_size},
+  { 0x000fffff, 0x00028293, "addi   t0, t0, imm1    ", NativeInstruction::instruction_size},
+  { 0xffffffff, 0x00b29293, "slli   t0, t0, 11      ", NativeInstruction::instruction_size},
+  { 0x000fffff, 0x00028293, "addi   t0, t0, imm2    ", NativeInstruction::instruction_size},
+  { 0xffffffff, 0x00529293, "slli   t0, t0, 5       ", NativeInstruction::instruction_size},
+  { 0x000fffff, 0x000280e7, "jalr   ra, imm3(t0)    ", NativeInstruction::instruction_size},
+  { 0x00000fff, 0x0000006f, "j      skip            ", NativeInstruction::instruction_size}
+  /* guard: */
+  /* 32bit nmethod guard value */
+  /* skip: */
+};
+
+static const struct CheckInsn barrierCInsn[] = {
+  { 0x00000fff, 0x00000297, "auipc  t0, 0           ", NativeInstruction::instruction_size},
+  { 0x000fffff, 0x0002e283, "lwu    t0, 44(t0)      ", NativeInstruction::instruction_size},
+  { 0xffffffff, 0x0aa0000f, "fence  ir, ir          ", NativeInstruction::instruction_size},
+  { 0x000fffff, 0x000be303, "lwu    t1, 36(xthread) ", NativeInstruction::instruction_size},
+  { 0x01fff07f, 0x00628063, "beq    t0, t1, skip    ", NativeInstruction::instruction_size},
+  { 0x00000fff, 0x000002b7, "lui    t0, imm0        ", NativeInstruction::instruction_size},
+  { 0x000fffff, 0x00028293, "addi   t0, t0, imm1    ", NativeInstruction::instruction_size},
+  { 0x00000fff, 0x02ae,     "c.slli t0, t0, 11      ", NativeInstruction::compressed_instruction_size},
+  { 0x000fffff, 0x00028293, "addi   t0, t0, imm2    ", NativeInstruction::instruction_size},
+  { 0x0000ffff, 0x0296,     "c.slli t0, t0, 5       ", NativeInstruction::compressed_instruction_size},
+  { 0x000fffff, 0x000280e7, "jalr   ra, imm3(t0)    ", NativeInstruction::instruction_size},
+  { 0x00000fff, 0x0000006f, "j      skip            ", NativeInstruction::instruction_size}
   /* guard: */
   /* 32bit nmethod guard value */
   /* skip: */
@@ -85,13 +122,22 @@ static const struct CheckInsn barrierInsn[] = {
 // register numbers and immediate values in the encoding.
 void NativeNMethodBarrier::verify() const {
   intptr_t addr = (intptr_t) instruction_address();
-  for(unsigned int i = 0; i < sizeof(barrierInsn)/sizeof(struct CheckInsn); i++ ) {
-    uint32_t inst = *((uint32_t*) addr);
-    if ((inst & barrierInsn[i].mask) != barrierInsn[i].bits) {
+  const struct CheckInsn *insns;
+  size_t size;
+  if (!UseRVC) {
+    insns = barrierInsn;
+    size = sizeof(barrierInsn) / sizeof(struct CheckInsn);
+  } else {
+    insns = barrierCInsn;
+    size = sizeof(barrierCInsn) / sizeof(struct CheckInsn);
+  }
+  for(unsigned int i = 0; i < size; i++ ) {
+    uint32_t inst = insns[i].instruction_size == NativeInstruction::compressed_instruction_size ? *((uint16_t*) addr) : *((uint32_t*) addr);
+    if ((inst & insns[i].mask) != insns[i].bits) {
       tty->print_cr("Addr: " INTPTR_FORMAT " Code: 0x%x", addr, inst);
-      fatal("not an %s instruction.", barrierInsn[i].name);
+      fatal("not an %s instruction.", insns[i].name);
     }
-    addr += 4;
+    addr += insns[i].instruction_size;
   }
 }
 
@@ -141,10 +187,15 @@ void BarrierSetNMethod::deoptimize(nmethod* nm, address* return_address_ptr) {
 
 // see BarrierSetAssembler::nmethod_entry_barrier
 // auipc + lwu + fence + lwu + beq + movptr_with_offset(5 instructions) + jalr + j + int32
-static const int entry_barrier_offset = -4 * 13;
+static const int entry_barrier_normal_offset = -NativeNMethodBarrier::total_normal_size;
+static const int entry_barrier_compressed_offset = -NativeNMethodBarrier::total_compressed_size;
+
+static const int entry_barrier_offset() {
+  return !UseRVC ? entry_barrier_normal_offset : entry_barrier_compressed_offset;
+}
 
 static NativeNMethodBarrier* native_nmethod_barrier(nmethod* nm) {
-  address barrier_address = nm->code_begin() + nm->frame_complete_offset() + entry_barrier_offset;
+  address barrier_address = nm->code_begin() + nm->frame_complete_offset() + entry_barrier_offset();
   NativeNMethodBarrier* barrier = reinterpret_cast<NativeNMethodBarrier*>(barrier_address);
   debug_only(barrier->verify());
   return barrier;

@@ -37,7 +37,7 @@ define_pd_global(bool, TrapBasedNullChecks,      false);
 define_pd_global(bool, UncommonNullCast,         true);  // Uncommon-trap NULLs past to check cast
 
 define_pd_global(uintx, CodeCacheSegmentSize,    64 COMPILER1_AND_COMPILER2_PRESENT(+64)); // Tiered compilation has large code-entry alignment.
-define_pd_global(intx, CodeEntryAlignment,       64);
+define_pd_global(intx, CodeEntryAlignment,       16);
 define_pd_global(intx, OptoLoopAlignment,        16);
 
 #define DEFAULT_STACK_YELLOW_PAGES (2)
@@ -90,6 +90,7 @@ define_pd_global(intx, InlineSmallCode,          1000);
           "Extend fence.i to fence.i + fence.")                                  \
   product(bool, AvoidUnalignedAccesses, true,                                    \
           "Avoid generating unaligned memory accesses")                          \
-  product(bool, UseRVV, false, EXPERIMENTAL, "Use RVV instructions")
+  product(bool, UseRVV, false, EXPERIMENTAL, "Use RVV instructions")             \
+  product(bool, UseRVC, true, EXPERIMENTAL, "Use RVC instructions")              \
 
 #endif // CPU_RISCV_GLOBALS_RISCV_HPP

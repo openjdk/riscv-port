@@ -82,6 +82,16 @@
   static const int double_branch_mask = 1 << bool_test_bits;
 
   // cmp
+  // C-Ext: these cmp functions remain uncompressed in C2 MachNodes' emission -
+  //   as the reason described in MachEpilogNode::emit() in PhaseOutput::scratch_emit_size()
+  //   it simulates a node's size, but for MachBranchNodes it emits a fake Label just
+  //   near the node itself - the offset is so small that in scratch emission phase it always
+  //   get compressed in our implicit compression phase - but in real world the Label may be
+  //   anywhere so it may not be compressed, so here is the mismatch: it runs shorten_branches();
+  //   but with C-Ext we may need a further, say, shorten_compressed_branches() or something.
+  //   After researching we find performance will not have much enhancement even if compressing
+  //   them and the cost is a bit big to support MachBranchNodes' compression.
+  //   So as a solution, we can simply disable the compression of MachBranchNodes.
   void cmp_branch(int cmpFlag,
                   Register op1, Register op2,
                   Label& label, bool is_far = false);

@@ -53,7 +53,8 @@ class NativeInstruction {
   friend bool is_NativeCallTrampolineStub_at(address);
  public:
   enum {
-    instruction_size = 4
+    instruction_size = 4,
+    compressed_instruction_size = 2,
   };
 
   juint encoding() const {
@@ -65,26 +66,49 @@ class NativeInstruction {
   bool is_call()                            const { return is_call_at(addr_at(0));        }
   bool is_jump()                            const { return is_jump_at(addr_at(0));        }
 
+  static bool is_compressed_instr(address instr) {
+    if ((((unsigned*)instr)[0] & 0b11) == 0b11) {
+      return false;
+    }
+    assert((((uint16_t *)instr)[0] & 0b11) != 0b11, "seems instr is not an illegal instruction beginning: 0x%x", ((unsigned*)instr)[0]);
+    return true;
+  }
+  static int instr_size(address instr) {
+    return is_compressed_instr(instr) ? compressed_instruction_size : instruction_size;
+  }
   static bool is_jal_at(address instr)        { assert_cond(instr != NULL); return Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b1101111; }
   static bool is_jalr_at(address instr)       { assert_cond(instr != NULL); return (Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b1100111 &&
-                                                Assembler::extract(((unsigned*)instr)[0], 14, 12) == 0b000); }
+                                                                                    Assembler::extract(((unsigned*)instr)[0], 14, 12) == 0b000); }
   static bool is_branch_at(address instr)     { assert_cond(instr != NULL); return Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b1100011; }
   static bool is_ld_at(address instr)         { assert_cond(instr != NULL); return (Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b0000011 &&
-                                                Assembler::extract(((unsigned*)instr)[0], 14, 12) == 0b011); }
+                                                                                    Assembler::extract(((unsigned*)instr)[0], 14, 12) == 0b011); }
   static bool is_load_at(address instr)       { assert_cond(instr != NULL); return Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b0000011; }
   static bool is_float_load_at(address instr) { assert_cond(instr != NULL); return Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b0000111; }
   static bool is_auipc_at(address instr)      { assert_cond(instr != NULL); return Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b0010111; }
   static bool is_jump_at(address instr)       { assert_cond(instr != NULL); return (is_branch_at(instr) || is_jal_at(instr) || is_jalr_at(instr)); }
   static bool is_addi_at(address instr)       { assert_cond(instr != NULL); return (Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b0010011 &&
-                                                Assembler::extract(((unsigned*)instr)[0], 14, 12) == 0b000); }
+                                                                                    Assembler::extract(((unsigned*)instr)[0], 14, 12) == 0b000); }
   static bool is_addiw_at(address instr)      { assert_cond(instr != NULL); return (Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b0011011 &&
-                                                Assembler::extract(((unsigned*)instr)[0], 14, 12) == 0b000); }
+                                                                                    Assembler::extract(((unsigned*)instr)[0], 14, 12) == 0b000); }
   static bool is_lui_at(address instr)        { assert_cond(instr != NULL); return Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b0110111; }
-  static bool is_slli_shift_at(address instr, uint32_t shift) {
+  static bool is_slli_shift_at(address instr, uint32_t shift) { int size = 0; return is_slli_shift_at(instr, shift, size); }
+  static uint16_t extract_slli_c(address instr) {
+    uint16_t low5 = Assembler::extract_c(((uint16_t*)instr)[0], 6, 2);
+    uint16_t high1 = Assembler::extract_c(((uint16_t*)instr)[0], 12, 12);
+    return (high1 << 5 | low5);
+  }
+  static bool is_slli_shift_at(address instr, uint32_t shift, int &size) {
     assert_cond(instr != NULL);
+    if (is_compressed_instr(instr)) {
+      return Assembler::extract_c(((uint16_t*)instr)[0], 15, 13) == 0b000 &&
+             Assembler::extract_c(((uint16_t*)instr)[0], 1, 0) == 0b10 &&
+             extract_slli_c(instr) == shift &&
+             (size = compressed_instruction_size);
+    }
     return (Assembler::extract(((unsigned*)instr)[0], 6, 0) == 0b0010011 && // opcode field
             Assembler::extract(((unsigned*)instr)[0], 14, 12) == 0b001 &&   // funct3 field, select the type of operation
-            Assembler::extract(((unsigned*)instr)[0], 25, 20) == shift);    // shamt field
+            Assembler::extract(((unsigned*)instr)[0], 25, 20) == shift) &&  // shamt field
+            (size = instruction_size);
   }
 
   // return true if the (index1~index2) field of instr1 is equal to (index3~index4) field of instr2, otherwise false
@@ -92,6 +116,13 @@ class NativeInstruction {
     assert_cond(instr1 != NULL && instr2 != NULL);
     return Assembler::extract(((unsigned*)instr1)[0], index1, index2) == Assembler::extract(((unsigned*)instr2)[0], index3, index4);
   }
+
+  static uint32_t extract_rs1(address instr) { int size = 0; return extract_rs1(instr, size); }
+  static uint32_t extract_rs2(address instr) { int size = 0; return extract_rs2(instr, size); }
+  static uint32_t extract_rd(address instr) { int size = 0; return extract_rd(instr, size); }
+  static uint32_t extract_rs1(address instr, int &size);
+  static uint32_t extract_rs2(address instr, int &size);
+  static uint32_t extract_rd(address instr, int &size);
 
   // the instruction sequence of movptr is as below:
   //     lui
@@ -101,15 +132,21 @@ class NativeInstruction {
   //     slli
   //     addi/jalr/load
   static bool check_movptr_data_dependency(address instr) {
-    return compare_instr_field(instr + 4, 19, 15, instr, 11, 7)       &&     // check the rs1 field of addi and the rd field of lui
-           compare_instr_field(instr + 4, 19, 15, instr + 4, 11, 7)   &&     // check the rs1 field and the rd field of addi
-           compare_instr_field(instr + 8, 19, 15, instr + 4, 11, 7)   &&     // check the rs1 field of slli and the rd field of addi
-           compare_instr_field(instr + 8, 19, 15, instr + 8, 11, 7)   &&     // check the rs1 field and the rd field of slli
-           compare_instr_field(instr + 12, 19, 15, instr + 8, 11, 7)  &&     // check the rs1 field of addi and the rd field of slli
-           compare_instr_field(instr + 12, 19, 15, instr + 12, 11, 7) &&     // check the rs1 field and the rd field of addi
-           compare_instr_field(instr + 16, 19, 15, instr + 12, 11, 7) &&     // check the rs1 field of slli and the rd field of addi
-           compare_instr_field(instr + 16, 19, 15, instr + 16, 11, 7) &&     // check the rs1 field and the rd field of slli
-           compare_instr_field(instr + 20, 19, 15, instr + 16, 11, 7);       // check the rs1 field of addi/jalr/load and the rd field of slli
+    address lui = instr;
+    address addi1 = lui + instruction_size;
+    address slli1 = addi1 + instruction_size;
+    address addi2 = slli1 + instr_size(slli1);
+    address slli2 = addi2 + instruction_size;
+    address final = slli2 + instr_size(slli2);
+    return extract_rs1(addi1) == extract_rd(lui) &&
+           extract_rs1(addi1) == extract_rd(addi1) &&
+           extract_rs1(slli1) == extract_rd(addi1) &&
+           extract_rs1(slli1) == extract_rd(slli1) &&
+           extract_rs1(addi2) == extract_rd(slli1) &&
+           extract_rs1(addi2) == extract_rd(addi2) &&
+           extract_rs1(slli2) == extract_rd(addi2) &&
+           extract_rs1(slli2) == extract_rd(slli2) &&
+           extract_rs1(final) == extract_rd(slli2);
   }
 
   // the instruction sequence of li64 is as below:
@@ -121,44 +158,61 @@ class NativeInstruction {
   //     addi
   //     slli
   //     addi
-  static bool check_li64_data_dependency(address instr) {
-    return compare_instr_field(instr + 4, 19, 15, instr, 11, 7)       &&  // check the rs1 field of addi and the rd field of lui
-           compare_instr_field(instr + 4, 19, 15, instr + 4, 11, 7)   &&  // check the rs1 field and the rd field of addi
-           compare_instr_field(instr + 8, 19, 15, instr + 4, 11, 7)   &&  // check the rs1 field of slli and the rd field of addi
-           compare_instr_field(instr + 8, 19, 15, instr + 8, 11, 7)   &&  // check the rs1 field and the rd field of slli
-           compare_instr_field(instr + 12, 19, 15, instr + 8, 11, 7)  &&  // check the rs1 field of addi and the rd field of slli
-           compare_instr_field(instr + 12, 19, 15, instr + 12, 11, 7) &&  // check the rs1 field and the rd field of addi
-           compare_instr_field(instr + 16, 19, 15, instr + 12, 11, 7) &&  // check the rs1 field of slli and the rd field of addi
-           compare_instr_field(instr + 16, 19, 15, instr + 16, 11, 7) &&  // check the rs1 field and the rd field fof slli
-           compare_instr_field(instr + 20, 19, 15, instr + 16, 11, 7) &&  // check the rs1 field of addi and the rd field of slli
-           compare_instr_field(instr + 20, 19, 15, instr + 20, 11, 7) &&  // check the rs1 field and the rd field of addi
-           compare_instr_field(instr + 24, 19, 15, instr + 20, 11, 7) &&  // check the rs1 field of slli and the rd field of addi
-           compare_instr_field(instr + 24, 19, 15, instr + 24, 11, 7) &&  // check the rs1 field and the rd field of slli
-           compare_instr_field(instr + 28, 19, 15, instr + 24, 11, 7) &&  // check the rs1 field of addi and the rd field of slli
-           compare_instr_field(instr + 28, 19, 15, instr + 28, 11, 7);    // check the rs1 field and the rd field of addi
+  static bool check_li64_data_dependency(address instr) {  // FIXME: maybe retrive back origin code because we can only optimize 'slli' here.
+    address lui = instr;
+    address addi1 = lui + instruction_size;
+    address slli1 = addi1 + instruction_size;
+    address addi2 = slli1 + instr_size(slli1);
+    address slli2 = addi2 + instruction_size;
+    address addi3 = slli2 + instr_size(slli2);
+    address slli3 = addi3 + instruction_size;
+    address addi4 = slli3 + instr_size(slli3);
+    return extract_rs1(addi1) == extract_rd(lui) &&
+           extract_rs1(addi1) == extract_rd(addi1) &&
+           extract_rs1(slli1) == extract_rd(addi1) &&
+           extract_rs1(slli1) == extract_rd(slli1) &&
+           extract_rs1(addi2) == extract_rd(slli1) &&
+           extract_rs1(addi2) == extract_rd(addi2) &&
+           extract_rs1(slli2) == extract_rd(addi2) &&
+           extract_rs1(slli2) == extract_rd(slli2) &&
+           extract_rs1(addi3) == extract_rd(slli2) &&
+           extract_rs1(addi3) == extract_rd(addi3) &&
+           extract_rs1(slli3) == extract_rd(addi3) &&
+           extract_rs1(slli3) == extract_rd(slli3) &&
+           extract_rs1(addi4) == extract_rd(slli3) &&
+           extract_rs1(addi4) == extract_rd(addi4);
   }
 
   // the instruction sequence of li32 is as below:
   //     lui
   //     addiw
   static bool check_li32_data_dependency(address instr) {
-    return compare_instr_field(instr + 4, 19, 15, instr, 11, 7) &&     // check the rs1 field of addiw and the rd field of lui
-           compare_instr_field(instr + 4, 19, 15, instr + 4, 11, 7);   // check the rs1 field and the rd field of addiw
+    address lui = instr;
+    address addiw = lui + instruction_size;
+
+    return extract_rs1(addiw) == extract_rd(lui) &&
+           extract_rs1(addiw) == extract_rd(addiw);
   }
 
   // the instruction sequence of pc-relative is as below:
   //     auipc
   //     jalr/addi/load/float_load
   static bool check_pc_relative_data_dependency(address instr) {
-    return compare_instr_field(instr, 11, 7, instr + 4, 19, 15);          // check the rd field of auipc and the rs1 field of jalr/addi/load/float_load
+    address auipc = instr;
+    address final = auipc + instruction_size;
+
+    return extract_rs1(final) == extract_rd(auipc);
   }
 
   // the instruction sequence of load_label is as below:
   //     auipc
   //     load
   static bool check_load_pc_relative_data_dependency(address instr) {
-    return compare_instr_field(instr, 11, 7, instr + 4, 11, 7) &&      // check the rd field of auipc and the rd field of load
-           compare_instr_field(instr + 4, 19, 15, instr + 4, 11, 7);   // check the rs1 field of load and the rd field of load
+    address auipc = instr;
+    address load = auipc + instruction_size;
+
+    return extract_rd(load) == extract_rd(auipc) &&
+           extract_rs1(load) == extract_rd(load);
   }
 
   static bool is_movptr_at(address instr);
@@ -168,6 +222,7 @@ class NativeInstruction {
   static bool is_load_pc_relative_at(address branch);
 
   static bool is_call_at(address instr) {
+    assert(!is_compressed_instr(instr), "we need to reserve the 4-byte instruction to handle all cases");
     if (is_jal_at(instr) || is_jalr_at(instr)) {
       return true;
     }
@@ -176,9 +231,11 @@ class NativeInstruction {
   static bool is_lwu_to_zr(address instr);
 
   inline bool is_nop();
+  inline bool is_compressed_nop();
+  inline bool is_uncompressed_nop();
   inline bool is_illegal();
   inline bool is_return();
-  inline bool is_jump_or_nop();
+  inline bool is_jump_or_nop_nc();
   inline bool is_cond_jump();
   bool is_safepoint_poll();
   bool is_sigill_zombie_not_entrant();
@@ -189,6 +246,7 @@ class NativeInstruction {
 
   jint int_at(int offset) const        { return *(jint*) addr_at(offset); }
   juint uint_at(int offset) const      { return *(juint*) addr_at(offset); }
+  jushort uint16_at(int offset) const { return *(jushort *) addr_at(offset); }
 
   address ptr_at(int offset) const     { return *(address*) addr_at(offset); }
 
@@ -318,12 +376,22 @@ inline NativeCall* nativeCall_before(address return_address) {
 class NativeMovConstReg: public NativeInstruction {
  public:
   enum RISCV64_specific_constants {
-    movptr_instruction_size             =    6 * NativeInstruction::instruction_size, // lui, addi, slli, addi, slli, addi.  See movptr().
+    movptr_instruction_size      =    6 * NativeInstruction::instruction_size, // lui, addi, slli, addi, slli, addi.  See movptr().
+    compressed_movptr_instruction_size  =    4 * NativeInstruction::instruction_size + 2 * NativeInstruction::compressed_instruction_size, // lui, addi, slli(C), addi, slli(C), addi.  See movptr().
     movptr_with_offset_instruction_size =    5 * NativeInstruction::instruction_size, // lui, addi, slli, addi, slli. See movptr_with_offset().
+    compressed_movptr_with_offset_instruction_size = 3 * NativeInstruction::instruction_size + 2 * NativeInstruction::compressed_instruction_size, // lui, addi, slli(C), addi, slli(C). See movptr_with_offset().
     load_pc_relative_instruction_size   =    2 * NativeInstruction::instruction_size, // auipc, ld
     instruction_offset                  =    0,
     displacement_offset                 =    0
   };
+
+  static const int get_movptr_with_offset_instruction_size() {
+    return !UseRVC ? movptr_with_offset_instruction_size : compressed_movptr_with_offset_instruction_size;
+  }
+
+  static const int get_movptr_instruction_size() {
+    return !UseRVC ? movptr_instruction_size : compressed_movptr_instruction_size;
+  }
 
   address instruction_address() const       { return addr_at(instruction_offset); }
   address next_instruction_address() const  {
@@ -333,12 +401,12 @@ class NativeMovConstReg: public NativeInstruction {
     // However, when the instruction at 5 * instruction_size isn't addi,
     // the next instruction address should be addr_at(5 * instruction_size)
     if (nativeInstruction_at(instruction_address())->is_movptr()) {
-      if (is_addi_at(addr_at(movptr_with_offset_instruction_size))) {
+      if (is_addi_at(addr_at(get_movptr_with_offset_instruction_size()))) {
         // Assume: lui, addi, slli, addi, slli, addi
-        return addr_at(movptr_instruction_size);
+        return addr_at(get_movptr_instruction_size());
       } else {
         // Assume: lui, addi, slli, addi, slli
-        return addr_at(movptr_with_offset_instruction_size);
+        return addr_at(get_movptr_with_offset_instruction_size());
       }
     } else if (is_load_pc_relative_at(instruction_address())) {
       // Assume: auipc, ld
@@ -353,7 +421,7 @@ class NativeMovConstReg: public NativeInstruction {
 
   void flush() {
     if (!maybe_cpool_ref(instruction_address())) {
-      ICache::invalidate_range(instruction_address(), movptr_instruction_size);
+      ICache::invalidate_range(instruction_address(), get_movptr_instruction_size());
     }
   }
 
@@ -422,10 +490,10 @@ inline NativeMovRegMem* nativeMovRegMem_at (address addr) {
 class NativeJump: public NativeInstruction {
  public:
   enum RISCV64_specific_constants {
-    instruction_size            =    4,
+    instruction_size            =    NativeInstruction::instruction_size,
     instruction_offset          =    0,
     data_offset                 =    0,
-    next_instruction_offset     =    4
+    next_instruction_offset     =    NativeInstruction::instruction_size
   };
 
   address instruction_address() const       { return addr_at(instruction_offset); }
@@ -456,11 +524,17 @@ inline NativeJump* nativeJump_at(address addr) {
 class NativeGeneralJump: public NativeJump {
 public:
   enum RISCV64_specific_constants {
-    instruction_size            =    6 * NativeInstruction::instruction_size, // lui, addi, slli, addi, slli, jalr
+    instruction_size     =    6 * NativeInstruction::instruction_size, // lui, addi, slli, addi, slli, jalr
+    compressed_instruction_size =    4 * NativeInstruction::instruction_size + 2 * NativeInstruction::compressed_instruction_size, // lui, addi, slli(C), addi, slli(C), jalr
     instruction_offset          =    0,
     data_offset                 =    0,
-    next_instruction_offset     =    6 * NativeInstruction::instruction_size  // lui, addi, slli, addi, slli, jalr
+    normal_next_instruction_offset     =    6 * NativeInstruction::instruction_size,  // lui, addi, slli, addi, slli, jalr
+    compressed_next_instruction_offset =    4 * NativeInstruction::instruction_size + 2 * NativeInstruction::compressed_instruction_size  // lui, addi, slli(C), addi, slli(C), jalr
   };
+
+  static const int get_instruction_size() {
+    return !UseRVC ? instruction_size : compressed_instruction_size;
+  }
 
   address jump_destination() const;
 
@@ -481,13 +555,27 @@ class NativeIllegalInstruction: public NativeInstruction {
   static void insert(address code_pos);
 };
 
-inline bool NativeInstruction::is_nop()         {
-  uint32_t insn = *(uint32_t*)addr_at(0);
+inline bool NativeInstruction::is_nop() {
+  return is_compressed_nop() || is_uncompressed_nop();
+}
+
+inline bool NativeInstruction::is_compressed_nop() {
+  address instr_addr = addr_at(0);
+  if (is_compressed_instr(instr_addr)) {
+    uint16_t insn = *(uint16_t*)instr_addr;
+    return insn == 0x1;
+  }
+  return false;
+}
+
+inline bool NativeInstruction::is_uncompressed_nop() {
+  address instr_addr = addr_at(0);
+  uint32_t insn = *(uint32_t*)instr_addr;
   return insn == 0x13;
 }
 
-inline bool NativeInstruction::is_jump_or_nop() {
-  return is_nop() || is_jump();
+inline bool NativeInstruction::is_jump_or_nop_nc() {
+  return is_uncompressed_nop() || is_jump();
 }
 
 // Call trampoline stubs.

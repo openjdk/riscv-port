@@ -325,7 +325,7 @@ void C1_MacroAssembler::verified_entry() {
   // must ensure that this first instruction is a J, JAL or NOP.
   // Make it a NOP.
 
-  nop();
+  nop_nc();
 }
 
 void C1_MacroAssembler::load_parameter(int offset_in_words, Register reg) {

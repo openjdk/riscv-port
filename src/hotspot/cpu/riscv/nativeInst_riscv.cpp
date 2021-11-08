@@ -39,64 +39,145 @@
 #include "c1/c1_Runtime1.hpp"
 #endif
 
+uint32_t NativeInstruction::extract_rs1(address instr, int &size) {
+  assert_cond(instr != NULL);
+  if (is_compressed_instr(instr)) {
+    size = compressed_instruction_size;
+    uint16_t op = Assembler::extract_c(((uint16_t*)instr)[0], 1, 0);
+    switch (op) {
+      case 0b00: {
+        return Assembler::extract_c(((uint16_t*)instr)[0], 9, 7);
+      }
+      case 0b01: {
+        if (!is_set_nth_bit(((uint16_t*)instr)[0], 15)) {
+          return Assembler::extract_c(((uint16_t*)instr)[0], 11, 7);
+        } else {
+          return Assembler::extract_c(((uint16_t*)instr)[0], 9, 7);
+        }
+      }
+      case 0b10: {
+        return Assembler::extract_c(((uint16_t*)instr)[0], 11, 7);
+      }
+      default:
+        ShouldNotReachHere();
+    }
+    return 0;
+  } else {
+    size = instruction_size;
+    return Assembler::extract(((unsigned*)instr)[0], 19, 15);
+  }
+}
+
+uint32_t NativeInstruction::extract_rs2(address instr, int &size) {
+  assert_cond(instr != NULL);
+  if (is_compressed_instr(instr)) {
+    size = compressed_instruction_size;
+    uint16_t op = Assembler::extract_c(((uint16_t*)instr)[0], 1, 0);
+    switch (op) {
+      case 0b00: {
+        return Assembler::extract_c(((uint16_t*)instr)[0], 4, 2);
+      }
+      case 0b01: {
+        if (!is_set_nth_bit(((uint16_t*)instr)[0], 15)) {
+          ShouldNotReachHere();
+          return 0;
+        } else {
+          return Assembler::extract_c(((uint16_t*)instr)[0], 4, 2);
+        }
+      }
+      case 0b10: {
+        return Assembler::extract_c(((uint16_t*)instr)[0], 6, 2);
+      }
+      default:
+        ShouldNotReachHere();
+    }
+    return 0;
+  } else {
+    size = instruction_size;
+    return Assembler::extract(((unsigned*)instr)[0], 24, 20);
+  }
+}
+
+uint32_t NativeInstruction::extract_rd(address instr, int &size) {
+  assert_cond(instr != NULL);
+  if (is_compressed_instr(instr)) {
+    size = compressed_instruction_size;
+    uint16_t op = Assembler::extract_c(((uint16_t*)instr)[0], 1, 0);
+    switch (op) {
+      case 0b00: {
+        return Assembler::extract_c(((uint16_t*)instr)[0], 4, 2);
+      }
+      case 0b01: {
+        if (!is_set_nth_bit(((uint16_t*)instr)[0], 15)) {
+          return Assembler::extract_c(((uint16_t*)instr)[0], 11, 7);
+        } else {
+          return Assembler::extract_c(((uint16_t*)instr)[0], 9, 7);
+        }
+      }
+      case 0b10: {
+        return Assembler::extract_c(((uint16_t*)instr)[0], 11, 7);
+      }
+      default:
+        ShouldNotReachHere();
+    }
+    return 0;
+  } else {
+    size = instruction_size;
+    return Assembler::extract(((unsigned*)instr)[0], 11, 7);
+  }
+}
+
 bool NativeInstruction::is_pc_relative_at(address instr) {
   // auipc + jalr
   // auipc + addi
   // auipc + load
   // auipc + fload_load
-  if ((is_auipc_at(instr)) &&
-      (is_addi_at(instr + 4) || is_jalr_at(instr + 4) || is_load_at(instr + 4) || is_float_load_at(instr + 4)) &&
-      check_pc_relative_data_dependency(instr)) {
-    return true;
-  }
-  return false;
+  return (is_auipc_at(instr)) &&
+         (is_addi_at(instr + instruction_size) ||
+          is_jalr_at(instr + instruction_size) ||
+          is_load_at(instr + instruction_size) ||
+          is_float_load_at(instr + instruction_size)) &&
+         check_pc_relative_data_dependency(instr);
 }
 
 // ie:ld(Rd, Label)
 bool NativeInstruction::is_load_pc_relative_at(address instr) {
-  if (is_auipc_at(instr) && // auipc
-      is_ld_at(instr + 4) && // ld
-      check_load_pc_relative_data_dependency(instr)) {
-      return true;
-  }
-  return false;
+  return is_auipc_at(instr) && // auipc
+         is_ld_at(instr + instruction_size) && // ld
+         check_load_pc_relative_data_dependency(instr);
 }
 
 bool NativeInstruction::is_movptr_at(address instr) {
-  if (is_lui_at(instr) && // Lui
-      is_addi_at(instr + 4) && // Addi
-      is_slli_shift_at(instr + 8, 11) && // Slli Rd, Rs, 11
-      is_addi_at(instr + 12) && // Addi
-      is_slli_shift_at(instr + 16, 5) && // Slli Rd, Rs, 5
-      (is_addi_at(instr + 20) || is_jalr_at(instr + 20) || is_load_at(instr + 20)) && // Addi/Jalr/Load
-      check_movptr_data_dependency(instr)) {
-    return true;
-  }
-  return false;
+  address pos = instr;
+  int size = 0;
+  return is_lui_at(pos) && // Lui
+         is_addi_at(pos += instruction_size) && // Addi
+         is_slli_shift_at(pos += instruction_size, 11, size) && // Slli Rd, Rs, 11
+         is_addi_at(pos += size) && // Addi
+         is_slli_shift_at(pos += instruction_size, 5, size) && // Slli Rd, Rs, 5
+         (is_addi_at(pos += size) || is_jalr_at(pos) || is_load_at(pos)) && // Addi/Jalr/Load
+         check_movptr_data_dependency(instr);
 }
 
 bool NativeInstruction::is_li32_at(address instr) {
-  if (is_lui_at(instr) && // lui
-      is_addiw_at(instr + 4) && // addiw
-      check_li32_data_dependency(instr)) {
-    return true;
-  }
-  return false;
+  address pos = instr;
+  return is_lui_at(pos) && // lui
+         is_addiw_at(pos += instruction_size) && // addiw
+         check_li32_data_dependency(instr);
 }
 
 bool NativeInstruction::is_li64_at(address instr) {
-  if (is_lui_at(instr) && // lui
-      is_addi_at(instr + 4) && // addi
-      is_slli_shift_at(instr + 8, 12)&&  // Slli Rd, Rs, 12
-      is_addi_at(instr + 12) && // addi
-      is_slli_shift_at(instr + 16, 12) && // Slli Rd, Rs, 12
-      is_addi_at(instr + 20) && // addi
-      is_slli_shift_at(instr + 24, 8) && // Slli Rd, Rs, 8
-      is_addi_at(instr + 28) && // addi
-      check_li64_data_dependency(instr)) {
-    return true;
-  }
-  return false;
+  address pos = instr;
+  int size = 0;
+  return is_lui_at(pos) && // lui
+         is_addi_at(pos += instruction_size) && // addi
+         is_slli_shift_at(pos += instruction_size, 12, size) &&  // Slli Rd, Rs, 12
+         is_addi_at(pos += size) && // addi
+         is_slli_shift_at(pos += instruction_size, 12, size) &&  // Slli Rd, Rs, 12
+         is_addi_at(pos += size) && // addi
+         is_slli_shift_at(pos += instruction_size, 8, size) &&   // Slli Rd, Rs, 8
+         is_addi_at(pos += size) && // addi
+         check_li64_data_dependency(instr);
 }
 
 void NativeCall::verify() {
@@ -203,7 +284,7 @@ void NativeMovConstReg::set_data(intptr_t x) {
   } else {
     // Store x into the instruction stream.
     MacroAssembler::pd_patch_instruction_size(instruction_address(), (address)x);
-    ICache::invalidate_range(instruction_address(), movptr_instruction_size);
+    ICache::invalidate_range(instruction_address(), get_movptr_instruction_size());
   }
 
   // Find and replace the oop/metadata corresponding to this
@@ -341,7 +422,7 @@ void NativeJump::patch_verified_entry(address entry, address verified_entry, add
 
   assert(dest == SharedRuntime::get_handle_wrong_method_stub(), "expected fixed destination of patch");
 
-  assert(nativeInstruction_at(verified_entry)->is_jump_or_nop() ||
+  assert(nativeInstruction_at(verified_entry)->is_jump_or_nop_nc() ||
          nativeInstruction_at(verified_entry)->is_sigill_zombie_not_entrant(),
          "riscv64 cannot replace non-jump with jump");
 
@@ -371,14 +452,14 @@ void NativeJump::patch_verified_entry(address entry, address verified_entry, add
 void NativeGeneralJump::insert_unconditional(address code_pos, address entry) {
   NativeGeneralJump* n_jump = (NativeGeneralJump*)code_pos;
 
-  CodeBuffer cb(code_pos, instruction_size);
+  CodeBuffer cb(code_pos, get_instruction_size());
   MacroAssembler a(&cb);
 
   int32_t offset = 0;
-  a.movptr_with_offset(t0, entry, offset); // lui, addi, slli, addi, slli
-  a.jalr(x0, t0, offset); // jalr
+  a.movptr_with_offset(t0, entry, offset, NOT_COMPRESSIBLE); // lui, addi, slli, addi, slli
+  a.jalr_nc(x0, t0, offset); // jalr
 
-  ICache::invalidate_range(code_pos, instruction_size);
+  ICache::invalidate_range(code_pos, get_instruction_size());
 }
 
 // MT-safe patching of a long jump instruction.

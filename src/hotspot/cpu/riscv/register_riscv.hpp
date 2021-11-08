@@ -58,7 +58,11 @@ class RegisterImpl: public AbstractRegisterImpl {
   enum {
     number_of_registers      = 32,
     number_of_byte_registers = 32,
-    max_slots_per_register   = 2
+    max_slots_per_register   = 2,
+
+    // C-Ext: integer registers in the range of [x8~x15] are correspond for RVC. Please see Table 16.2 in spec.
+    compressed_register_base = 8,
+    compressed_register_top  = 15,
   };
 
   // derived registers, offsets, and addresses
@@ -71,10 +75,13 @@ class RegisterImpl: public AbstractRegisterImpl {
 
   // accessors
   int   encoding() const                         { assert(is_valid(), "invalid register"); return (intptr_t)this; }
+  int   compressed_encoding() const              { assert(is_compressed_valid(), "invalid compressed register"); return ((intptr_t)this - compressed_register_base); }
   bool  is_valid() const                         { return 0 <= (intptr_t)this && (intptr_t)this < number_of_registers; }
+  bool  is_compressed_valid() const              { return compressed_register_base <= (intptr_t)this && (intptr_t)this <= compressed_register_top; }
   bool  has_byte_register() const                { return 0 <= (intptr_t)this && (intptr_t)this < number_of_byte_registers; }
   const char* name() const;
   int   encoding_nocheck() const                 { return (intptr_t)this; }
+  int   compressed_encoding_nocheck() const      { return ((intptr_t)this - compressed_register_base); }
 
   // Return the bit which represents this register.  This is intended
   // to be ORed into a bitmask: for usage see class RegSet below.
@@ -131,7 +138,11 @@ class FloatRegisterImpl: public AbstractRegisterImpl {
  public:
   enum {
     number_of_registers     = 32,
-    max_slots_per_register  = 2
+    max_slots_per_register  = 2,
+
+    // C-Ext: float registers in the range of [f8~f15] are correspond for RVC. Please see Table 16.2 in spec.
+    compressed_register_base = 8,
+    compressed_register_top  = 15,
   };
 
   // construction
@@ -144,8 +155,11 @@ class FloatRegisterImpl: public AbstractRegisterImpl {
 
   // accessors
   int   encoding() const                          { assert(is_valid(), "invalid register"); return (intptr_t)this; }
+  int   compressed_encoding() const               { assert(is_compressed_valid(), "invalid compressed register"); return ((intptr_t)this - compressed_register_base); }
   int   encoding_nocheck() const                         { return (intptr_t)this; }
+  int   compressed_encoding_nocheck() const       { return ((intptr_t)this - compressed_register_base); }
   bool  is_valid() const                          { return 0 <= (intptr_t)this && (intptr_t)this < number_of_registers; }
+  bool  is_compressed_valid() const               { return compressed_register_base <= (intptr_t)this && (intptr_t)this <= compressed_register_top; }
   const char* name() const;
 
 };

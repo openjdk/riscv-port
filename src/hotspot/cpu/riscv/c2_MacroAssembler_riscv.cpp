@@ -1196,21 +1196,21 @@ typedef void (MacroAssembler::*float_conditional_branch_insn)(FloatRegister op1,
 static conditional_branch_insn conditional_branches[] =
 {
   /* SHORT branches */
-  (conditional_branch_insn)&Assembler::beq,
+  (conditional_branch_insn)&Assembler::beq_nc,
   (conditional_branch_insn)&Assembler::bgt,
   NULL, // BoolTest::overflow
   (conditional_branch_insn)&Assembler::blt,
-  (conditional_branch_insn)&Assembler::bne,
+  (conditional_branch_insn)&Assembler::bne_nc,
   (conditional_branch_insn)&Assembler::ble,
   NULL, // BoolTest::no_overflow
   (conditional_branch_insn)&Assembler::bge,
 
   /* UNSIGNED branches */
-  (conditional_branch_insn)&Assembler::beq,
+  (conditional_branch_insn)&Assembler::beq_nc,
   (conditional_branch_insn)&Assembler::bgtu,
   NULL,
   (conditional_branch_insn)&Assembler::bltu,
-  (conditional_branch_insn)&Assembler::bne,
+  (conditional_branch_insn)&Assembler::bne_nc,
   (conditional_branch_insn)&Assembler::bleu,
   NULL,
   (conditional_branch_insn)&Assembler::bgeu
@@ -1259,11 +1259,11 @@ void C2_MacroAssembler::enc_cmpUEqNeLeGt_imm0_branch(int cmpFlag, Register op1, 
   switch (cmpFlag) {
     case BoolTest::eq:
     case BoolTest::le:
-      beqz(op1, L, is_far);
+      beqz_nc(op1, L, is_far);
       break;
     case BoolTest::ne:
     case BoolTest::gt:
-      bnez(op1, L, is_far);
+      bnez_nc(op1, L, is_far);
       break;
     default:
       ShouldNotReachHere();
@@ -1273,10 +1273,10 @@ void C2_MacroAssembler::enc_cmpUEqNeLeGt_imm0_branch(int cmpFlag, Register op1, 
 void C2_MacroAssembler::enc_cmpEqNe_imm0_branch(int cmpFlag, Register op1, Label& L, bool is_far) {
   switch (cmpFlag) {
     case BoolTest::eq:
-      beqz(op1, L, is_far);
+      beqz_nc(op1, L, is_far);
       break;
     case BoolTest::ne:
-      bnez(op1, L, is_far);
+      bnez_nc(op1, L, is_far);
       break;
     default:
       ShouldNotReachHere();

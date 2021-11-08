@@ -103,6 +103,12 @@ void VM_Version::get_processor_features() {
     FLAG_SET_DEFAULT(UseMD5Intrinsics, false);
   }
 
+  // compressed instruction extension
+  if (UseRVC && !(_features & CPU_C)) {
+    warning("RVC is not supported on this CPU");
+    FLAG_SET_DEFAULT(UseRVC, false);
+  }
+
   if (UseRVV) {
     if (!(_features & CPU_V)) {
       warning("RVV is not supported on this CPU");

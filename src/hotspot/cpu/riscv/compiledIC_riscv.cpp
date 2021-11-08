@@ -69,8 +69,12 @@ address CompiledStaticCall::emit_to_interp_stub(CodeBuffer &cbuf, address mark) 
 #undef __
 
 int CompiledStaticCall::to_interp_stub_size() {
-  // fence_i + fence* + (lui, addi, slli, addi, slli, addi) + (lui, addi, slli, addi, slli) + jalr
-  return NativeFenceI::instruction_size() + 12 * NativeInstruction::instruction_size;
+  // fence_i + fence* + (lui, addi, slli(C), addi, slli(C), addi) + (lui, addi, slli(C), addi, slli(C)) + jalr
+  return NativeFenceI::instruction_size() +
+         (!UseRVC ?
+           12 * NativeInstruction::instruction_size :
+           8 * NativeInstruction::instruction_size + 4 * NativeInstruction::compressed_instruction_size
+         );
 }
 
 int CompiledStaticCall::to_trampoline_stub_size() {

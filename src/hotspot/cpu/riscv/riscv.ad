@@ -1156,14 +1156,15 @@ bool needs_acquiring_load_reserved(const Node *n)
 
 int MachCallStaticJavaNode::ret_addr_offset()
 {
-  // call should be a simple jal
-  int off = 4;
-  return off;
+  // jal
+  return 1 * NativeInstruction::instruction_size;
 }
 
 int MachCallDynamicJavaNode::ret_addr_offset()
 {
-  return 28; // movptr, jal
+  return 4 * NativeInstruction::instruction_size +
+         2 * (!UseRVC ? NativeInstruction::instruction_size : NativeInstruction::compressed_instruction_size) +
+         1 * NativeInstruction::instruction_size; // movptr, jal
 }
 
 int MachCallRuntimeNode::ret_addr_offset() {
@@ -1171,25 +1172,67 @@ int MachCallRuntimeNode::ret_addr_offset() {
   //   jal(addr)
   // or with far branches
   //   jal(trampoline_stub)
-  // for real runtime callouts it will be six instructions
+  // for real runtime callouts it will be 12 instructions
   // see riscv64_enc_java_to_runtime
-  //   la(t1, retaddr)
-  //   la(t0, RuntimeAddress(addr))
-  //   addi(sp, sp, -2 * wordSize)
-  //   sd(zr, Address(sp))
-  //   sd(t1, Address(sp, wordSize))
-  //   jalr(t0)
+  //   la(t1, retaddr)                ->  auipc + addi
+  //   la(t0, RuntimeAddress(addr))   ->  lui + addi + slli(C) + addi + slli(C) + addi
+  //   addi(sp, sp, -2 * wordSize)    ->  addi(C)
+  //   sd(zr, Address(sp))            ->  sd(C)
+  //   sd(t1, Address(sp, wordSize))  ->  sd(C)
+  //   jalr(t0)                       ->  jalr(C)
   CodeBlob *cb = CodeCache::find_blob(_entry_point);
   if (cb != NULL) {
     return 1 * NativeInstruction::instruction_size;
   } else {
-    return 12 * NativeInstruction::instruction_size;
+    const int instruction_size = NativeInstruction::instruction_size;
+    const int compressed_instruction_size = (!UseRVC ? instruction_size : NativeInstruction::compressed_instruction_size);
+    return 2 * instruction_size +
+           4 * instruction_size + 2 * compressed_instruction_size +
+           1 * compressed_instruction_size +
+           1 * compressed_instruction_size +
+           1 * compressed_instruction_size +
+           1 * compressed_instruction_size;
   }
 }
 
 int MachCallNativeNode::ret_addr_offset() {
   Unimplemented();
   return -1;
+}
+
+// C-Ext: With C-Ext a call may get 2-byte aligned.
+//   The offset encoding in jal ranges bits [12, 31], which could span the cache line.
+//   Patching this unaligned address will make the write operation not atomic.
+//   Other threads may be running the same piece of code at full speed, causing concurrency issues.
+//   So we must ensure that it does not span a cache line so that it can be patched.
+int CallStaticJavaDirectNode::compute_padding(int current_offset) const
+{
+  // to make sure the address of jal 4-byte aligned.
+  return align_up(current_offset, alignment_required()) - current_offset;
+}
+
+// C-Ext: With C-Ext a call may get 2-byte aligned.
+//   The offset encoding in jal ranges bits [12, 31], which could span the cache line.
+//   Patching this unaligned address will make the write operation not atomic.
+//   Other threads may be running the same piece of code at full speed, causing concurrency issues.
+//   So we must ensure that it does not span a cache line so that it can be patched.
+int CallDynamicJavaDirectNode::compute_padding(int current_offset) const
+{
+  // skip the movptr in MacroAssembler::ic_call():
+  // lui + addi + slli(C) + addi + slli(C) + addi
+  // Though movptr() has already 4-byte aligned with or without C-Ext,
+  // We need to prevent from further changes by explicitly calculating the size.
+  const int instruction_size = NativeInstruction::instruction_size;
+  const int compressed_instruction_size = (!UseRVC ? instruction_size : NativeInstruction::compressed_instruction_size);
+  const int movptr_size =
+         2 * instruction_size +
+         1 * compressed_instruction_size +
+         1 * instruction_size +
+         1 * compressed_instruction_size +
+         1 * instruction_size;
+  current_offset += movptr_size;
+  // to make sure the address of jal 4-byte aligned.
+  return align_up(current_offset, alignment_required()) - current_offset;
 }
 
 //=============================================================================
@@ -1226,7 +1269,7 @@ uint MachBreakpointNode::size(PhaseRegAlloc *ra_) const {
   }
 
   uint MachNopNode::size(PhaseRegAlloc*) const {
-    return _count * NativeInstruction::instruction_size;
+    return _count * (!UseRVC ? NativeInstruction::instruction_size : NativeInstruction::compressed_instruction_size);
   }
 
 //=============================================================================
@@ -1295,7 +1338,7 @@ void MachPrologNode::emit(CodeBuffer &cbuf, PhaseRegAlloc *ra_) const {
 
   // insert a nop at the start of the prolog so we can patch in a
   // branch if we need to invalidate the method later
-  __ nop();
+  __ nop_nc();  // 4 bytes
 
   assert_cond(C != NULL);
 
@@ -1387,7 +1430,14 @@ void MachEpilogNode::emit(CodeBuffer &cbuf, PhaseRegAlloc *ra_) const {
   __ remove_frame(framesize);
 
   if (StackReservedPages > 0 && C->has_reserved_stack_access()) {
-    __ reserved_stack_check();
+    // C-Ext: we need to emit instructions of the same constant size here.
+    //   This Node will emit should_not_reach_here(), further emitting a movptr of pc() address.
+    //   However, C2 will do PhaseOutput::scratch_emit_size() to simulate the size of Node -
+    //   this time, the pc() is a different value from the final emission and it may get compressed.
+    //   We may get a case that Node size is different between scratch_emit and real emission phase,
+    //   which are not allowed. So we need to emit the same constant size by disabling compression
+    //   of the movptr of pc() to align with the logic.
+    __ reserved_stack_check(NOT_COMPRESSIBLE);
   }
 
   if (do_polling() && C->is_method_compilation()) {
@@ -1644,7 +1694,8 @@ void BoxLockNode::emit(CodeBuffer &cbuf, PhaseRegAlloc *ra_) const {
   int reg    = ra_->get_encode(this);
 
   if (is_imm_in_range(offset, 12, 0)) {
-    __ addi(as_Register(reg), sp, offset);
+    // C-Ext: See BoxLockNode::size(). We need to manually calculate this node's size.
+    __ addi_nc(as_Register(reg), sp, offset);
   } else if (is_imm_in_range(offset, 32, 0)) {
     __ li32(t0, offset);
     __ add(as_Register(reg), sp, t0);
@@ -9792,6 +9843,7 @@ instruct CallStaticJavaDirect(method meth)
               riscv64_enc_call_epilog );
 
   ins_pipe(pipe_class_call);
+  ins_alignment(4);
 %}
 
 // TO HERE
@@ -9811,6 +9863,7 @@ instruct CallDynamicJavaDirect(method meth, rFlagsReg cr)
                riscv64_enc_call_epilog );
 
   ins_pipe(pipe_class_call);
+  ins_alignment(4);
 %}
 
 // Call Runtime Instruction

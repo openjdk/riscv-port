@@ -1318,7 +1318,12 @@ void LIR_Assembler::comp_fl2i(LIR_Code code, LIR_Opr left, LIR_Opr right, LIR_Op
   }
 }
 
-void LIR_Assembler::align_call(LIR_Code code) {  }
+void LIR_Assembler::align_call(LIR_Code code) {
+  // C-Ext: With C-Ext a call may get 2-byte aligned.
+  //   the address of jal itself (which will be patched later) should not span the cache line.
+  //   See CallDynamicJavaDirectNode::compute_padding() for more info.
+  __ align(4);
+}
 
 void LIR_Assembler::call(LIR_OpJavaCall* op, relocInfo::relocType rtype) {
   address call = __ trampoline_call(Address(op->addr(), rtype));
@@ -1375,9 +1380,7 @@ void LIR_Assembler::throw_op(LIR_Opr exceptionPC, LIR_Opr exceptionOop, CodeEmit
   }
   int pc_for_athrow_offset = __ offset();
   InternalAddress pc_for_athrow(__ pc());
-  int32_t off = 0;
-  __ la_patchable(exceptionPC->as_register(), pc_for_athrow, off);
-  __ addi(exceptionPC->as_register(), exceptionPC->as_register(), off);
+  __ addi_patchable(exceptionPC->as_register(), pc_for_athrow, exceptionPC->as_register());
   add_call_info(pc_for_athrow_offset, info); // for exception handler
 
   __ verify_not_null_oop(x10);
@@ -1801,9 +1804,7 @@ void LIR_Assembler::rt_call(LIR_Opr result, address dest, const LIR_OprList* arg
   if (cb != NULL) {
     __ far_call(RuntimeAddress(dest));
   } else {
-    int32_t offset = 0;
-    __ la_patchable(t0, RuntimeAddress(dest), offset);
-    __ jalr(x1, t0, offset);
+    __ jalr_patchable(x1, RuntimeAddress(dest), t0);
   }
 
   if (info != NULL) {

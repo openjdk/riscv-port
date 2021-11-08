@@ -180,20 +180,12 @@ void BarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj,
 
     // Get the current end of the heap
     ExternalAddress address_end((address) Universe::heap()->end_addr());
-    {
-      int32_t offset;
-      __ la_patchable(t1, address_end, offset);
-      __ ld(t1, Address(t1, offset));
-    }
+    __ ld_patchable(t1, address_end, t1);
 
     // Get the current top of the heap
     ExternalAddress address_top((address) Universe::heap()->top_addr());
-    {
-      int32_t offset;
-      __ la_patchable(t0, address_top, offset);
-      __ addi(t0, t0, offset);
-      __ lr_d(obj, t0, Assembler::aqrl);
-    }
+    __ addi_patchable(t0, address_top, t0);
+    __ lr_d(obj, t0, Assembler::aqrl);
 
     // Adjust it my the size of our new object
     if (var_size_in_bytes == noreg) {
@@ -231,12 +223,20 @@ void BarrierSetAssembler::incr_allocated_bytes(MacroAssembler* masm,
   __ sd(tmp1, Address(xthread, in_bytes(JavaThread::allocated_bytes_offset())));
 }
 
+extern int nmethod_barrier_guard_offset();
+
 void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
   BarrierSetNMethod* bs_nm = BarrierSet::barrier_set()->barrier_set_nmethod();
 
   if (bs_nm == NULL) {
     return;
   }
+
+  // C-Ext: With C-Ext we may come here with a 2-byte alignment, hence an alignment is needed.
+  // See below comments about amo, also native_nmethod_barrier() to find the entry's calculation strategy.
+  while ((__ offset() + nmethod_barrier_guard_offset()) % 4 != 0) { __ nop(); }
+
+  int start = __ offset();
 
   Label skip, guard;
   Address thread_disarmed_addr(xthread, in_bytes(bs_nm->thread_disarmed_offset()));
@@ -250,9 +250,13 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
   __ beq(t0, t1, skip);
 
   int32_t offset = 0;
-  __ movptr_with_offset(t0, StubRoutines::riscv64::method_entry_barrier(), offset);
-  __ jalr(ra, t0, offset);
+  __ movptr_with_offset(t0, StubRoutines::riscv64::method_entry_barrier(), offset, NOT_COMPRESSIBLE);
+  __ jalr_nc(ra, t0, offset);
   __ j(skip);
+
+  // RISCV's amoswap instructions need an alignment for the memory address it swaps
+  // C-Ext: So with C-Ext we need to manually align it to 4-byte
+  assert(__ offset() - start == nmethod_barrier_guard_offset() && __ offset() % 4 == 0, "offsets equality and alignment");
 
   __ bind(guard);
 
