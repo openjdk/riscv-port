@@ -241,7 +241,7 @@ enum reg_save_layout {
 };
 
 // Save off registers which might be killed by calls into the runtime.
-// Tries to smart of about FP registers.  In particular we separate
+// Tries to smart of about FPU registers.  In particular we separate
 // saving and describing the FPU registers for deoptimization since we
 // have to save the FPU registers twice if we describe them.  The
 // deopt blob is the only thing which needs to describe FPU registers.
@@ -259,7 +259,7 @@ static OopMap* generate_oop_map(StubAssembler* sasm, bool save_fpu_registers) {
   assert_cond(oop_map != NULL);
 
   // cpu_regs, caller save registers only, see FrameMap::initialize
-  // in c1_FrameMap_riscv64.cpp for detail.
+  // in c1_FrameMap_riscv.cpp for detail.
   const static Register caller_save_cpu_regs[FrameMap::max_nof_caller_save_cpu_regs] = {x7, x10, x11, x12,
                                                                                         x13, x14, x15, x16, x17,
                                                                                         x28,  x29, x30, x31};

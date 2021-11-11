@@ -72,23 +72,24 @@ define_pd_global(intx, InitArrayShortSize, BytesPerLong);
 
 define_pd_global(intx, InlineSmallCode,          1000);
 
-#define ARCH_FLAGS(develop,                                             \
-                   product,                                             \
-                   notproduct,                                          \
-                   range,                                               \
-                   constraint)                                          \
-                                                                        \
-  product(bool, NearCpool, true,                                        \
-         "constant pool is close to instructions")                      \
-  product(intx, BlockZeroingLowLimit, 256,                              \
-          "Minimum size in bytes when block zeroing will be used")      \
-          range(1, max_jint)                                            \
-  product(bool, TraceTraps, false, "Trace all traps the signal handler")\
-  product(bool, UseConservativeFence, true,                             \
-          "Extend i for r and o for w in the pred/succ flags of fence;" \
-          "Extend fence.i to fence.i + fence.")                         \
-  product(bool, UseVExt, false, "Use RVV instructions")                 \
-  product(bool, AvoidUnalignedAccesses, true,                           \
-          "Avoid generating unaligned memory accesses")                 \
+#define ARCH_FLAGS(develop,                                                      \
+                   product,                                                      \
+                   notproduct,                                                   \
+                   range,                                                        \
+                   constraint)                                                   \
+                                                                                 \
+  product(bool, NearCpool, true,                                                 \
+         "constant pool is close to instructions")                               \
+  product(intx, BlockZeroingLowLimit, 256,                                       \
+          "Minimum size in bytes when block zeroing will be used")               \
+          range(1, max_jint)                                                     \
+  product(bool, TraceTraps, false, "Trace all traps the signal handler")         \
+  /* For now we're going to be safe and add the I/O bits to userspace fences. */ \
+  product(bool, UseConservativeFence, true,                                      \
+          "Extend i for r and o for w in the pred/succ flags of fence;"          \
+          "Extend fence.i to fence.i + fence.")                                  \
+  product(bool, UseRVV, false, "Use RVV instructions")                           \
+  product(bool, AvoidUnalignedAccesses, true,                                    \
+          "Avoid generating unaligned memory accesses")                          \
 
 #endif // CPU_RISCV_GLOBALS_RISCV_HPP

@@ -393,7 +393,7 @@ class StubGenerator: public StubCodeGenerator {
   // Note: Usually the parameters are removed by the callee. In case
   // of an exception crossing an activation frame boundary, that is
   // not the case if the callee is compiled code => need to setup the
-  // rsp.
+  // sp.
   //
   // x10: exception oop
 
@@ -886,7 +886,7 @@ class StubGenerator: public StubCodeGenerator {
 
   void copy_memory(bool is_aligned, Register s, Register d,
                    Register count, Register tmp, int step) {
-    if (UseVExt) {
+    if (UseRVV) {
       return copy_memory_v(s, d, count, tmp, step);
     }
 

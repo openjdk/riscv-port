@@ -1191,7 +1191,7 @@ static int patch_offset_in_jal(address branch, int64_t offset) {
   Assembler::patch(branch, 30, 21, (offset >> 1)  & 0x3ff);                     // offset[10:1]  ==> branch[30:21]
   Assembler::patch(branch, 20, 20, (offset >> 11) & 0x1);                       // offset[11]    ==> branch[20]
   Assembler::patch(branch, 19, 12, (offset >> 12) & 0xff);                      // offset[19:12] ==> branch[19:12]
-  return NativeInstruction::instruction_size;                                             // only one instruction
+  return NativeInstruction::instruction_size;                                   // only one instruction
 }
 
 static int patch_offset_in_conditional_branch(address branch, int64_t offset) {
@@ -2584,7 +2584,7 @@ void MacroAssembler::check_klass_subtype_fast_path(Register sub_klass,
 #undef final_jmp
 }
 
-// scans count pointer sized words at [addr] for occurence of value,
+// Scans count pointer sized words at [addr] for occurence of value,
 // generic
 void MacroAssembler::repne_scan(Register addr, Register value, Register count,
                                 Register temp) {
@@ -2618,7 +2618,7 @@ void MacroAssembler::check_klass_subtype_slow_path(Register sub_klass,
 
   assert(label_nulls <= 1, "at most one NULL in the batch");
 
-  // a couple of usefule fields in sub_klass:
+  // A couple of usefule fields in sub_klass:
   int ss_offset = in_bytes(Klass::secondary_supers_offset());
   int sc_offset = in_bytes(Klass::secondary_super_cache_offset());
   Address secondary_supers_addr(sub_klass, ss_offset);
@@ -3028,7 +3028,7 @@ void MacroAssembler::compute_index(Register haystack, Register trailing_zeros,
 }
 
 // string indexof
-// find pattern element in src, compute match mask,
+// Find pattern element in src, compute match mask,
 // only the first occurrence of 0x80/0x8000 at low bits is the valid match index
 // match mask patterns and corresponding indices would be like:
 // - 0x8080808080808080 (Latin1)
@@ -3045,7 +3045,7 @@ void MacroAssembler::compute_match_mask(Register src, Register pattern, Register
   andr(match_mask, match_mask, src);
 }
 
-// count bits of trailing zero chars from lsb to msb until first non-zero element.
+// Count bits of trailing zero chars from lsb to msb until first non-zero element.
 // For LL case, one byte for one element, so shift 8 bits once, and for other case,
 // shift 16 bits once.
 void MacroAssembler::ctzc_bit(Register Rd, Register Rs, bool isLL, Register Rtmp1, Register Rtmp2)

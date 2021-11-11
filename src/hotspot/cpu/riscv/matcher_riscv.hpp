@@ -35,7 +35,7 @@
   static const bool implements_scalable_vector = true;
 
   static const bool supports_scalable_vector() {
-    return UseVExt;
+    return UseRVV;
   }
 
   // riscv64 supports misaligned vectors store/load.

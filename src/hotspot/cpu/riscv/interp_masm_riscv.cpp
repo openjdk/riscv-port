@@ -223,9 +223,9 @@ void InterpreterMacroAssembler::get_cache_and_index_at_bcp(Register cache,
   assert_different_registers(cache, xcpool);
   get_cache_index_at_bcp(index, bcp_offset, index_size);
   assert(sizeof(ConstantPoolCacheEntry) == 4 * wordSize, "adjust code below");
-  // convert from field index to ConstantPoolCacheEntry
+  // Convert from field index to ConstantPoolCacheEntry
   // riscv64 already has the cache in xcpool so there is no need to
-  // install it in cache. instead we pre-add the indexed offset to
+  // install it in cache. Instead we pre-add the indexed offset to
   // xcpool and return it in cache. All clients of this method need to
   // be modified accordingly.
   slli(cache, index, 5);
@@ -261,7 +261,7 @@ void InterpreterMacroAssembler::get_cache_entry_pointer_at_bcp(Register cache,
   assert(cache != tmp, "must use different register");
   get_cache_index_at_bcp(tmp, bcp_offset, index_size);
   assert(sizeof(ConstantPoolCacheEntry) == 4 * wordSize, "adjust code below");
-  // convert from field index to ConstantPoolCacheEntry index
+  // Convert from field index to ConstantPoolCacheEntry index
   // and from word offset to byte offset
   assert(log2i_exact(in_bytes(ConstantPoolCacheEntry::size_in_bytes())) == 2 + LogBytesPerWord, "else change next line");
   ld(cache, Address(fp, frame::interpreter_frame_cache_offset * wordSize));
@@ -277,7 +277,7 @@ void InterpreterMacroAssembler::load_resolved_reference_at_index(
   assert_different_registers(result, index);
 
   get_constant_pool(result);
-  // load pointer for resolved_references[] objArray
+  // Load pointer for resolved_references[] objArray
   ld(result, Address(result, ConstantPool::cache_offset_in_bytes()));
   ld(result, Address(result, ConstantPoolCache::resolved_references_offset_in_bytes()));
   resolve_oop_handle(result, tmp);
@@ -593,7 +593,7 @@ void InterpreterMacroAssembler::remove_activation(
                                 bool throw_monitor_exception,
                                 bool install_monitor_exception,
                                 bool notify_jvmdi) {
-  // Note: Registers x13 xmm0 may be in use for the
+  // Note: Registers x13 may be in use for the
   // result check if synchronized method
   Label unlocked, unlock, no_unlock;
 
@@ -802,7 +802,7 @@ void InterpreterMacroAssembler::lock_object(Register lock_reg)
 
     Label slow_case;
 
-    // Load object pointer into obj_reg %c_rarg3
+    // Load object pointer into obj_reg c_rarg3
     ld(obj_reg, Address(lock_reg, obj_offset));
 
     if (DiagnoseSyncOnValueBasedClasses != 0) {
@@ -826,13 +826,13 @@ void InterpreterMacroAssembler::lock_object(Register lock_reg)
 
     // Test if the oopMark is an obvious stack pointer, i.e.,
     //  1) (mark & 7) == 0, and
-    //  2) rsp <= mark < mark + os::pagesize()
+    //  2) sp <= mark < mark + os::pagesize()
     //
     // These 3 tests can be done by evaluating the following
-    // expression: ((mark - rsp) & (7 - os::vm_page_size())),
+    // expression: ((mark - sp) & (7 - os::vm_page_size())),
     // assuming both stack pointer and pagesize have their
     // least significant 3 bits clear.
-    // NOTE: the oopMark is in swap_reg %x10 as the result of cmpxchg
+    // NOTE: the oopMark is in swap_reg x10 as the result of cmpxchg
     sub(swap_reg, swap_reg, sp);
     li(t0, (int64_t)(7 - os::vm_page_size()));
     andr(swap_reg, swap_reg, t0);
@@ -880,10 +880,10 @@ void InterpreterMacroAssembler::unlock_object(Register lock_reg)
     save_bcp(); // Save in case of exception
 
     // Convert from BasicObjectLock structure to object and BasicLock
-    // structure Store the BasicLock address into %x10
+    // structure Store the BasicLock address into x10
     la(swap_reg, Address(lock_reg, BasicObjectLock::lock_offset_in_bytes()));
 
-    // Load oop into obj_reg(%c_rarg3)
+    // Load oop into obj_reg(c_rarg3)
     ld(obj_reg, Address(lock_reg, BasicObjectLock::obj_offset_in_bytes()));
 
     // Free entry
@@ -1485,7 +1485,7 @@ void InterpreterMacroAssembler::profile_switch_case(Register index,
   if (ProfileInterpreter) {
     Label profile_continue;
 
-    // if no method data exists, go to profile_continue.
+    // If no method data exists, go to profile_continue.
     test_method_data_pointer(mdp, profile_continue);
 
     // Build the base (index * per_case_size_in_bytes()) +
@@ -1663,8 +1663,8 @@ void InterpreterMacroAssembler::profile_obj_type(Register obj, const Address& md
   xorr(obj, obj, t0);
   andi(t0, obj, TypeEntries::type_klass_mask);
   beqz(t0, next); // klass seen before, nothing to
-                           // do. The unknown bit may have been
-                           // set already but no need to check.
+                  // do. The unknown bit may have been
+                  // set already but no need to check.
 
   andi(t0, obj, TypeEntries::type_unknown);
   bnez(t0, next);
@@ -1896,7 +1896,6 @@ void InterpreterMacroAssembler::profile_parameters_type(Register mdp, Register t
     neg(tmp2, tmp2);
 
     // read the parameter from the local area
-
     slli(tmp2, tmp2, Interpreter::logStackElementSize);
     add(tmp2, tmp2, xlocals);
     ld(tmp2, Address(tmp2, 0));
