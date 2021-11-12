@@ -292,4 +292,3 @@ void BarrierSetAssembler::c2i_entry_barrier(MacroAssembler* masm) {
   __ far_jump(RuntimeAddress(SharedRuntime::get_handle_wrong_method_stub()));
   __ bind(method_live);
 }
-

@@ -24,93 +24,15 @@
  */
 
 #include "precompiled.hpp"
-#include "asm/macroAssembler.hpp"
-#include "asm/macroAssembler.inline.hpp"
-#include "memory/resourceArea.hpp"
 #include "runtime/java.hpp"
 #include "runtime/os.hpp"
-#include "runtime/stubCodeGenerator.hpp"
 #include "runtime/vm_version.hpp"
 #include "utilities/formatBuffer.hpp"
 #include "utilities/macros.hpp"
 
 #include OS_HEADER_INLINE(os)
 
-#include <sys/auxv.h>
-#include <asm/hwcap.h>
-
-#ifndef COMPAT_HWCAP_ISA_I
-#define COMPAT_HWCAP_ISA_I  (1 << ('I' - 'A'))
-#endif
-
-#ifndef COMPAT_HWCAP_ISA_M
-#define COMPAT_HWCAP_ISA_M  (1 << ('M' - 'A'))
-#endif
-
-#ifndef COMPAT_HWCAP_ISA_A
-#define COMPAT_HWCAP_ISA_A  (1 << ('A' - 'A'))
-#endif
-
-#ifndef COMPAT_HWCAP_ISA_F
-#define COMPAT_HWCAP_ISA_F  (1 << ('F' - 'A'))
-#endif
-
-#ifndef COMPAT_HWCAP_ISA_D
-#define COMPAT_HWCAP_ISA_D  (1 << ('D' - 'A'))
-#endif
-
-#ifndef COMPAT_HWCAP_ISA_C
-#define COMPAT_HWCAP_ISA_C  (1 << ('C' - 'A'))
-#endif
-
-#ifndef COMPAT_HWCAP_ISA_V
-#define COMPAT_HWCAP_ISA_V  (1 << ('V' - 'A'))
-#endif
-
-#ifndef COMPAT_HWCAP_ISA_B
-#define COMPAT_HWCAP_ISA_B  (1 << ('B' - 'A'))
-#endif
-
-int VM_Version::_initial_vector_length = 0;
-address VM_Version::_checkvext_fault_pc = NULL;
-address VM_Version::_checkvext_continuation_pc = NULL;
-
-static BufferBlob* stub_blob;
-static const int stub_size = 550;
-
-extern "C" {
-  typedef int (*getPsrInfo_stub_t)();
-}
-static getPsrInfo_stub_t getPsrInfo_stub = NULL;
-
-
-class VM_Version_StubGenerator: public StubCodeGenerator {
- public:
-
-  VM_Version_StubGenerator(CodeBuffer *c) : StubCodeGenerator(c) {}
-  ~VM_Version_StubGenerator() {}
-
-  address generate_getPsrInfo(address* fault_pc, address* continuation_pc) {
-    StubCodeMark mark(this, "VM_Version", "getPsrInfo_stub");
-#   define __ _masm->
-    address start = __ pc();
-
-    __ enter();
-
-    __ mv(x10, zr);
-    // read vlenb from CSR_VLENB, may sigill
-    *fault_pc = __ pc();
-    __ csrr(x10, CSR_VLENB);
-
-    *continuation_pc = __ pc();
-    __ leave();
-    __ ret();
-
-#   undef __
-
-    return start;
-  }
-};
+uint32_t VM_Version::_initial_vector_length = 0;
 
 void VM_Version::get_processor_features() {
   if (FLAG_IS_DEFAULT(UseFMA)) {
@@ -181,30 +103,14 @@ void VM_Version::get_processor_features() {
     FLAG_SET_DEFAULT(UseMD5Intrinsics, false);
   }
 
-  if (!FLAG_IS_DEFAULT(UseVExt) && UseVExt) {
-    // try to read vector register VLENB, if success, rvv is supported
-    // otherwise, csrr will trigger sigill
-    ResourceMark rm;
-
-    stub_blob = BufferBlob::create("getPsrInfo_stub", stub_size);
-    if (stub_blob == NULL) {
-      vm_exit_during_initialization("Unable to allocate getPsrInfo_stub");
-    }
-
-    CodeBuffer c(stub_blob);
-    VM_Version_StubGenerator g(&c);
-    getPsrInfo_stub = CAST_TO_FN_PTR(getPsrInfo_stub_t,
-                                     g.generate_getPsrInfo(&VM_Version::_checkvext_fault_pc, &VM_Version::_checkvext_continuation_pc));
-    _initial_vector_length = getPsrInfo_stub();
-  }
-
-  if (!_initial_vector_length) {
-    if (UseVExt) {
+  if (UseVExt) {
+    if (!(_features & CPU_V)) {
       warning("RVV is not supported on this CPU");
       FLAG_SET_DEFAULT(UseVExt, false);
+    } else {
+      // read vector length from vector CSR vlenb
+      _initial_vector_length = get_current_vector_length();
     }
-  } else if (FLAG_IS_DEFAULT(UseVExt)) {
-    UseVExt = true;
   }
 
   if (FLAG_IS_DEFAULT(AvoidUnalignedAccesses)) {
@@ -259,5 +165,6 @@ void VM_Version::get_c2_processor_features() {
 #endif // COMPILER2
 
 void VM_Version::initialize() {
+  get_cpu_info();
   get_processor_features();
 }

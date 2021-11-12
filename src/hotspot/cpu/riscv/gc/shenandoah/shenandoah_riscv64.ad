@@ -43,7 +43,7 @@ instruct compareAndSwapP_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, i
     __ mv(tmp, $oldval$$Register); // Must not clobber oldval.
     ShenandoahBarrierSet::assembler()->cmpxchg_oop(&_masm, $mem$$Register, tmp, $newval$$Register,
                                                    Assembler::relaxed /* acquire */, Assembler::rl /* release */,
-                                                   false /* is_cae */, $res$$Register);   
+                                                   false /* is_cae */, $res$$Register);
   %}
 
   ins_pipe(pipe_slow);
@@ -194,7 +194,7 @@ instruct compareAndExchangeNAcq_shenandoah(iRegNNoSp res, indirect mem, iRegN ol
                                                    true /* is_cae */, $res$$Register);
   %}
 
-  ins_pipe(pipe_slow); 
+  ins_pipe(pipe_slow);
 %}
 
 instruct compareAndExchangePAcq_shenandoah(iRegPNoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp, rFlagsReg cr) %{

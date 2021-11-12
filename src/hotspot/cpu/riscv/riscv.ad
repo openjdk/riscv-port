@@ -9693,7 +9693,7 @@ instruct cmovI_cmpU(iRegINoSp dst, iRegI src, iRegI op1, iRegI op2, cmpOpU cop) 
              "bneg$cop $op1, $op2, skip\t#@cmovI_cmpU\n\t"
              "mv $dst, $src\n\t"
              "skip:"
-         %}    
+         %}
 
   ins_encode %{
     __ enc_cmove($cop$$cmpcode | C2_MacroAssembler::unsigned_branch_mask,
