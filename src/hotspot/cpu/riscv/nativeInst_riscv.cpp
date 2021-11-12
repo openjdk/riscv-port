@@ -415,4 +415,3 @@ void NativeMembar::set_kind(uint32_t order_kind) {
   address membar = addr_at(0);
   *(unsigned int*) membar = insn;
 }
-

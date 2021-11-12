@@ -445,7 +445,7 @@ instruct vminD(vReg dst, vReg src1, vReg src2) %{
   ins_cost(VEC_COST);
   format %{ "vminD $dst, $src1, $src2\t#@vminD" %}
   ins_encode %{
-    __ minmax_FD_v(as_VectorRegister($dst$$reg),   
+    __ minmax_FD_v(as_VectorRegister($dst$$reg),
                    as_VectorRegister($src1$$reg), as_VectorRegister($src2$$reg),
                    true /* is_double */, true /* is_min */);
   %}
@@ -1067,7 +1067,7 @@ instruct vreduce_maxD(fRegD dst, fRegD src1, vReg src2, vReg tmp1, vReg tmp2) %{
     __ reduce_minmax_FD_v($dst$$FloatRegister,
                           $src1$$FloatRegister, as_VectorRegister($src2$$reg),
                           as_VectorRegister($tmp1$$reg), as_VectorRegister($tmp2$$reg),
-                          true /* is_double */, false /* is_min */); 
+                          true /* is_double */, false /* is_min */);
   %}
   ins_pipe(pipe_slow);
 %}
@@ -1084,7 +1084,7 @@ instruct vreduce_minF(fRegF dst, fRegF src1, vReg src2, vReg tmp1, vReg tmp2) %{
     __ reduce_minmax_FD_v($dst$$FloatRegister,
                           $src1$$FloatRegister, as_VectorRegister($src2$$reg),
                           as_VectorRegister($tmp1$$reg), as_VectorRegister($tmp2$$reg),
-                          false /* is_double */, true /* is_min */); 
+                          false /* is_double */, true /* is_min */);
   %}
   ins_pipe(pipe_slow);
 %}
@@ -1099,7 +1099,7 @@ instruct vreduce_minD(fRegD dst, fRegD src1, vReg src2, vReg tmp1, vReg tmp2) %{
     __ reduce_minmax_FD_v($dst$$FloatRegister,
                           $src1$$FloatRegister, as_VectorRegister($src2$$reg),
                           as_VectorRegister($tmp1$$reg), as_VectorRegister($tmp2$$reg),
-                          true /* is_double */, true /* is_min */); 
+                          true /* is_double */, true /* is_min */);
   %}
   ins_pipe(pipe_slow);
 %}

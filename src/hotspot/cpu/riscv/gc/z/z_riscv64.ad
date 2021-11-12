@@ -137,7 +137,7 @@ instruct zCompareAndSwapPAcq(iRegINoSp res, indirect mem, iRegP oldval, iRegP ne
                  Assembler::aq /* acquire */, Assembler::rl /* release */, $res$$Register,
                  true /* result_as_bool */);
       __ bind(good);
-    }  
+    }
   %}
 
   ins_pipe(pipe_slow);
