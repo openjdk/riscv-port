@@ -253,7 +253,7 @@ class NativeCall: public NativeInstruction {
       Assembler::patch(pInsn, 30, 21, (offset >> 1) & 0x3ff);
       Assembler::patch(pInsn, 20, 20, (offset >> 11) & 0x1);
       Assembler::patch(pInsn, 19, 12, (offset >> 12) & 0xff);
-      Assembler::patch(pInsn, 11, 7, lr->encoding()); // Rd must be x1, need lr
+      Assembler::patch(pInsn, 11, 7, ra->encoding()); // Rd must be x1, need ra
       set_int_at(displacement_offset, insn);
       return;
     }

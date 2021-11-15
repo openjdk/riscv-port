@@ -107,8 +107,8 @@ void RangeCheckStub::emit_code(LIR_Assembler* ce)
     stub_id = Runtime1::throw_range_check_failed_id;
   }
   int32_t off = 0;
-  __ la_patchable(lr, RuntimeAddress(Runtime1::entry_for(stub_id)), off);
-  __ jalr(lr, lr, off);
+  __ la_patchable(ra, RuntimeAddress(Runtime1::entry_for(stub_id)), off);
+  __ jalr(ra, ra, off);
   ce->add_call_info_here(_info);
   ce->verify_oop_map(_info);
   debug_only(__ should_not_reach_here());
@@ -253,7 +253,7 @@ void MonitorExitStub::emit_code(LIR_Assembler* ce)
   } else {
     exit_id = Runtime1::monitorexit_nofpu_id;
   }
-  __ la(lr, _continuation);
+  __ la(ra, _continuation);
   __ far_jump(RuntimeAddress(Runtime1::entry_for(exit_id)));
 }
 

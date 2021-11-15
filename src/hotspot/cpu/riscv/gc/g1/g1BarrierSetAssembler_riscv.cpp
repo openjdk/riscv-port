@@ -265,7 +265,7 @@ void G1BarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet decorator
   bool on_reference = on_weak || on_phantom;
   ModRefBarrierSetAssembler::load_at(masm, decorators, type, dst, src, tmp1, tmp_thread);
   if (on_oop && on_reference) {
-    // LR is live.  It must be saved around calls.
+    // RA is live.  It must be saved around calls.
     __ enter(); // barrier may call runtime
     // Generate the G1 pre-barrier code to log the value of
     // the referent field in an SATB buffer.
@@ -431,8 +431,8 @@ void G1BarrierSetAssembler::generate_c1_post_barrier_runtime_stub(StubAssembler*
   Address buffer(thread, in_bytes(G1ThreadLocalData::dirty_card_queue_buffer_offset()));
 
   const Register card_offset = t1;
-  // LR is free here, so we can use it to hold the byte_map_base.
-  const Register byte_map_base = lr;
+  // RA is free here, so we can use it to hold the byte_map_base.
+  const Register byte_map_base = ra;
 
   assert_different_registers(card_offset, byte_map_base, t0);
 
@@ -463,8 +463,8 @@ void G1BarrierSetAssembler::generate_c1_post_barrier_runtime_stub(StubAssembler*
   __ sub(t0, t0, wordSize);
   __ sd(t0, queue_index);
 
-  // Reuse LR to hold buffer_addr
-  const Register buffer_addr = lr;
+  // Reuse RA to hold buffer_addr
+  const Register buffer_addr = ra;
 
   __ ld(buffer_addr, buffer);
   __ add(t0, buffer_addr, t0);
