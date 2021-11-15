@@ -181,6 +181,7 @@ LIR_Opr FrameMap::_caller_save_fpu_regs[] = { 0, };
 // |---x23--|
 // |---x8---|
 // |---x4---|
+// |---x3---|
 // |---x2---|
 // |---x1---|
 // |---x0---|
@@ -195,7 +196,6 @@ LIR_Opr FrameMap::_caller_save_fpu_regs[] = { 0, };
 // |---..---|
 // |---x10--|
 // |---x7---|
-// |---x3---|
 
 void FrameMap::initialize() {
   assert(!_init_done, "once");
@@ -203,7 +203,6 @@ void FrameMap::initialize() {
   int i = 0;
 
   // caller save register
-  map_register(i, x3);  r3_opr  = LIR_OprFact::single_cpu(i); i++;
   map_register(i, x7);  r7_opr  = LIR_OprFact::single_cpu(i); i++;
   map_register(i, x10); r10_opr = LIR_OprFact::single_cpu(i); i++;
   map_register(i, x11); r11_opr = LIR_OprFact::single_cpu(i); i++;
@@ -233,6 +232,7 @@ void FrameMap::initialize() {
   map_register(i, x0);  zr_opr  = LIR_OprFact::single_cpu(i); i++;  // zr
   map_register(i, x1);  r1_opr  = LIR_OprFact::single_cpu(i); i++;  // lr
   map_register(i, x2);  r2_opr  = LIR_OprFact::single_cpu(i); i++;  // sp
+  map_register(i, x3);  r3_opr  = LIR_OprFact::single_cpu(i); i++;  // gp
   map_register(i, x4);  r4_opr  = LIR_OprFact::single_cpu(i); i++;  // thread
   map_register(i, x8);  r8_opr  = LIR_OprFact::single_cpu(i); i++;  // fp
   map_register(i, x23); r23_opr = LIR_OprFact::single_cpu(i); i++;  // java thread
@@ -254,7 +254,6 @@ void FrameMap::initialize() {
   fpu10_double_opr  = LIR_OprFact::double_fpu(10);
 
   i = 0;
-  _caller_save_cpu_regs[i++]  = r3_opr;
   _caller_save_cpu_regs[i++]  = r7_opr;
   _caller_save_cpu_regs[i++]  = r10_opr;
   _caller_save_cpu_regs[i++]  = r11_opr;
