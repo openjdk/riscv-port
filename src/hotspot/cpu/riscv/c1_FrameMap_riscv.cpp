@@ -157,8 +157,8 @@ LIR_Opr FrameMap::long11_opr;
 LIR_Opr FrameMap::fpu10_float_opr;
 LIR_Opr FrameMap::fpu10_double_opr;
 
-LIR_Opr FrameMap::_caller_save_cpu_regs[] = { 0, };
-LIR_Opr FrameMap::_caller_save_fpu_regs[] = { 0, };
+LIR_Opr FrameMap::_caller_save_cpu_regs[] = {};
+LIR_Opr FrameMap::_caller_save_fpu_regs[] = {};
 
 //--------------------------------------------------------
 //               FrameMap

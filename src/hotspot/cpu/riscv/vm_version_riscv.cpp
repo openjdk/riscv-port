@@ -260,5 +260,4 @@ void VM_Version::get_c2_processor_features() {
 
 void VM_Version::initialize() {
   get_processor_features();
-  UNSUPPORTED_OPTION(CriticalJNINatives);
 }

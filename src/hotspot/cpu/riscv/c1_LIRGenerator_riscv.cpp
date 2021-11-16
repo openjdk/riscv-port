@@ -209,12 +209,18 @@ LIR_Address* LIRGenerator::emit_array_address(LIR_Opr array_opr, LIR_Opr index_o
 }
 
 LIR_Opr LIRGenerator::load_immediate(int x, BasicType type) {
+  LIR_Opr r;
   switch (type) {
-    case T_LONG: return LIR_OprFact::longConst(x);
-    case T_INT:  return LIR_OprFact::intConst(x);
-    default:     ShouldNotReachHere();
+    case T_LONG:
+      r = LIR_OprFact::longConst(x);
+      break;
+    case T_INT:
+      r = LIR_OprFact::intConst(x);
+      break;
+    default:
+      ShouldNotReachHere();
   }
-  return NULL;
+  return r;
 }
 
 void LIRGenerator::increment_counter(address counter, BasicType type, int step) {

@@ -3598,7 +3598,7 @@ void TemplateTable::_new() {
       SkipIfEqual skip(_masm, &DTraceAllocProbes, false);
       // Trigger dtrace event for fastpath
       __ push(atos); // save the return value
-      __ call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::dtrace_object_alloc), x10);
+      __ call_VM_leaf(CAST_FROM_FN_PTR(address, static_cast<int (*)(oopDesc*)>(SharedRuntime::dtrace_object_alloc)), x10);
       __ pop(atos); // restore the return value
     }
     __ j(done);
