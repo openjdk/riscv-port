@@ -2359,6 +2359,16 @@ encode %{
     __ mv(tmp, (address)markWord::unused_mark().value());
     __ sd(tmp, Address(box, BasicLock::displaced_header_offset_in_bytes()));
 
+    __ beqz(flag, cont); // CAS success means locking succeeded
+
+    __ bne(flag, xthread, cont); // Check for recursive locking
+
+    // Recursive lock case
+    __ mv(flag, zr);
+    __ ld(tmp, Address(disp_hdr, ObjectMonitor::recursions_offset_in_bytes() - markWord::monitor_value));
+    __ add(tmp, tmp, 1u);
+    __ sd(tmp, Address(disp_hdr, ObjectMonitor::recursions_offset_in_bytes() - markWord::monitor_value));
+
     __ bind(cont);
   %}
 
@@ -2404,10 +2414,19 @@ encode %{
     __ add(tmp, tmp, -(int)markWord::monitor_value); // monitor
     __ ld(flag, Address(tmp, ObjectMonitor::owner_offset_in_bytes()));
     __ ld(disp_hdr, Address(tmp, ObjectMonitor::recursions_offset_in_bytes()));
+
+    Label notRecursive;
     __ xorr(flag, flag, xthread); // Will be 0 if we are the owner.
-    __ orr(flag, flag, disp_hdr); // Will be 0 if there are 0 recursions
     __ bnez(flag, cont);
 
+    __ beqz(disp_hdr, notRecursive); // Will be 0 if not recursive.
+
+    // Recursive lock
+    __ addi(disp_hdr, disp_hdr, -1);
+    __ sd(disp_hdr, Address(tmp, ObjectMonitor::recursions_offset_in_bytes()));
+    __ j(cont);
+
+    __ bind(notRecursive);
     __ ld(flag, Address(tmp, ObjectMonitor::EntryList_offset_in_bytes()));
     __ ld(disp_hdr, Address(tmp, ObjectMonitor::cxq_offset_in_bytes()));
     __ orr(flag, flag, disp_hdr); // Will be 0 if both are 0.
