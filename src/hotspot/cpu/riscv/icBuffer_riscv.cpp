@@ -47,7 +47,7 @@ void InlineCacheBuffer::assemble_ic_buffer_code(address code_begin, void* cached
   ResourceMark rm;
   CodeBuffer      code(code_begin, ic_stub_code_size());
   MacroAssembler* masm            = new MacroAssembler(&code);
-  // note: even though the code contains an embedded value, we do not need reloc info
+  // Note: even though the code contains an embedded value, we do not need reloc info
   // because
   // (1) the value is old (i.e., doesn't matter for scavenges)
   // (2) these ICStubs are removed *before* a GC happens, so the roots disappear

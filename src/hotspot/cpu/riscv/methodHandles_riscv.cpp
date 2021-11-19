@@ -190,7 +190,7 @@ address MethodHandles::generate_method_handle_interpreter_entry(MacroAssembler* 
 
   // x30: sender SP (must preserve; see prepare_to_jump_from_interpreted)
   // xmethod: Method*
-  // x13: argument locator (parameter slot count, added to rsp)
+  // x13: argument locator (parameter slot count, added to sp)
   // x11: used as temp to hold mh or receiver
   // x10, x29: garbage temps, blown away
   Register argp   = x13;   // argument list ptr, live on error paths

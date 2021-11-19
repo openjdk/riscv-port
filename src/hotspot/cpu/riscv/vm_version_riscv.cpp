@@ -103,10 +103,10 @@ void VM_Version::get_processor_features() {
     FLAG_SET_DEFAULT(UseMD5Intrinsics, false);
   }
 
-  if (UseVExt) {
+  if (UseRVV) {
     if (!(_features & CPU_V)) {
       warning("RVV is not supported on this CPU");
-      FLAG_SET_DEFAULT(UseVExt, false);
+      FLAG_SET_DEFAULT(UseRVV, false);
     } else {
       // read vector length from vector CSR vlenb
       _initial_vector_length = get_current_vector_length();
@@ -132,20 +132,20 @@ void VM_Version::get_c2_processor_features() {
     FLAG_SET_DEFAULT(ConditionalMoveLimit, 0);
   }
 
-  if (!UseVExt) {
+  if (!UseRVV) {
     FLAG_SET_DEFAULT(SpecialEncodeISOArray, false);
   }
 
-  if (!UseVExt && MaxVectorSize) {
+  if (!UseRVV && MaxVectorSize) {
     FLAG_SET_DEFAULT(MaxVectorSize, 0);
   }
 
-  if (UseVExt) {
+  if (UseRVV) {
     if (FLAG_IS_DEFAULT(MaxVectorSize)) {
       MaxVectorSize = _initial_vector_length;
     } else if (MaxVectorSize < 16) {
       warning("RVV does not support vector length less than 16 bytes. Disabling RVV.");
-      UseVExt = false;
+      UseRVV = false;
     } else if (is_power_of_2(MaxVectorSize)) {
       if (MaxVectorSize > _initial_vector_length) {
         warning("Current system only supports max RVV vector length %d. Set MaxVectorSize to %d",

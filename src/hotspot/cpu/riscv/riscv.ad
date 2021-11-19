@@ -1776,9 +1776,9 @@ const bool Matcher::match_rule_supported(int opcode) {
     case Op_StrCompressedCopy: // fall through
     case Op_StrInflatedCopy:   // fall through
     case Op_HasNegatives:
-      return UseVExt;
+      return UseRVV;
     case Op_EncodeISOArray:
-      return UseVExt && SpecialEncodeISOArray;
+      return UseRVV && SpecialEncodeISOArray;
   }
 
   return true; // Per default match rules are supported.
@@ -1841,8 +1841,8 @@ bool Matcher::is_short_branch_offset(int rule, int br_size, int offset) {
 
 // Vector width in bytes.
 const int Matcher::vector_width_in_bytes(BasicType bt) {
-  if (UseVExt) {
-    // The MaxVectorSize should have been set by detecting RVV max vector register size when check UseVExt.
+  if (UseRVV) {
+    // The MaxVectorSize should have been set by detecting RVV max vector register size when check UseRVV.
     // MaxVectorSize == VM_Version::_initial_vector_length
     return MaxVectorSize;
   }
@@ -1860,7 +1860,7 @@ const int Matcher::min_vector_size(const BasicType bt) {
 // Vector ideal reg.
 const uint Matcher::vector_ideal_reg(int len) {
   assert(MaxVectorSize >= len, "");
-  if (UseVExt) {
+  if (UseRVV) {
     return Op_VecA;
   }
 
@@ -9913,7 +9913,7 @@ instruct partialSubtypeCheckVsZero(iRegP_R14 sub, iRegP_R10 super, iRegP_R12 tem
 instruct string_compareU(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R14 cnt2,
                          iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3, rFlagsReg cr)
 %{
-  predicate(!UseVExt && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::UU);
+  predicate(!UseRVV && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::UU);
   match(Set result(StrComp(Binary str1 cnt1)(Binary str2 cnt2)));
   effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL cr);
 
@@ -9931,7 +9931,7 @@ instruct string_compareU(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R
 instruct string_compareL(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R14 cnt2,
                          iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3, rFlagsReg cr)
 %{
-  predicate(!UseVExt && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::LL);
+  predicate(!UseRVV && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::LL);
   match(Set result(StrComp(Binary str1 cnt1)(Binary str2 cnt2)));
   effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL cr);
 
@@ -9948,7 +9948,7 @@ instruct string_compareL(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R
 instruct string_compareUL(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R14 cnt2,
                           iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3, rFlagsReg cr)
 %{
-  predicate(!UseVExt && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::UL);
+  predicate(!UseRVV && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::UL);
   match(Set result(StrComp(Binary str1 cnt1)(Binary str2 cnt2)));
   effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL cr);
 
@@ -9966,7 +9966,7 @@ instruct string_compareLU(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_
                           iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3,
                           rFlagsReg cr)
 %{
-  predicate(!UseVExt && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::LU);
+  predicate(!UseRVV && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::LU);
   match(Set result(StrComp(Binary str1 cnt1)(Binary str2 cnt2)));
   effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL cr);
 
@@ -10111,7 +10111,7 @@ instruct stringU_indexof_char(iRegP_R11 str1, iRegI_R12 cnt1, iRegI_R13 ch,
                               iRegINoSp tmp3, iRegINoSp tmp4, rFlagsReg tmp)
 %{
   match(Set result (StrIndexOfChar (Binary str1 cnt1) ch));
-  predicate(!UseVExt && (((StrIndexOfCharNode*)n)->encoding() == StrIntrinsicNode::U));
+  predicate(!UseRVV && (((StrIndexOfCharNode*)n)->encoding() == StrIntrinsicNode::U));
   effect(USE_KILL str1, USE_KILL cnt1, USE_KILL ch, TEMP_DEF result,
          TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL tmp);
 
@@ -10131,7 +10131,7 @@ instruct stringL_indexof_char(iRegP_R11 str1, iRegI_R12 cnt1, iRegI_R13 ch,
                               iRegINoSp tmp3, iRegINoSp tmp4, rFlagsReg tmp)
 %{
   match(Set result (StrIndexOfChar (Binary str1 cnt1) ch));
-  predicate(!UseVExt && (((StrIndexOfCharNode*)n)->encoding() == StrIntrinsicNode::L));
+  predicate(!UseRVV && (((StrIndexOfCharNode*)n)->encoding() == StrIntrinsicNode::L));
   effect(USE_KILL str1, USE_KILL cnt1, USE_KILL ch, TEMP_DEF result,
          TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL tmp);
 
@@ -10148,7 +10148,7 @@ instruct stringL_indexof_char(iRegP_R11 str1, iRegI_R12 cnt1, iRegI_R13 ch,
 // clearing of an array
 instruct clearArray_reg_reg(iRegL_R29 cnt, iRegP_R28 base, Universe dummy, rFlagsReg cr)
 %{
-  predicate(!UseVExt);
+  predicate(!UseRVV);
   match(Set dummy (ClearArray cnt base));
   effect(USE_KILL cnt, USE_KILL base);
 
@@ -10168,7 +10168,7 @@ instruct clearArray_reg_reg(iRegL_R29 cnt, iRegP_R28 base, Universe dummy, rFlag
 
 instruct clearArray_imm_reg(immL cnt, iRegP_R28 base, Universe dummy, rFlagsReg cr)
 %{
-  predicate(!UseVExt && (uint64_t)n->in(2)->get_long()
+  predicate(!UseRVV && (uint64_t)n->in(2)->get_long()
             < (uint64_t)(BlockZeroingLowLimit >> LogBytesPerWord));
   match(Set dummy (ClearArray cnt base));
   effect(USE_KILL base, KILL cr);
@@ -10186,7 +10186,7 @@ instruct clearArray_imm_reg(immL cnt, iRegP_R28 base, Universe dummy, rFlagsReg 
 instruct string_equalsL(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt,
                         iRegI_R10 result, rFlagsReg cr)
 %{
-  predicate(!UseVExt && ((StrEqualsNode*)n)->encoding() == StrIntrinsicNode::LL);
+  predicate(!UseRVV && ((StrEqualsNode*)n)->encoding() == StrIntrinsicNode::LL);
   match(Set result (StrEquals (Binary str1 str2) cnt));
   effect(USE_KILL str1, USE_KILL str2, USE_KILL cnt, KILL cr);
 
@@ -10202,7 +10202,7 @@ instruct string_equalsL(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt,
 instruct string_equalsU(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt,
                         iRegI_R10 result, rFlagsReg cr)
 %{
-  predicate(!UseVExt && ((StrEqualsNode*)n)->encoding() == StrIntrinsicNode::UU);
+  predicate(!UseRVV && ((StrEqualsNode*)n)->encoding() == StrIntrinsicNode::UU);
   match(Set result (StrEquals (Binary str1 str2) cnt));
   effect(USE_KILL str1, USE_KILL str2, USE_KILL cnt, KILL cr);
 
@@ -10219,7 +10219,7 @@ instruct array_equalsB(iRegP_R11 ary1, iRegP_R12 ary2, iRegI_R10 result,
                        iRegP_R13 tmp1, iRegP_R14 tmp2, iRegP_R15 tmp3,
                        iRegP_R16 tmp4, iRegP_R28 tmp, rFlagsReg cr)
 %{
-  predicate(!UseVExt && ((AryEqNode*)n)->encoding() == StrIntrinsicNode::LL);
+  predicate(!UseRVV && ((AryEqNode*)n)->encoding() == StrIntrinsicNode::LL);
   match(Set result (AryEq ary1 ary2));
   effect(KILL tmp, USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL cr);
 
@@ -10236,7 +10236,7 @@ instruct array_equalsC(iRegP_R11 ary1, iRegP_R12 ary2, iRegI_R10 result,
                        iRegP_R13 tmp1, iRegP_R14 tmp2, iRegP_R15 tmp3,
                        iRegP_R16 tmp4, iRegP_R28 tmp, rFlagsReg cr)
 %{
-  predicate(!UseVExt && ((AryEqNode*)n)->encoding() == StrIntrinsicNode::UU);
+  predicate(!UseRVV && ((AryEqNode*)n)->encoding() == StrIntrinsicNode::UU);
   match(Set result (AryEq ary1 ary2));
   effect(KILL tmp, USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL cr);
 

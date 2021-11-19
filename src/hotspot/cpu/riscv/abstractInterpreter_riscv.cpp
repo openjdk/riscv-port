@@ -134,10 +134,9 @@ void AbstractInterpreter::layout_activation(Method* method,
 #endif
 
   interpreter_frame->interpreter_frame_set_method(method);
-  // NOTE the difference in using sender_sp and
-  // interpreter_frame_sender_sp interpreter_frame_sender_sp is
-  // the original sp of the caller (the unextended_sp) and
-  // sender_sp is fp+8/16 (32bit/64bit)
+  // NOTE the difference in using sender_sp and interpreter_frame_sender_sp
+  // interpreter_frame_sender_sp is the original sp of the caller (the unextended_sp)
+  // and sender_sp is fp
   intptr_t* locals = NULL;
   if (caller->is_interpreted_frame()) {
     locals = caller->interpreter_frame_last_sp() + caller_actual_parameters - 1;

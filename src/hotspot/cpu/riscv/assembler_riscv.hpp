@@ -1301,52 +1301,6 @@ enum VectorMask {
   unmasked = 0b1
 };
 
-// Vector AMO operations
-#define INSN(NAME, op, funct3, funct5)                                   \
-  void NAME(VectorRegister vSrc, Register rBase, VectorRegister vOffset, \
-            bool src_as_dst, VectorMask vm = unmasked) {                 \
-    unsigned insn = 0;                                                   \
-    patch((address)&insn, 6, 0, op);                                     \
-    patch((address)&insn, 14, 12, funct3);                               \
-    patch((address)&insn, 25, vm);                                       \
-    patch((address)&insn, 26, (uint32_t)src_as_dst);                     \
-    patch((address)&insn, 31, 27, funct5);                               \
-    patch_reg((address)&insn, 7, vSrc);                                  \
-    patch_reg((address)&insn, 15, rBase);                                \
-    patch_reg((address)&insn, 20, vOffset);                              \
-    emit(insn);                                                          \
-  }
-
-  INSN(vamoswapei8_v,  0b0101111, 0b000, 0b00001);
-  INSN(vamoswapei16_v, 0b0101111, 0b101, 0b00001);
-  INSN(vamoswapei32_v, 0b0101111, 0b110, 0b00001);
-  INSN(vamoaddei8_v,   0b0101111, 0b000, 0b00000);
-  INSN(vamoaddei16_v,  0b0101111, 0b101, 0b00000);
-  INSN(vamoaddei32_v,  0b0101111, 0b110, 0b00000);
-  INSN(vamoxorei8_v,   0b0101111, 0b000, 0b00100);
-  INSN(vamoxorei16_v,  0b0101111, 0b101, 0b00100);
-  INSN(vamoxorei32_v,  0b0101111, 0b110, 0b00100);
-  INSN(vamoandei8_v,   0b0101111, 0b000, 0b01100);
-  INSN(vamoandei16_v,  0b0101111, 0b101, 0b01100);
-  INSN(vamoandei32_v,  0b0101111, 0b110, 0b01100);
-  INSN(vamoorei8_v,    0b0101111, 0b000, 0b01000);
-  INSN(vamoorei16_v,   0b0101111, 0b101, 0b01000);
-  INSN(vamoorei32_v,   0b0101111, 0b110, 0b01000);
-  INSN(vamominei8_v,   0b0101111, 0b000, 0b10000);
-  INSN(vamominei16_v,  0b0101111, 0b101, 0b10000);
-  INSN(vamominei32_v,  0b0101111, 0b110, 0b10000);
-  INSN(vamomaxei8_v,   0b0101111, 0b000, 0b10100);
-  INSN(vamomaxei16_v,  0b0101111, 0b101, 0b10100);
-  INSN(vamomaxei32_v,  0b0101111, 0b110, 0b10100);
-  INSN(vamominuei8_v,  0b0101111, 0b000, 0b11000);
-  INSN(vamominuei16_v, 0b0101111, 0b101, 0b11000);
-  INSN(vamominuei32_v, 0b0101111, 0b110, 0b11000);
-  INSN(vamomaxuei8_v,  0b0101111, 0b000, 0b11100);
-  INSN(vamomaxuei16_v, 0b0101111, 0b101, 0b11100);
-  INSN(vamomaxuei32_v, 0b0101111, 0b110, 0b11100);
-
-#undef INSN
-
 #define patch_VArith(op, Reg, funct3, Reg_or_Imm5, Vs2, vm, funct6)            \
     unsigned insn = 0;                                                         \
     patch((address)&insn, 6, 0, op);                                           \
@@ -1396,25 +1350,6 @@ enum VectorMask {
   INSN(vfcvt_rtz_xu_f_v, 0b1010111, 0b001, 0b00110, 0b010010);
   INSN(vfcvt_rtz_x_f_v,  0b1010111, 0b001, 0b00111, 0b010010);
 
-  // Vector Widening Floating-Point/Integer Type-Convert Instructions
-  INSN(vfwcvt_xu_f_v, 0b1010111, 0b001, 0b01000, 0b010010);
-  INSN(vfwcvt_x_f_v,  0b1010111, 0b001, 0b01001, 0b010010);
-  INSN(vfwcvt_f_xu_v, 0b1010111, 0b001, 0b01010, 0b010010);
-  INSN(vfwcvt_f_x_v,  0b1010111, 0b001, 0b01011, 0b010010);
-  INSN(vfwcvt_f_f_v,  0b1010111, 0b001, 0b01100, 0b010010);
-  INSN(vfwcvt_rtz_xu_f_v, 0b1010111, 0b001, 0b01110, 0b010010);
-  INSN(vfwcvt_rtz_x_f_v,  0b1010111, 0b001, 0b01111, 0b010010);
-
-  // Vector Narrowing Floating-Point/Integer Type-Convert Instructions
-  INSN(vfncvt_xu_f_w, 0b1010111, 0b001, 0b10000, 0b010010);
-  INSN(vfncvt_x_f_w,  0b1010111, 0b001, 0b10001, 0b010010);
-  INSN(vfncvt_f_xu_w, 0b1010111, 0b001, 0b10010, 0b010010);
-  INSN(vfncvt_f_x_w,  0b1010111, 0b001, 0b10011, 0b010010);
-  INSN(vfncvt_f_f_w,  0b1010111, 0b001, 0b10100, 0b010010);
-  INSN(vfncvt_rod_f_f_w,  0b1010111, 0b001, 0b10101, 0b010010);
-  INSN(vfncvt_rtz_xu_f_w, 0b1010111, 0b001, 0b10110, 0b010010);
-  INSN(vfncvt_rtz_x_f_w,  0b1010111, 0b001, 0b10111, 0b010010);
-
   // Vector Floating-Point Instruction
   INSN(vfsqrt_v,  0b1010111, 0b001, 0b00000, 0b010011);
   INSN(vfclass_v, 0b1010111, 0b001, 0b10000, 0b010011);
@@ -1462,25 +1397,6 @@ enum VectorMask {
     patch_VArith(op, Vd, funct3, (uint32_t)(imm & 0x1f), Vs2, vm, funct6);                         \
   }
 
-  // Vector Register Gather Instruction
-  INSN(vrgather_vi,   0b1010111, 0b011, 0b001100);
-
-  // Vector Slide Instructions
-  INSN(vslidedown_vi, 0b1010111, 0b011, 0b001111);
-  INSN(vslideup_vi,   0b1010111, 0b011, 0b001110);
-
-  // Vector Narrowing Fixed-Point Clip Instructions
-  INSN(vnclip_wi,  0b1010111, 0b011, 0b101111);
-  INSN(vnclipu_wi, 0b1010111, 0b011, 0b101110);
-
-  // Vector Single-Width Scaling Shift Instructions
-  INSN(vssra_vi,   0b1010111, 0b011, 0b101011);
-  INSN(vssrl_vi,   0b1010111, 0b011, 0b101010);
-
-  // Vector Narrowing Integer Right Shift Instructions
-  INSN(vnsra_wi,   0b1010111, 0b011, 0b101101);
-  INSN(vnsrl_wi,   0b1010111, 0b011, 0b101100);
-
   // Vector Single-Width Bit Shift Instructions
   INSN(vsra_vi,    0b1010111, 0b011, 0b101001);
   INSN(vsrl_vi,    0b1010111, 0b011, 0b101000);
@@ -1493,12 +1409,6 @@ enum VectorMask {
     patch_VArith(op, Vd, funct3, Vs1->encoding_nocheck(), Vs2, vm, funct6);                        \
   }
 
-  // Vector Widening Floating-Point Fused Multiply-Add Instructions
-  INSN(vfwnmsac_vv, 0b1010111, 0b001, 0b111111);
-  INSN(vfwmsac_vv,  0b1010111, 0b001, 0b111110);
-  INSN(vfwnmacc_vv, 0b1010111, 0b001, 0b111101);
-  INSN(vfwmacc_vv,  0b1010111, 0b001, 0b111100);
-
   // Vector Single-Width Floating-Point Fused Multiply-Add Instructions
   INSN(vfnmsub_vv, 0b1010111, 0b001, 0b101011);
   INSN(vfmsub_vv,  0b1010111, 0b001, 0b101010);
@@ -1508,11 +1418,6 @@ enum VectorMask {
   INSN(vfmsac_vv,  0b1010111, 0b001, 0b101110);
   INSN(vfmacc_vv,  0b1010111, 0b001, 0b101100);
   INSN(vfnmacc_vv, 0b1010111, 0b001, 0b101101);
-
-  // Vector Widening Integer Multiply-Add Instructions
-  INSN(vwmaccsu_vv, 0b1010111, 0b010, 0b111111);
-  INSN(vwmacc_vv,   0b1010111, 0b010, 0b111101);
-  INSN(vwmaccu_vv,  0b1010111, 0b010, 0b111100);
 
   // Vector Single-Width Integer Multiply-Add Instructions
   INSN(vnmsub_vv, 0b1010111, 0b010, 0b101011);
@@ -1526,12 +1431,6 @@ enum VectorMask {
   void NAME(VectorRegister Vd, Register Rs1, VectorRegister Vs2, VectorMask vm = unmasked) {       \
     patch_VArith(op, Vd, funct3, Rs1->encoding_nocheck(), Vs2, vm, funct6);                        \
   }
-
-  // Vector Widening Integer Multiply-Add Instructions
-  INSN(vwmaccsu_vx, 0b1010111, 0b110, 0b111111);
-  INSN(vwmacc_vx,   0b1010111, 0b110, 0b111101);
-  INSN(vwmaccu_vx,  0b1010111, 0b110, 0b111100);
-  INSN(vwmaccus_vx, 0b1010111, 0b110, 0b111110);
 
   // Vector Single-Width Integer Multiply-Add Instructions
   INSN(vnmsub_vx, 0b1010111, 0b110, 0b101011);
@@ -1547,12 +1446,6 @@ enum VectorMask {
   void NAME(VectorRegister Vd, FloatRegister Rs1, VectorRegister Vs2, VectorMask vm = unmasked) {  \
     patch_VArith(op, Vd, funct3, Rs1->encoding_nocheck(), Vs2, vm, funct6);                        \
   }
-
-  // Vector Widening Floating-Point Fused Multiply-Add Instructions
-  INSN(vfwnmsac_vf, 0b1010111, 0b101, 0b111111);
-  INSN(vfwmsac_vf,  0b1010111, 0b101, 0b111110);
-  INSN(vfwnmacc_vf, 0b1010111, 0b101, 0b111101);
-  INSN(vfwmacc_vf,  0b1010111, 0b101, 0b111100);
 
   // Vector Single-Width Floating-Point Fused Multiply-Add Instructions
   INSN(vfnmsub_vf, 0b1010111, 0b101, 0b101011);
@@ -1571,14 +1464,6 @@ enum VectorMask {
     patch_VArith(op, Vd, funct3, Vs1->encoding_nocheck(), Vs2, vm, funct6);                        \
   }
 
-  // Vector Register Gather Instruction
-  INSN(vrgather_vv,     0b1010111, 0b000, 0b001100);
-  INSN(vrgatherei16_vv, 0b1010111, 0b000, 0b001110);
-
-  // Vector Widening Floating-Point Reduction Instructions
-  INSN(vfwredsum_vs,  0b1010111, 0b001, 0b110001);
-  INSN(vfwredosum_vs, 0b1010111, 0b001, 0b110011);
-
   // Vector Single-Width Floating-Point Reduction Instructions
   INSN(vfredsum_vs,   0b1010111, 0b001, 0b000001);
   INSN(vfredosum_vs,  0b1010111, 0b001, 0b000011);
@@ -1595,10 +1480,6 @@ enum VectorMask {
   INSN(vredmaxu_vs,   0b1010111, 0b010, 0b000110);
   INSN(vredmax_vs,    0b1010111, 0b010, 0b000111);
 
-  // Vector Widening Integer Reduction Instructions
-  INSN(vwredsumu_vs,  0b1010111, 0b000, 0b110000);
-  INSN(vwredsum_vs,   0b1010111, 0b000, 0b110001);
-
   // Vector Floating-Point Compare Instructions
   INSN(vmfle_vv, 0b1010111, 0b001, 0b011001);
   INSN(vmflt_vv, 0b1010111, 0b001, 0b011011);
@@ -1614,50 +1495,16 @@ enum VectorMask {
   INSN(vfmax_vv,   0b1010111, 0b001, 0b000110);
   INSN(vfmin_vv,   0b1010111, 0b001, 0b000100);
 
-  // Vector Widening Floating-Point Multiply
-  INSN(vfwmul_vv,  0b1010111, 0b001, 0b111000);
-
   // Vector Single-Width Floating-Point Multiply/Divide Instructions
   INSN(vfdiv_vv,   0b1010111, 0b001, 0b100000);
   INSN(vfmul_vv,   0b1010111, 0b001, 0b100100);
-
-  // Vector Widening Floating-Point Add/Subtract Instructions
-  INSN(vfwsub_wv, 0b1010111, 0b001, 0b110110);
-  INSN(vfwsub_vv, 0b1010111, 0b001, 0b110010);
-  INSN(vfwadd_wv, 0b1010111, 0b001, 0b110100);
-  INSN(vfwadd_vv, 0b1010111, 0b001, 0b110000);
 
   // Vector Single-Width Floating-Point Add/Subtract Instructions
   INSN(vfsub_vv, 0b1010111, 0b001, 0b000010);
   INSN(vfadd_vv, 0b1010111, 0b001, 0b000000);
 
-  // Vector Narrowing Fixed-Point Clip Instructions
-  INSN(vnclip_wv,  0b1010111, 0b000, 0b101111);
-  INSN(vnclipu_wv, 0b1010111, 0b000, 0b101110);
-
-  // Vector Single-Width Scaling Shift Instructions
-  INSN(vssra_vv, 0b1010111, 0b000, 0b101011);
-  INSN(vssrl_vv, 0b1010111, 0b000, 0b101010);
-
   // Vector Single-Width Fractional Multiply with Rounding and Saturation
   INSN(vsmul_vv, 0b1010111, 0b000, 0b100111);
-
-  // Vector Single-Width Averaging Add and Subtract
-  INSN(vasubu_vv, 0b1010111, 0b010, 0b001010);
-  INSN(vasub_vv,  0b1010111, 0b010, 0b001011);
-  INSN(vaaddu_vv, 0b1010111, 0b010, 0b001000);
-  INSN(vaadd_vv,  0b1010111, 0b010, 0b001001);
-
-  // Vector Single-Width Saturating Add and Subtract
-  INSN(vssub_vv,  0b1010111, 0b000, 0b100011);
-  INSN(vssubu_vv, 0b1010111, 0b000, 0b100010);
-  INSN(vsadd_vv,  0b1010111, 0b000, 0b100001);
-  INSN(vsaddu_vv, 0b1010111, 0b000, 0b100000);
-
-  // Vector Widening Integer Multiply Instructions
-  INSN(vwmul_vv,   0b1010111, 0b010, 0b111011);
-  INSN(vwmulsu_vv, 0b1010111, 0b010, 0b111010);
-  INSN(vwmulu_vv,  0b1010111, 0b010, 0b111000);
 
   // Vector Integer Divide Instructions
   INSN(vrem_vv,  0b1010111, 0b010, 0b100011);
@@ -1685,10 +1532,6 @@ enum VectorMask {
   INSN(vmsne_vv,  0b1010111, 0b000, 0b011001);
   INSN(vmseq_vv,  0b1010111, 0b000, 0b011000);
 
-  // Vector Narrowing Integer Right Shift Instructions
-  INSN(vnsra_wv, 0b1010111, 0b000, 0b101101);
-  INSN(vnsrl_wv, 0b1010111, 0b000, 0b101100);
-
   // Vector Single-Width Bit Shift Instructions
   INSN(vsra_vv, 0b1010111, 0b000, 0b101001);
   INSN(vsrl_vv, 0b1010111, 0b000, 0b101000);
@@ -1698,16 +1541,6 @@ enum VectorMask {
   INSN(vxor_vv, 0b1010111, 0b000, 0b001011);
   INSN(vor_vv,  0b1010111, 0b000, 0b001010);
   INSN(vand_vv, 0b1010111, 0b000, 0b001001);
-
-  // Vector Widening Integer Add/Subtract
-  INSN(vwsub_wv,  0b1010111, 0b010, 0b110111);
-  INSN(vwsubu_wv, 0b1010111, 0b010, 0b110110);
-  INSN(vwadd_wv,  0b1010111, 0b010, 0b110101);
-  INSN(vwaddu_wv, 0b1010111, 0b010, 0b110100);
-  INSN(vwsub_vv,  0b1010111, 0b010, 0b110011);
-  INSN(vwsubu_vv, 0b1010111, 0b010, 0b110010);
-  INSN(vwadd_vv,  0b1010111, 0b010, 0b110001);
-  INSN(vwaddu_vv, 0b1010111, 0b010, 0b110000);
 
   // Vector Single-Width Integer Add and Subtract
   INSN(vsub_vv, 0b1010111, 0b000, 0b000010);
@@ -1720,43 +1553,6 @@ enum VectorMask {
   void NAME(VectorRegister Vd, VectorRegister Vs2, Register Rs1, VectorMask vm = unmasked) {       \
     patch_VArith(op, Vd, funct3, Rs1->encoding_nocheck(), Vs2, vm, funct6);                        \
   }
-
-  // Vector Register Gather Instruction
-  INSN(vrgather_vx, 0b1010111, 0b100, 0b001100);
-
-  // Vector Slide Instructions
-  INSN(vslide1down_vx, 0b1010111, 0b110, 0b001111);
-  INSN(vslidedown_vx,  0b1010111, 0b100, 0b001111);
-  INSN(vslide1up_vx,   0b1010111, 0b110, 0b001110);
-  INSN(vslideup_vx,    0b1010111, 0b100, 0b001110);
-
-  // Vector Narrowing Fixed-Point Clip Instructions
-  INSN(vnclip_wx,  0b1010111, 0b100, 0b101111);
-  INSN(vnclipu_wx, 0b1010111, 0b100, 0b101110);
-
-  // Vector Single-Width Scaling Shift Instructions
-  INSN(vssra_vx, 0b1010111, 0b100, 0b101011);
-  INSN(vssrl_vx, 0b1010111, 0b100, 0b101010);
-
-  // Vector Single-Width Fractional Multiply with Rounding and Saturation
-  INSN(vsmul_vx, 0b1010111, 0b100, 0b100111);
-
-  // Vector Single-Width Averaging Add and Subtract
-  INSN(vasubu_vx, 0b1010111, 0b110, 0b001010);
-  INSN(vasub_vx,  0b1010111, 0b110, 0b001011);
-  INSN(vaaddu_vx, 0b1010111, 0b110, 0b001000);
-  INSN(vaadd_vx,  0b1010111, 0b110, 0b001001);
-
-  // Vector Single-Width Saturating Add and Subtract
-  INSN(vssub_vx,  0b1010111, 0b100, 0b100011);
-  INSN(vssubu_vx, 0b1010111, 0b100, 0b100010);
-  INSN(vsadd_vx,  0b1010111, 0b100, 0b100001);
-  INSN(vsaddu_vx, 0b1010111, 0b100, 0b100000);
-
-  // Vector Widening Integer Multiply Instructions
-  INSN(vwmul_vx,   0b1010111, 0b110, 0b111011);
-  INSN(vwmulsu_vx, 0b1010111, 0b110, 0b111010);
-  INSN(vwmulu_vx,  0b1010111, 0b110, 0b111000);
 
   // Vector Integer Divide Instructions
   INSN(vrem_vx,  0b1010111, 0b110, 0b100011);
@@ -1800,17 +1596,6 @@ enum VectorMask {
   INSN(vor_vx,  0b1010111, 0b100, 0b001010);
   INSN(vand_vx, 0b1010111, 0b100, 0b001001);
 
-  // Vector Widening Integer Add/Subtract
-  INSN(vwsub_wx,  0b1010111, 0b110, 0b110111);
-  INSN(vwsubu_wx, 0b1010111, 0b110, 0b110110);
-  INSN(vwadd_wx,  0b1010111, 0b110, 0b110101);
-  INSN(vwadd_wv,  0b1010111, 0b010, 0b110101);
-  INSN(vwaddu_wx, 0b1010111, 0b110, 0b110100);
-  INSN(vwsub_vx,  0b1010111, 0b110, 0b110011);
-  INSN(vwsubu_vx, 0b1010111, 0b110, 0b110010);
-  INSN(vwadd_vx,  0b1010111, 0b110, 0b110001);
-  INSN(vwaddu_vx, 0b1010111, 0b110, 0b110000);
-
   // Vector Single-Width Integer Add and Subtract
   INSN(vsub_vx, 0b1010111, 0b100, 0b000010);
   INSN(vadd_vx, 0b1010111, 0b100, 0b000000);
@@ -1830,10 +1615,6 @@ enum VectorMask {
   INSN(vmfne_vf, 0b1010111, 0b101, 0b011100);
   INSN(vmfeq_vf, 0b1010111, 0b101, 0b011000);
 
-  // Vector Slide1up/Slide1down Instruction
-  INSN(vfslide1down_vf, 0b1010111, 0b101, 0b001111);
-  INSN(vfslide1up_vf,   0b1010111, 0b101, 0b001110);
-
   // Vector Floating-Point Sign-Injection Instructions
   INSN(vfsgnjx_vf, 0b1010111, 0b101, 0b001010);
   INSN(vfsgnjn_vf, 0b1010111, 0b101, 0b001001);
@@ -1843,19 +1624,10 @@ enum VectorMask {
   INSN(vfmax_vf, 0b1010111, 0b101, 0b000110);
   INSN(vfmin_vf, 0b1010111, 0b101, 0b000100);
 
-  // Vector Widening Floating-Point Multiply
-  INSN(vfwmul_vf, 0b1010111, 0b101, 0b111000);
-
   // Vector Single-Width Floating-Point Multiply/Divide Instructions
   INSN(vfdiv_vf,  0b1010111, 0b101, 0b100000);
   INSN(vfmul_vf,  0b1010111, 0b101, 0b100100);
   INSN(vfrdiv_vf, 0b1010111, 0b101, 0b100001);
-
-  // Vector Widening Floating-Point Add/Subtract Instructions
-  INSN(vfwsub_wf, 0b1010111, 0b101, 0b110110);
-  INSN(vfwsub_vf, 0b1010111, 0b101, 0b110010);
-  INSN(vfwadd_wf, 0b1010111, 0b101, 0b110100);
-  INSN(vfwadd_vf, 0b1010111, 0b101, 0b110000);
 
   // Vector Single-Width Floating-Point Add/Subtract Instructions
   INSN(vfsub_vf,  0b1010111, 0b101, 0b000010);
@@ -1870,8 +1642,6 @@ enum VectorMask {
     patch_VArith(op, Vd, funct3, (uint32_t)imm & 0x1f, Vs2, vm, funct6);                           \
   }
 
-  INSN(vsadd_vi,  0b1010111, 0b011, 0b100001);
-  INSN(vsaddu_vi, 0b1010111, 0b011, 0b100000);
   INSN(vmsgt_vi,  0b1010111, 0b011, 0b011111);
   INSN(vmsgtu_vi, 0b1010111, 0b011, 0b011110);
   INSN(vmsle_vi,  0b1010111, 0b011, 0b011101);
@@ -1912,67 +1682,6 @@ enum VectorMask {
   INSN(vmandnot_mm, 0b1010111, 0b010, 0b1, 0b011000);
   INSN(vmnand_mm,   0b1010111, 0b010, 0b1, 0b011101);
   INSN(vmand_mm,    0b1010111, 0b010, 0b1, 0b011001);
-
-#undef INSN
-
-#define INSN(NAME, op, funct3, vm, funct6)                                                  \
-  void NAME(VectorRegister Vd, VectorRegister Vs2, int32_t imm, VectorRegister V0) {        \
-    guarantee(is_imm_in_range(imm, 5, 0), "imm is invalid");                                \
-    patch_VArith(op, Vd, funct3, (uint32_t)(imm & 0x1f), Vs2, vm, funct6);                  \
-  }
-
-  // Vector Integer Merge Instructions
-  INSN(vmerge_vim, 0b1010111, 0b011, 0b0, 0b010111);
-
-  // Vector Integer Add-with-Carry / Subtract-with-Borrow Instructions
-  INSN(vadc_vim,   0b1010111, 0b011, 0b0, 0b010000);
-  INSN(vmadc_vim,  0b1010111, 0b011, 0b0, 0b010001);
-
-#undef INSN
-
-#define INSN(NAME, op, funct3, vm, funct6)                                                  \
-  void NAME(VectorRegister Vd, VectorRegister Vs2, VectorRegister Vs1, VectorRegister V0) { \
-    patch_VArith(op, Vd, funct3, Vs1->encoding_nocheck(), Vs2, vm, funct6);                 \
-  }
-
-  // Vector Integer Merge Instructions
-  INSN(vmerge_vvm, 0b1010111, 0b000, 0b0, 0b010111);
-
-  // Vector Integer Add-with-Carry / Subtract-with-Borrow Instructions
-  INSN(vsbc_vvm, 0b1010111, 0b000, 0b0, 0b010010);
-  INSN(vadc_vvm, 0b1010111, 0b000, 0b0, 0b010000);
-
-  // Vector Integer Add-with-Carry / Subtract-with-Borrow Instructions
-  INSN(vmadc_vvm, 0b1010111, 0b000, 0b0, 0b010001);
-  INSN(vmsbc_vvm, 0b1010111, 0b000, 0b0, 0b010011);
-
-#undef INSN
-
-#define INSN(NAME, op, funct3, vm, funct6)                                                  \
-  void NAME(VectorRegister Vd, VectorRegister Vs2, FloatRegister Rs1, VectorRegister V0) {  \
-    patch_VArith(op, Vd, funct3, Rs1->encoding_nocheck(), Vs2, vm, funct6);                 \
-  }
-
-  // Vector Floating-Point Merge Instruction
-  INSN(vfmerge_vfm, 0b1010111, 0b101, 0b0, 0b010111);
-
-#undef INSN
-
-#define INSN(NAME, op, funct3, vm, funct6)                                                  \
-  void NAME(VectorRegister Vd, VectorRegister Vs2, Register Rs1, VectorRegister V0) {       \
-    patch_VArith(op, Vd, funct3, Rs1->encoding_nocheck(), Vs2, vm, funct6);                 \
-  }
-
-  // Vector Integer Merge Instructions
-  INSN(vmerge_vxm, 0b1010111, 0b100, 0b0, 0b010111);
-
-  // Vector Integer Add-with-Carry / Subtract-with-Borrow Instructions
-  INSN(vsbc_vxm, 0b1010111, 0b100, 0b0, 0b010010);
-  INSN(vadc_vxm, 0b1010111, 0b100, 0b0, 0b010000);
-
-  // Vector Integer Add-with-Carry / Subtract-with-Borrow Instructions
-  INSN(vmadc_vxm, 0b1010111, 0b100, 0b0, 0b010001);
-  INSN(vmsbc_vxm, 0b1010111, 0b100, 0b0, 0b010011);
 
 #undef INSN
 
@@ -2148,37 +1857,6 @@ enum Nf {
   INSN(vlse16_v, 0b0000111, 0b101, 0b10, 0b0);
   INSN(vlse32_v, 0b0000111, 0b110, 0b10, 0b0);
   INSN(vlse64_v, 0b0000111, 0b111, 0b10, 0b0);
-
-#undef INSN
-
-#define INSN(NAME, op, width, mop, mew)                                                                   \
-  void NAME(VectorRegister Vs3, Register Rs1, VectorRegister Vs2, VectorMask vm = unmasked, Nf nf = g1) { \
-    patch_VLdSt(op, Vs3, width, Rs1, Vs2->encoding_nocheck(), vm, mop, mew, nf);                          \
-  }
-
-  // Vector unordered-indexed store instructions
-  INSN(vsuxei8_v,  0b0100111, 0b000, 0b01, 0b0);
-  INSN(vsuxei16_v, 0b0100111, 0b101, 0b01, 0b0);
-  INSN(vsuxei32_v, 0b0100111, 0b110, 0b01, 0b0);
-  INSN(vsuxei64_v, 0b0100111, 0b111, 0b01, 0b0);
-
-  // Vector ordered indexed store instructions
-  INSN(vsoxei8_v,  0b0100111, 0b000, 0b11, 0b0);
-  INSN(vsoxei16_v, 0b0100111, 0b101, 0b11, 0b0);
-  INSN(vsoxei32_v, 0b0100111, 0b110, 0b11, 0b0);
-  INSN(vsoxei64_v, 0b0100111, 0b111, 0b11, 0b0);
-
-#undef INSN
-
-#define INSN(NAME, op, width, mop, mew)                                                                   \
-  void NAME(VectorRegister Vs3, Register Rs1, Register Rs2, VectorMask vm = unmasked, Nf nf = g1) {       \
-    patch_VLdSt(op, Vs3, width, Rs1, Rs2->encoding_nocheck(), vm, mop, mew, nf);                          \
-  }
-
-  INSN(vsse8_v,  0b0100111, 0b000, 0b10, 0b0);
-  INSN(vsse16_v, 0b0100111, 0b101, 0b10, 0b0);
-  INSN(vsse32_v, 0b0100111, 0b110, 0b10, 0b0);
-  INSN(vsse64_v, 0b0100111, 0b111, 0b10, 0b0);
 
 #undef INSN
 #undef patch_VLdSt
