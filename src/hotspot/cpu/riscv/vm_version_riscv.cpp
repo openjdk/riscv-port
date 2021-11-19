@@ -107,11 +107,7 @@ void VM_Version::get_processor_features() {
     if (!(_features & CPU_V)) {
       warning("RVV is not supported on this CPU");
       FLAG_SET_DEFAULT(UseRVV, false);
-    } else if (!UnlockExperimentalVMOptions) {
-      vm_exit_during_initialization("UseRVV is only available as experimental option on this "
-                                    "platform. It must be enabled via -XX:+UnlockExperimentalVMOptions flag.");
     } else {
-      warning("UseRVV is only available as experimental option on this platform.");
       // read vector length from vector CSR vlenb
       _initial_vector_length = get_current_vector_length();
     }
