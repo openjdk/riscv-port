@@ -93,6 +93,8 @@ void VM_Version::get_cpu_info() {
   static_assert(CPU_V == HWCAP_ISA_V, "Flag CPU_V must follow Linux HWCAP");
   _features = auxv & (
       HWCAP_ISA_A |
+      HWCAP_ISA_B |
+      HWCAP_ISA_C |
       HWCAP_ISA_D |
       HWCAP_ISA_F |
       HWCAP_ISA_I |
