@@ -54,7 +54,7 @@ class MacroAssembler: public Assembler {
   // Stack frame creation/removal
   void enter() {
     addi(sp, sp, - 2 * wordSize);
-    sd(lr, Address(sp, wordSize));
+    sd(ra, Address(sp, wordSize));
     sd(fp, Address(sp));
     addi(fp, sp, 2 * wordSize);
   }
@@ -62,7 +62,7 @@ class MacroAssembler: public Assembler {
   void leave() {
     mv(sp, fp);
     ld(fp, Address(sp, -2 * wordSize));
-    ld(lr, Address(sp, -wordSize));
+    ld(ra, Address(sp, -wordSize));
   }
 
 

@@ -73,7 +73,7 @@ static const struct CheckInsn barrierInsn[] = {
   { 0xffffffff, 0x00b29293, "slli   t0, t0, 11      "},
   { 0x000fffff, 0x00028293, "addi   t0, t0, imm2    "},
   { 0xffffffff, 0x00529293, "slli   t0, t0, 5       "},
-  { 0x000fffff, 0x000280e7, "jalr   lr, imm3(t0)    "},
+  { 0x000fffff, 0x000280e7, "jalr   ra, imm3(t0)    "},
   { 0x00000fff, 0x0000006f, "j      skip            "}
   /* guard: */
   /* 32bit nmethod guard value */
@@ -104,7 +104,7 @@ void NativeNMethodBarrier::verify() const {
 void BarrierSetNMethod::deoptimize(nmethod* nm, address* return_address_ptr) {
 
   typedef struct {
-    intptr_t *sp; intptr_t *fp; address lr; address pc;
+    intptr_t *sp; intptr_t *fp; address ra; address pc;
   } frame_pointers_t;
 
   frame_pointers_t *new_frame = (frame_pointers_t *)(return_address_ptr - 5);
@@ -128,7 +128,7 @@ void BarrierSetNMethod::deoptimize(nmethod* nm, address* return_address_ptr) {
 
   new_frame->sp = frame.sp();
   new_frame->fp = frame.fp();
-  new_frame->lr = frame.pc();
+  new_frame->ra = frame.pc();
   new_frame->pc = SharedRuntime::get_handle_wrong_method_stub();
 }
 

@@ -81,7 +81,7 @@ address TemplateInterpreterGenerator::generate_slow_signature_handler() {
 
   __ addi(sp, c_rarg3, -18 * wordSize);
   __ addi(sp, sp, -2 * wordSize);
-  __ sd(lr, Address(sp, 0));
+  __ sd(ra, Address(sp, 0));
 
   __ call_VM(noreg,
              CAST_FROM_FN_PTR(address,
@@ -102,8 +102,8 @@ address TemplateInterpreterGenerator::generate_slow_signature_handler() {
   //        bcp (NULL)
   //        ...
 
-  // Restore LR
-  __ ld(lr, Address(sp, 0));
+  // Restore ra
+  __ ld(ra, Address(sp, 0));
   __ addi(sp, sp , 2 * wordSize);
 
   // Do FP first so we can use c_rarg3 as temp
@@ -160,11 +160,11 @@ address TemplateInterpreterGenerator::generate_math_entry(AbstractInterpreter::M
   // stack:
   //        [ arg ] <-- esp
   //        [ arg ]
-  // retaddr in lr
+  // retaddr in ra
 
   address fn = NULL;
   address entry_point = NULL;
-  Register continuation = lr;
+  Register continuation = ra;
   switch (kind) {
     case Interpreter::java_lang_math_abs:
       entry_point = __ pc();
@@ -182,7 +182,7 @@ address TemplateInterpreterGenerator::generate_math_entry(AbstractInterpreter::M
       entry_point = __ pc();
       __ fld(f10, Address(esp));
       __ mv(sp, x30);
-      __ mv(x9, lr);
+      __ mv(x9, ra);
       continuation = x9;  // The first callee-saved register
       if (StubRoutines::dsin() == NULL) {
         fn = CAST_FROM_FN_PTR(address, SharedRuntime::dsin);
@@ -196,7 +196,7 @@ address TemplateInterpreterGenerator::generate_math_entry(AbstractInterpreter::M
       entry_point = __ pc();
       __ fld(f10, Address(esp));
       __ mv(sp, x30);
-      __ mv(x9, lr);
+      __ mv(x9, ra);
       continuation = x9;  // The first callee-saved register
       if (StubRoutines::dcos() == NULL) {
         fn = CAST_FROM_FN_PTR(address, SharedRuntime::dcos);
@@ -210,7 +210,7 @@ address TemplateInterpreterGenerator::generate_math_entry(AbstractInterpreter::M
       entry_point = __ pc();
       __ fld(f10, Address(esp));
       __ mv(sp, x30);
-      __ mv(x9, lr);
+      __ mv(x9, ra);
       continuation = x9;  // The first callee-saved register
       if (StubRoutines::dtan() == NULL) {
         fn = CAST_FROM_FN_PTR(address, SharedRuntime::dtan);
@@ -224,7 +224,7 @@ address TemplateInterpreterGenerator::generate_math_entry(AbstractInterpreter::M
       entry_point = __ pc();
       __ fld(f10, Address(esp));
       __ mv(sp, x30);
-      __ mv(x9, lr);
+      __ mv(x9, ra);
       continuation = x9;  // The first callee-saved register
       if (StubRoutines::dlog() == NULL) {
         fn = CAST_FROM_FN_PTR(address, SharedRuntime::dlog);
@@ -238,7 +238,7 @@ address TemplateInterpreterGenerator::generate_math_entry(AbstractInterpreter::M
       entry_point = __ pc();
       __ fld(f10, Address(esp));
       __ mv(sp, x30);
-      __ mv(x9, lr);
+      __ mv(x9, ra);
       continuation = x9;  // The first callee-saved register
       if (StubRoutines::dlog10() == NULL) {
         fn = CAST_FROM_FN_PTR(address, SharedRuntime::dlog10);
@@ -252,7 +252,7 @@ address TemplateInterpreterGenerator::generate_math_entry(AbstractInterpreter::M
       entry_point = __ pc();
       __ fld(f10, Address(esp));
       __ mv(sp, x30);
-      __ mv(x9, lr);
+      __ mv(x9, ra);
       continuation = x9;  // The first callee-saved register
       if (StubRoutines::dexp() == NULL) {
         fn = CAST_FROM_FN_PTR(address, SharedRuntime::dexp);
@@ -264,7 +264,7 @@ address TemplateInterpreterGenerator::generate_math_entry(AbstractInterpreter::M
       break;
     case Interpreter::java_lang_math_pow :
       entry_point = __ pc();
-      __ mv(x9, lr);
+      __ mv(x9, ra);
       continuation = x9;
       __ fld(f10, Address(esp, 2 * Interpreter::stackElementSize));
       __ fld(f11, Address(esp));
@@ -732,7 +732,7 @@ void TemplateInterpreterGenerator::lock_method() {
 // interpreted methods and for native methods hence the shared code.
 //
 // Args:
-//      lr: return address
+//      ra: return address
 //      xmethod: Method*
 //      xlocals: pointer to locals
 //      xcpool: cp cache
@@ -777,9 +777,9 @@ void TemplateInterpreterGenerator::generate_fixed_frame(bool native_call) {
   __ sd(xcpool, Address(sp, 3 * wordSize));
   __ sd(xlocals, Address(sp, 2 * wordSize));
 
-  __ sd(lr, Address(sp, 11 * wordSize));
+  __ sd(ra, Address(sp, 11 * wordSize));
   __ sd(fp, Address(sp, 10 * wordSize));
-  __ la(fp, Address(sp, 12 * wordSize)); // include lr & fp
+  __ la(fp, Address(sp, 12 * wordSize)); // include ra & fp
 
   // set sender sp
   // leave last_sp as null
@@ -834,7 +834,7 @@ address TemplateInterpreterGenerator::generate_Reference_get_entry(void) {
   // xmethod: Method*
   // x30: senderSP must preserve for slow path, set SP to it on fast path
 
-  // LR is live.  It must be saved around calls.
+  // ra is live.  It must be saved around calls.
 
   address entry = __ pc();
 
@@ -1637,23 +1637,23 @@ void TemplateInterpreterGenerator::generate_throw_exception() {
   // following registers set up:
   //
   // x10: exception
-  // lr: return address/pc that threw exception
+  // ra: return address/pc that threw exception
   // sp: expression stack of caller
   // fp: fp of caller
-  // FIXME: There's no point saving LR here because VM calls don't trash it
+  // FIXME: There's no point saving ra here because VM calls don't trash it
   __ sub(sp, sp, 2 * wordSize);
   __ sd(x10, Address(sp, 0));                   // save exception
-  __ sd(lr, Address(sp, wordSize));             // save return address
+  __ sd(ra, Address(sp, wordSize));             // save return address
   __ super_call_VM_leaf(CAST_FROM_FN_PTR(address,
                                          SharedRuntime::exception_handler_for_return_address),
-                        xthread, lr);
+                        xthread, ra);
   __ mv(x11, x10);                              // save exception handler
   __ ld(x10, Address(sp, 0));                   // restore exception
-  __ ld(lr, Address(sp, wordSize));             // restore return address
+  __ ld(ra, Address(sp, wordSize));             // restore return address
   __ add(sp, sp, 2 * wordSize);
   // We might be returning to a deopt handler that expects x13 to
   // contain the exception pc
-  __ mv(x13, lr);
+  __ mv(x13, ra);
   // Note that an "issuing PC" is actually the next PC after the call
   __ jr(x11);                                   // jump to exception
                                                 // handler of caller
@@ -1720,14 +1720,14 @@ void TemplateInterpreterGenerator::set_vtos_entry_points(Template* t,
 address TemplateInterpreterGenerator::generate_trace_code(TosState state) {
   address entry = __ pc();
 
-  __ push_reg(lr);
+  __ push_reg(ra);
   __ push(state);
   __ push_reg(RegSet::range(x10, x17) + RegSet::range(x5, x7) + RegSet::range(x28, x31), sp);
   __ mv(c_rarg2, x10);  // Pass itos
   __ call_VM(noreg, CAST_FROM_FN_PTR(address, InterpreterRuntime::trace_bytecode), c_rarg1, c_rarg2, c_rarg3);
   __ pop_reg(RegSet::range(x10, x17) + RegSet::range(x5, x7) + RegSet::range(x28, x31), sp);
   __ pop(state);
-  __ pop_reg(lr);
+  __ pop_reg(ra);
   __ ret();                                   // return from result handler
 
   return entry;

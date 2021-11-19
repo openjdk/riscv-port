@@ -3240,7 +3240,7 @@ void TemplateTable::prepare_invoke(int byte_no,
     __ mv(t0, table_addr);
     __ slli(t1, t1, 3);
     __ add(t0, t0, t1);
-    __ ld(lr, Address(t0, 0));
+    __ ld(ra, Address(t0, 0));
   }
 }
 

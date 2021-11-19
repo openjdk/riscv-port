@@ -82,7 +82,7 @@ register %{
 
 reg_def R0      ( NS,  NS,  Op_RegI, 0,  x0->as_VMReg()         ); // zr
 reg_def R0_H    ( NS,  NS,  Op_RegI, 0,  x0->as_VMReg()->next() );
-reg_def R1      ( SOC, SOC, Op_RegI, 1,  x1->as_VMReg()         ); // lr
+reg_def R1      ( SOC, SOC, Op_RegI, 1,  x1->as_VMReg()         ); // ra
 reg_def R1_H    ( SOC, SOC, Op_RegI, 1,  x1->as_VMReg()->next() );
 reg_def R2      ( NS,  SOE, Op_RegI, 2,  x2->as_VMReg()         ); // sp
 reg_def R2_H    ( NS,  SOE, Op_RegI, 2,  x2->as_VMReg()->next() );
@@ -449,7 +449,7 @@ alloc_class chunk0(
     R4,  R4_H,  // thread
     R8,  R8_H,  // fp
     R0,  R0_H,  // zero
-    R1,  R1_H,  // lr
+    R1,  R1_H,  // ra
     R2,  R2_H,  // sp
     R3,  R3_H,  // gp
 );
@@ -632,7 +632,7 @@ reg_class any_reg %{
 // Class for non-allocatable 32 bit registers
 reg_class non_allocatable_reg32(
     R0,                       // zr
-    R1,                       // lr
+    R1,                       // ra
     R2,                       // sp
     R3,                       // gp
     R4,                       // tp
@@ -642,7 +642,7 @@ reg_class non_allocatable_reg32(
 // Class for non-allocatable 64 bit registers
 reg_class non_allocatable_reg(
     R0,  R0_H,                // zr
-    R1,  R1_H,                // lr
+    R1,  R1_H,                // ra
     R2,  R2_H,                // sp
     R3,  R3_H,                // gp
     R4,  R4_H,                // tp
@@ -743,7 +743,7 @@ reg_class fp_reg(
 );
 
 // Class for link register
-reg_class lr_reg(
+reg_class ra_reg(
     R1, R1_H
 );
 
@@ -1277,7 +1277,7 @@ void MachPrologNode::format(PhaseRegAlloc *ra_, outputStream *st) const {
   }
 
   st->print("sd  fp, [sp, #%d]", - 2 * wordSize);
-  st->print("sd  lr, [sp, #%d]", - wordSize);
+  st->print("sd  ra, [sp, #%d]", - wordSize);
   if (PreserveFramePointer) { st->print("\n\tsub  fp, sp, #%d", 2 * wordSize); }
   st->print("sub sp, sp, #%d\n\t", framesize);
 
@@ -1369,12 +1369,12 @@ void MachEpilogNode::format(PhaseRegAlloc *ra_, outputStream *st) const {
   st->print("# pop frame %d\n\t", framesize);
 
   if (framesize == 0) {
-    st->print("ld  lr, [sp,#%d]\n\t", (2 * wordSize));
+    st->print("ld  ra, [sp,#%d]\n\t", (2 * wordSize));
     st->print("ld  fp, [sp,#%d]\n\t", (3 * wordSize));
     st->print("add sp, sp, #%d\n\t", (2 * wordSize));
   } else {
     st->print("add  sp, sp, #%d\n\t", framesize);
-    st->print("ld  lr, [sp,#%d]\n\t", - 2 * wordSize);
+    st->print("ld  ra, [sp,#%d]\n\t", - 2 * wordSize);
     st->print("ld  fp, [sp,#%d]\n\t", - wordSize);
   }
 
@@ -2464,9 +2464,9 @@ encode %{
     C2_MacroAssembler _masm(&cbuf);
     Register target_reg = as_Register($jump_target$$reg);
     // exception oop should be in x10
-    // ret addr has been popped into lr
+    // ret addr has been popped into ra
     // callee expects it in x13
-    __ mv(x13, lr);
+    __ mv(x13, ra);
     __ jr(target_reg);
   %}
 
@@ -10377,7 +10377,7 @@ instruct RethrowException()
 %}
 
 // Return Instruction
-// epilog node loads ret address into lr as part of frame pop
+// epilog node loads ret address into ra as part of frame pop
 instruct Ret()
 %{
   match(Return);

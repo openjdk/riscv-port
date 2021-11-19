@@ -419,7 +419,7 @@ OopMapSet* Runtime1::generate_handle_exception(StubID id, StubAssembler *sasm) {
       break;
     case handle_exception_from_callee_id: {
       // At this point all registers except exception oop (x10) and
-      // exception pc (lr) are dead.
+      // exception pc (ra) are dead.
       const int frame_size = 2 /* fp, return address */;
       oop_map = new OopMap(frame_size * VMRegImpl::slots_per_word, 0);
       sasm->set_frame_size(frame_size);
@@ -520,10 +520,10 @@ void Runtime1::generate_unwind_exception(StubAssembler *sasm) {
   // save exception_oop
   __ addi(sp, sp, -2 * wordSize);
   __ sd(exception_oop, Address(sp, wordSize));
-  __ sd(lr, Address(sp));
+  __ sd(ra, Address(sp));
 
   // search the exception handler address of the caller (using the return address)
-  __ call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::exception_handler_for_return_address), xthread, lr);
+  __ call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::exception_handler_for_return_address), xthread, ra);
   // x10: exception handler address of the caller
 
   // Only x10 is valid at this time; all other registers have been
@@ -534,11 +534,11 @@ void Runtime1::generate_unwind_exception(StubAssembler *sasm) {
   __ mv(handler_addr, x10);
 
   // get throwing pc (= return address).
-  // lr has been destroyed by the call
-  __ ld(lr, Address(sp));
+  // ra has been destroyed by the call
+  __ ld(ra, Address(sp));
   __ ld(exception_oop, Address(sp, wordSize));
   __ addi(sp, sp, 2 * wordSize);
-  __ mv(x13, lr);
+  __ mv(x13, ra);
 
   __ verify_not_null_oop(exception_oop);
 

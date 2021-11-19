@@ -131,8 +131,8 @@ address os::fetch_frame_from_context(const void* ucVoid,
 
 frame os::fetch_compiled_frame_from_context(const void* ucVoid) {
   const ucontext_t* uc = (const ucontext_t*)ucVoid;
-  // In compiled code, the stack banging is performed before LR
-  // has been saved in the frame. LR is live, and SP and FP
+  // In compiled code, the stack banging is performed before RA
+  // has been saved in the frame. RA is live, and SP and FP
   // belong to the caller.
   intptr_t* frame_fp = os::Linux::ucontext_get_fp(uc);
   intptr_t* frame_sp = os::Linux::ucontext_get_sp(uc);

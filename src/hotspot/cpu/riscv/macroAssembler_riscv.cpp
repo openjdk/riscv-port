@@ -374,7 +374,7 @@ void MacroAssembler::verify_oop(Register reg, const char* s) {
   }
   BLOCK_COMMENT("verify_oop {");
 
-  push_reg(RegSet::of(lr, t0, t1, c_rarg0), sp);
+  push_reg(RegSet::of(ra, t0, t1, c_rarg0), sp);
 
   mv(c_rarg0, reg); // c_rarg0 : x10
   if(b != NULL) {
@@ -389,7 +389,7 @@ void MacroAssembler::verify_oop(Register reg, const char* s) {
   ld(t1, Address(t1, offset));
   jalr(t1);
 
-  pop_reg(RegSet::of(lr, t0, t1, c_rarg0), sp);
+  pop_reg(RegSet::of(ra, t0, t1, c_rarg0), sp);
 
   BLOCK_COMMENT("} verify_oop");
 }
@@ -408,7 +408,7 @@ void MacroAssembler::verify_oop_addr(Address addr, const char* s) {
   }
   BLOCK_COMMENT("verify_oop_addr {");
 
-  push_reg(RegSet::of(lr, t0, t1, c_rarg0), sp);
+  push_reg(RegSet::of(ra, t0, t1, c_rarg0), sp);
 
   if (addr.uses(sp)) {
     la(x10, addr);
@@ -428,7 +428,7 @@ void MacroAssembler::verify_oop_addr(Address addr, const char* s) {
   ld(t1, Address(t1, offset));
   jalr(t1);
 
-  pop_reg(RegSet::of(lr, t0, t1, c_rarg0), sp);
+  pop_reg(RegSet::of(ra, t0, t1, c_rarg0), sp);
 
   BLOCK_COMMENT("} verify_oop_addr");
 }
@@ -2728,7 +2728,7 @@ void MacroAssembler::eden_allocate(Register obj,
 void MacroAssembler::get_thread(Register thread) {
   // save all call-clobbered regs except thread
   RegSet saved_regs = RegSet::range(x5, x7) + RegSet::range(x10, x17) +
-                      RegSet::range(x28, x31) + lr - thread;
+                      RegSet::range(x28, x31) + ra - thread;
   push_reg(saved_regs, sp);
 
   call_VM_leaf_base(CAST_FROM_FN_PTR(address, Thread::current), 0);
@@ -2771,20 +2771,20 @@ void MacroAssembler::la_patchable(Register reg1, const Address &dest, int32_t &o
 }
 
 void MacroAssembler::build_frame(int framesize) {
-  assert(framesize >= 2, "framesize must include space for FP/LR");
+  assert(framesize >= 2, "framesize must include space for FP/RA");
   assert(framesize % (2*wordSize) == 0, "must preserve 2*wordSize alignment");
   sub(sp, sp, framesize);
   sd(fp, Address(sp, framesize - 2 * wordSize));
-  sd(lr, Address(sp, framesize - wordSize));
+  sd(ra, Address(sp, framesize - wordSize));
   if (PreserveFramePointer) { add(fp, sp, framesize); }
   verify_cross_modify_fence_not_required();
 }
 
 void MacroAssembler::remove_frame(int framesize) {
-  assert(framesize >= 2, "framesize must include space for FP/LR");
+  assert(framesize >= 2, "framesize must include space for FP/RA");
   assert(framesize % (2*wordSize) == 0, "must preserve 2*wordSize alignment");
   ld(fp, Address(sp, framesize - 2 * wordSize));
-  ld(lr, Address(sp, framesize - wordSize));
+  ld(ra, Address(sp, framesize - wordSize));
   add(sp, sp, framesize);
 }
 
@@ -2795,7 +2795,7 @@ void MacroAssembler::reserved_stack_check() {
     ld(t0, Address(xthread, JavaThread::reserved_stack_activation_offset()));
     bltu(sp, t0, no_reserved_zone_enabling);
 
-    enter();   // LR and FP are live.
+    enter();   // RA and FP are live.
     mv(c_rarg0, xthread);
     int32_t offset = 0;
     la_patchable(t0, RuntimeAddress(CAST_FROM_FN_PTR(address, SharedRuntime::enable_stack_reserved_zone)), offset);
@@ -2921,7 +2921,7 @@ address MacroAssembler::ic_call(address entry, jint method_index) {
 //
 // Related trampoline stub for this call site in the stub section:
 //   load the call target from the constant pool
-//   branch (LR still points to the call site above)
+//   branch (RA still points to the call site above)
 
 address MacroAssembler::emit_trampoline_stub(int insts_call_instruction_offset,
                                              address dest) {

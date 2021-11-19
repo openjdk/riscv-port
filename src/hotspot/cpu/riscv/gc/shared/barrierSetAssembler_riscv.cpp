@@ -42,7 +42,7 @@ void BarrierSetAssembler::load_at(MacroAssembler* masm, DecoratorSet decorators,
                                   Register dst, Address src, Register tmp1, Register tmp_thread) {
   assert_cond(masm != NULL);
 
-  // LR is live. It must be saved around calls.
+  // RA is live. It must be saved around calls.
 
   bool in_heap = (decorators & IN_HEAP) != 0;
   bool in_native = (decorators & IN_NATIVE) != 0;
@@ -247,7 +247,7 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
 
   int32_t offset = 0;
   __ movptr_with_offset(t0, StubRoutines::riscv64::method_entry_barrier(), offset);
-  __ jalr(lr, t0, offset);
+  __ jalr(ra, t0, offset);
   __ j(skip);
 
   __ bind(guard);

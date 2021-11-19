@@ -99,9 +99,6 @@ REGISTER_DECLARATION(Register, tp,        x4);
 REGISTER_DECLARATION(Register, xmethod,   x31);
 // return address
 REGISTER_DECLARATION(Register, ra,        x1);
-// link rigster
-REGISTER_DECLARATION(Register, lr,        x1);
-
 
 // non-volatile (callee-save) registers
 
