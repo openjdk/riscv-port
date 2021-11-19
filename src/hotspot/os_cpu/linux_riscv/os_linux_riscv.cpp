@@ -202,12 +202,6 @@ bool PosixSignals::pd_hotspot_signal_handler(int sig, siginfo_t* info,
       }
     }
 
-    if (sig == SIGILL && VM_Version::is_checkvext_fault(pc)) {
-      os::Posix::ucontext_set_pc(uc, VM_Version::continuation_for_checkvext_fault(pc));
-      return true;
-    }
-
-
     if (thread->thread_state() == _thread_in_Java) {
       // Java thread running in Java code => find exception handler if any
       // a fault inside compiled code, the interpreter, or a stub

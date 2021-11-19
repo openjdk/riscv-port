@@ -90,4 +90,3 @@ bool JavaThread::pd_get_top_frame(frame* fr_addr, void* ucontext, bool isInJava)
 }
 
 void JavaThread::cache_global_variables() { }
-

@@ -39,21 +39,28 @@ public:
 
   constexpr static bool supports_stack_watermark_barrier() { return true; }
 
-  static bool is_checkvext_fault(address pc) {
-    return pc != NULL && pc == _checkvext_fault_pc;
-  }
 
-  static address continuation_for_checkvext_fault(address pc) {
-    assert(_checkvext_continuation_pc != NULL, "not initialized");
-    return _checkvext_continuation_pc;
-  }
+  enum Feature_Flag {
+#define CPU_FEATURE_FLAGS(decl)               \
+    decl(I,            "I",            8)     \
+    decl(M,            "M",           12)     \
+    decl(A,            "A",            0)     \
+    decl(F,            "F",            5)     \
+    decl(D,            "D",            3)     \
+    decl(B,            "B",            1)     \
+    decl(C,            "C",            2)     \
+    decl(V,            "V",           21)
 
-  static address _checkvext_fault_pc;
-  static address _checkvext_continuation_pc;
+#define DECLARE_CPU_FEATURE_FLAG(id, name, bit) CPU_##id = (1 << bit),
+    CPU_FEATURE_FLAGS(DECLARE_CPU_FEATURE_FLAG)
+#undef DECLARE_CPU_FEATURE_FLAG
+  };
 
 protected:
-  static int _initial_vector_length;
+  static uint32_t _initial_vector_length;
   static void get_processor_features();
+  static void get_cpu_info();
+  static uint32_t get_current_vector_length();
 
 #ifdef COMPILER2
 private:
