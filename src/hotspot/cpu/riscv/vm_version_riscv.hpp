@@ -42,13 +42,13 @@ public:
 
   enum Feature_Flag {
 #define CPU_FEATURE_FLAGS(decl)               \
-    decl(A,            "A",            0)     \
-    decl(B,            "B",            1)     \
-    decl(C,            "C",            2)     \
-    decl(D,            "D",            3)     \
-    decl(F,            "F",            5)     \
     decl(I,            "I",            8)     \
     decl(M,            "M",           12)     \
+    decl(A,            "A",            0)     \
+    decl(F,            "F",            5)     \
+    decl(D,            "D",            3)     \
+    decl(B,            "B",            1)     \
+    decl(C,            "C",            2)     \
     decl(V,            "V",           21)
 
 #define DECLARE_CPU_FEATURE_FLAG(id, name, bit) CPU_##id = (1 << bit),
