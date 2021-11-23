@@ -172,7 +172,7 @@ class SlowSignatureHandler
   : public NativeSignatureIterator {
  private:
   address   _from;
-  char*     _to;
+  intptr_t* _to;
   intptr_t* _int_args;
   intptr_t* _fp_args;
   intptr_t* _fp_identifiers;
@@ -207,23 +207,21 @@ class SlowSignatureHandler
     return -1;
   }
 
-  template<typename T>
-  void pass_stack(T value) {
-    *(T *)_to = value;
-    _to += wordSize;
+  void pass_stack(intptr_t value) {
+    *_to++ = value;
   }
 
   virtual void pass_int() {
     jint value = *(jint*)single_slot_addr();
     if (pass_gpr(value) < 0) {
-      pass_stack<>(value);
+      pass_stack(value);
     }
   }
 
   virtual void pass_long() {
     intptr_t value = *double_slot_addr();
     if (pass_gpr(value) < 0) {
-      pass_stack<>(value);
+      pass_stack(value);
     }
   }
 
@@ -231,7 +229,7 @@ class SlowSignatureHandler
     intptr_t* addr = single_slot_addr();
     intptr_t value = *addr == 0 ? NULL : (intptr_t)addr;
     if (pass_gpr(value) < 0) {
-      pass_stack<>(value);
+      pass_stack(value);
     }
   }
 
@@ -240,7 +238,7 @@ class SlowSignatureHandler
     // a floating-point argument is passed according to the integer calling
     // convention if no floating-point argument register available
     if (pass_fpr(value) < 0 && pass_gpr(value) < 0) {
-      pass_stack<>(value);
+      pass_stack(value);
     }
   }
 
@@ -250,7 +248,7 @@ class SlowSignatureHandler
     if (0 <= arg) {
       *_fp_identifiers |= (1ull << arg); // mark as double
     } else if (pass_gpr(value) < 0) { // no need to mark if passing by integer registers or stack
-      pass_stack<>(value);
+      pass_stack(value);
     }
   }
 
@@ -259,7 +257,7 @@ class SlowSignatureHandler
     : NativeSignatureIterator(method)
   {
     _from = from;
-    _to   = (char*) to;
+    _to   = to;
 
     _int_args = to - (method->is_static() ? 16 : 17);
     _fp_args =  to - 8;
