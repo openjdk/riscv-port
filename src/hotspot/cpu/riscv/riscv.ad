@@ -2412,18 +2412,15 @@ encode %{
     __ bind(object_has_monitor);
     STATIC_ASSERT(markWord::monitor_value <= INT_MAX);
     __ add(tmp, tmp, -(int)markWord::monitor_value); // monitor
-    __ ld(flag, Address(tmp, ObjectMonitor::owner_offset_in_bytes()));
     __ ld(disp_hdr, Address(tmp, ObjectMonitor::recursions_offset_in_bytes()));
 
     Label notRecursive;
-    __ xorr(flag, flag, xthread); // Will be 0 if we are the owner.
-    __ bnez(flag, cont);
-
     __ beqz(disp_hdr, notRecursive); // Will be 0 if not recursive.
 
     // Recursive lock
     __ addi(disp_hdr, disp_hdr, -1);
     __ sd(disp_hdr, Address(tmp, ObjectMonitor::recursions_offset_in_bytes()));
+    __ mv(flag, zr);
     __ j(cont);
 
     __ bind(notRecursive);
