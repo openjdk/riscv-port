@@ -68,9 +68,10 @@ register %{
 //
 // follow the C1 compiler in making registers
 //
-//   x7, x9-x17, x28-x31 volatile (caller save)
-//   x0-x4, x8, x27 system (no save, no allocate)
+//   x9-x22, x24-x26, x27-x31 volatile (caller save)
+//   x0-x4, x8, x23 system (no save, no allocate)
 //   x5-x6 non-allocatable (so we can use them as temporary regs)
+//   x7 as flag register (caller save)
 
 //
 // as regards Java usage. we don't use any callee save registers
@@ -80,18 +81,14 @@ register %{
 
 // General Registers
 
-reg_def R0      ( NS,  NS,  Op_RegI, 0,  x0->as_VMReg()         ); // zr
-reg_def R0_H    ( NS,  NS,  Op_RegI, 0,  x0->as_VMReg()->next() );
-reg_def R1      ( SOC, SOC, Op_RegI, 1,  x1->as_VMReg()         ); // ra
-reg_def R1_H    ( SOC, SOC, Op_RegI, 1,  x1->as_VMReg()->next() );
+reg_def R1      ( NS,  SOC, Op_RegI, 1,  x1->as_VMReg()         ); // ra
+reg_def R1_H    ( NS,  SOC, Op_RegI, 1,  x1->as_VMReg()->next() );
 reg_def R2      ( NS,  SOE, Op_RegI, 2,  x2->as_VMReg()         ); // sp
 reg_def R2_H    ( NS,  SOE, Op_RegI, 2,  x2->as_VMReg()->next() );
 reg_def R3      ( NS,  NS,  Op_RegI, 3,  x3->as_VMReg()         ); // gp
 reg_def R3_H    ( NS,  NS,  Op_RegI, 3,  x3->as_VMReg()->next() );
 reg_def R4      ( NS,  NS,  Op_RegI, 4,  x4->as_VMReg()         ); // tp
 reg_def R4_H    ( NS,  NS,  Op_RegI, 4,  x4->as_VMReg()->next() );
-reg_def R7      ( SOC, SOC, Op_RegI, 7,  x7->as_VMReg()         );
-reg_def R7_H    ( SOC, SOC, Op_RegI, 7,  x7->as_VMReg()->next() );
 reg_def R8      ( NS,  SOE, Op_RegI, 8,  x8->as_VMReg()         ); // fp
 reg_def R8_H    ( NS,  SOE, Op_RegI, 8,  x8->as_VMReg()->next() );
 reg_def R9      ( SOC, SOE, Op_RegI, 9,  x9->as_VMReg()         );
@@ -401,10 +398,10 @@ reg_def V31_K ( SOC, SOC, Op_VecA, 31, v31->as_VMReg()->next(3) );
 // Special Registers
 // ----------------------------
 
-// On riscv, the physical flag register is missing, so we use t1 instead,
+// On riscv, the physical flag register is missing, so we use t2 instead,
 // to bridge the RegFlag semantics in share/opto
 
-reg_def RFLAGS   (SOC, SOC, Op_RegFlags, 6, x6->as_VMReg()        );
+reg_def RFLAGS   (SOC, SOC, Op_RegFlags, 7, x7->as_VMReg()        );
 
 // Specify priority of register selection within phases of register
 // allocation.  Highest priority is first.  A useful heuristic is to
@@ -416,7 +413,6 @@ reg_def RFLAGS   (SOC, SOC, Op_RegFlags, 6, x6->as_VMReg()        );
 
 alloc_class chunk0(
     // volatiles
-    R7,  R7_H,
     R28, R28_H,
     R29, R29_H,
     R30, R30_H,
@@ -448,7 +444,6 @@ alloc_class chunk0(
     R27, R27_H, // heapbase
     R4,  R4_H,  // thread
     R8,  R8_H,  // fp
-    R0,  R0_H,  // zero
     R1,  R1_H,  // ra
     R2,  R2_H,  // sp
     R3,  R3_H,  // gp
@@ -541,12 +536,10 @@ alloc_class chunk3(RFLAGS);
 
 // Class for all 32 bit general purpose registers
 reg_class all_reg32(
-    R0,
     R1,
     R2,
     R3,
     R4,
-    R7,
     R8,
     R9,
     R10,
@@ -592,12 +585,10 @@ reg_class int_r14_reg(R14);
 
 // Class for all long integer registers
 reg_class all_reg(
-    R0,  R0_H,
     R1,  R1_H,
     R2,  R2_H,
     R3,  R3_H,
     R4,  R4_H,
-    R7,  R7_H,
     R8,  R8_H,
     R9,  R9_H,
     R10, R10_H,
@@ -631,7 +622,6 @@ reg_class any_reg %{
 
 // Class for non-allocatable 32 bit registers
 reg_class non_allocatable_reg32(
-    R0,                       // zr
     R1,                       // ra
     R2,                       // sp
     R3,                       // gp
@@ -641,7 +631,6 @@ reg_class non_allocatable_reg32(
 
 // Class for non-allocatable 64 bit registers
 reg_class non_allocatable_reg(
-    R0,  R0_H,                // zr
     R1,  R1_H,                // ra
     R2,  R2_H,                // sp
     R3,  R3_H,                // gp
@@ -727,10 +716,6 @@ reg_class r30_reg(
     R30, R30_H
 );
 
-// Class for zero registesr
-reg_class zr_reg(
-    R0, R0_H
-);
 
 // Class for thread register
 reg_class thread_reg(
@@ -1037,13 +1022,10 @@ RegMask _NO_SPECIAL_PTR_REG_mask;
 void reg_mask_init() {
 
   _ANY_REG32_mask = _ALL_REG32_mask;
-  _ANY_REG32_mask.Remove(OptoReg::as_OptoReg(x0->as_VMReg()));
 
   _ANY_REG_mask = _ALL_REG_mask;
-  _ANY_REG_mask.SUBTRACT(_ZR_REG_mask);
 
   _PTR_REG_mask = _ALL_REG_mask;
-  _PTR_REG_mask.SUBTRACT(_ZR_REG_mask);
 
   _NO_SPECIAL_REG32_mask = _ALL_REG32_mask;
   _NO_SPECIAL_REG32_mask.SUBTRACT(_NON_ALLOCATABLE_REG32_mask);
@@ -1276,8 +1258,8 @@ void MachPrologNode::format(PhaseRegAlloc *ra_, outputStream *st) const {
     st->print("# stack bang size=%d\n\t", framesize);
   }
 
-  st->print("sd  fp, [sp, #%d]", - 2 * wordSize);
-  st->print("sd  ra, [sp, #%d]", - wordSize);
+  st->print("sd  fp, [sp, #%d]\n\t", - 2 * wordSize);
+  st->print("sd  ra, [sp, #%d]\n\t", - wordSize);
   if (PreserveFramePointer) { st->print("\n\tsub  fp, sp, #%d", 2 * wordSize); }
   st->print("sub sp, sp, #%d\n\t", framesize);
 
@@ -1436,9 +1418,9 @@ static enum RC rc_class(OptoReg::Name reg) {
     return rc_bad;
   }
 
-  // we have 30 int registers * 2 halves
-  // (t0 and t1 are omitted)
-  int slots_of_int_registers = RegisterImpl::max_slots_per_register * (RegisterImpl::number_of_registers - 2);
+  // we have 28 int registers * 2 halves
+  // (zr, t0, t1 and t2 are omitted)
+  int slots_of_int_registers = RegisterImpl::max_slots_per_register * (RegisterImpl::number_of_registers - 4);
   if (reg < slots_of_int_registers) {
     return rc_int;
   }
@@ -1681,14 +1663,16 @@ void MachUEPNode::format(PhaseRegAlloc* ra_, outputStream* st) const
   assert_cond(st != NULL);
   st->print_cr("# MachUEPNode");
   if (UseCompressedClassPointers) {
-    st->print_cr("\tlw t0, [j_rarg0, oopDesc::klass_offset_in_bytes()]\t# compressed klass");
+    st->print_cr("\tlwu t0, [j_rarg0, oopDesc::klass_offset_in_bytes()]\t# compressed klass");
     if (CompressedKlassPointers::shift() != 0) {
       st->print_cr("\tdecode_klass_not_null t0, t0");
     }
   } else {
-   st->print_cr("\tld t0, [j_rarg0, oopDesc::klass_offset_in_bytes()]\t# compressed klass");
+    st->print_cr("\tld t0, [j_rarg0, oopDesc::klass_offset_in_bytes()]\t# compressed klass");
   }
-  st->print_cr("\tbne x10, t0, SharedRuntime::_ic_miss_stub\t # Inline cache check");
+  st->print_cr("\tbeq t0, t1, ic_hit");
+  st->print_cr("\tj SharedRuntime::_ic_miss_stub\t # Inline cache check");
+  st->print_cr("\tic_hit:");
 }
 #endif
 
@@ -2181,7 +2165,7 @@ encode %{
     Register super_reg = as_Register($super$$reg);
     Register temp_reg = as_Register($temp$$reg);
     Register result_reg = as_Register($result$$reg);
-    Register cr_reg = t1;
+    Register cr_reg = t2;
 
     Label miss;
     Label done;
@@ -2285,7 +2269,7 @@ encode %{
   // using the cr register as the bool result: 0 for success; others failed.
   enc_class riscv64_enc_fast_lock(iRegP object, iRegP box, iRegP tmp, iRegP tmp2) %{
     C2_MacroAssembler _masm(&cbuf);
-    Register flag = t1;
+    Register flag = t2;
     Register oop = as_Register($object$$reg);
     Register box = as_Register($box$$reg);
     Register disp_hdr = as_Register($tmp$$reg);
@@ -2375,7 +2359,7 @@ encode %{
   // using cr flag to indicate the fast_unlock result: 0 for success; others failed.
   enc_class riscv64_enc_fast_unlock(iRegP object, iRegP box, iRegP tmp, iRegP tmp2) %{
     C2_MacroAssembler _masm(&cbuf);
-    Register flag = t1;
+    Register flag = t2;
     Register oop = as_Register($object$$reg);
     Register box = as_Register($box$$reg);
     Register disp_hdr = as_Register($tmp$$reg);
@@ -5080,7 +5064,7 @@ instruct storePConditional(memory heap_top_ptr, iRegP oldval, iRegP newval, rFla
   ins_cost(ALU_COST * 2 + STORE_COST);
 
   format %{
-    "sc_d t1, $newval $heap_top_ptr,\t# ptr store conditional, #@storePConditional"
+    "sc_d t2, $newval $heap_top_ptr,\t# ptr store conditional, #@storePConditional"
   %}
 
   ins_encode %{
@@ -5098,7 +5082,7 @@ instruct storeLConditional(indirect mem, iRegLNoSp oldval, iRegLNoSp newval, rFl
   ins_cost(LOAD_COST + STORE_COST + 2 * BRANCH_COST);
 
   format %{
-    "cmpxchg t1, $mem, $oldval, $newval, $mem\t# if $mem == $oldval then $mem <-- $newval"
+    "cmpxchg $mem, $oldval, $newval, $cr\t# if $mem == $oldval then $mem <-- $newval"
     "xorr $cr, $cr, $oldval\t# $cr == 0 on successful write, #@storeLConditional"
   %}
 
@@ -5120,7 +5104,7 @@ instruct storeIConditional(indirect mem, iRegINoSp oldval, iRegINoSp newval, rFl
   ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2);
 
   format %{
-    "cmpxchgw t1, $mem, $oldval, $newval, $mem\t# if $mem == $oldval then $mem <-- $newval"
+    "cmpxchgw $mem, $oldval, $newval, $cr\t# if $mem == $oldval then $mem <-- $newval"
     "xorr $cr, $cr, $oldval\t# $cr == 0 on successful write, #@storeIConditional"
   %}
 
@@ -5135,13 +5119,13 @@ instruct storeIConditional(indirect mem, iRegINoSp oldval, iRegINoSp newval, rFl
 
 // standard CompareAndSwapX when we are using barriers
 // these have higher priority than the rules selected by a predicate
-instruct compareAndSwapB(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+instruct compareAndSwapB(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   match(Set res (CompareAndSwapB mem (Binary oldval newval)));
 
   ins_cost(LOAD_COST + STORE_COST + ALU_COST * 10 + BRANCH_COST * 4);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg $mem, $oldval, $newval\t# (byte) if $mem == $oldval then $mem <-- $newval\n\t"
@@ -5157,13 +5141,13 @@ instruct compareAndSwapB(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R1
   ins_pipe(pipe_slow);
 %}
 
-instruct compareAndSwapS(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+instruct compareAndSwapS(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   match(Set res (CompareAndSwapS mem (Binary oldval newval)));
 
   ins_cost(LOAD_COST + STORE_COST + ALU_COST * 11 + BRANCH_COST * 4);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg $mem, $oldval, $newval\t# (short) if $mem == $oldval then $mem <-- $newval\n\t"
@@ -5246,7 +5230,7 @@ instruct compareAndSwapN(iRegINoSp res, indirect mem, iRegNNoSp oldval, iRegNNoS
 
 // alternative CompareAndSwapX when we are eliding barriers
 instruct compareAndSwapBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                            iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                            iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   predicate(needs_acquiring_load_reserved(n));
 
@@ -5254,7 +5238,7 @@ instruct compareAndSwapBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI
 
   ins_cost(LOAD_COST + STORE_COST + ALU_COST * 10 + BRANCH_COST * 4);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg_acq $mem, $oldval, $newval\t# (byte) if $mem == $oldval then $mem <-- $newval\n\t"
@@ -5271,7 +5255,7 @@ instruct compareAndSwapBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI
 %}
 
 instruct compareAndSwapSAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                            iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                            iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   predicate(needs_acquiring_load_reserved(n));
 
@@ -5279,7 +5263,7 @@ instruct compareAndSwapSAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI
 
   ins_cost(LOAD_COST + STORE_COST + ALU_COST * 11 + BRANCH_COST * 4);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg_acq $mem, $oldval, $newval\t# (short) if $mem == $oldval then $mem <-- $newval\n\t"
@@ -5374,13 +5358,13 @@ instruct compareAndSwapNAcq(iRegINoSp res, indirect mem, iRegNNoSp oldval, iRegN
 // can't check the type of memory ordering here, so we always emit a
 // sc_d(w) with rl bit set.
 instruct compareAndExchangeB(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                             iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                             iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   match(Set res (CompareAndExchangeB mem (Binary oldval newval)));
 
   ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST * 5);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg $res = $mem, $oldval, $newval\t# (byte, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeB"
@@ -5396,13 +5380,13 @@ instruct compareAndExchangeB(iRegINoSp res, indirect mem, iRegI_R12 oldval, iReg
 %}
 
 instruct compareAndExchangeS(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                             iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                             iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   match(Set res (CompareAndExchangeS mem (Binary oldval newval)));
 
   ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST * 6);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg $res = $mem, $oldval, $newval\t# (short, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeS"
@@ -5499,7 +5483,7 @@ instruct compareAndExchangeP(iRegPNoSp res, indirect mem, iRegP oldval, iRegP ne
 %}
 
 instruct compareAndExchangeBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                                iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                                iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   predicate(needs_acquiring_load_reserved(n));
 
@@ -5507,7 +5491,7 @@ instruct compareAndExchangeBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, i
 
   ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST * 5);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg_acq $res = $mem, $oldval, $newval\t# (byte, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeBAcq"
@@ -5523,7 +5507,7 @@ instruct compareAndExchangeBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, i
 %}
 
 instruct compareAndExchangeSAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                                iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                                iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   predicate(needs_acquiring_load_reserved(n));
 
@@ -5531,7 +5515,7 @@ instruct compareAndExchangeSAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, i
 
   ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST * 6);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg_acq $res = $mem, $oldval, $newval\t# (short, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeSAcq"
@@ -5635,13 +5619,13 @@ instruct compareAndExchangePAcq(iRegPNoSp res, indirect mem, iRegP oldval, iRegP
 %}
 
 instruct weakCompareAndSwapB(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                             iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                             iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   match(Set res (WeakCompareAndSwapB mem (Binary oldval newval)));
 
   ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 6);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg_weak $mem, $oldval, $newval\t# (byte, weak) if $mem == $oldval then $mem <-- $newval\n\t"
@@ -5659,13 +5643,13 @@ instruct weakCompareAndSwapB(iRegINoSp res, indirect mem, iRegI_R12 oldval, iReg
 %}
 
 instruct weakCompareAndSwapS(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                             iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                             iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   match(Set res (WeakCompareAndSwapS mem (Binary oldval newval)));
 
   ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 7);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg_weak $mem, $oldval, $newval\t# (short, weak) if $mem == $oldval then $mem <-- $newval\n\t"
@@ -5764,7 +5748,7 @@ instruct weakCompareAndSwapP(iRegINoSp res, indirect mem, iRegP oldval, iRegP ne
 %}
 
 instruct weakCompareAndSwapBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                                iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                                iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   predicate(needs_acquiring_load_reserved(n));
 
@@ -5772,7 +5756,7 @@ instruct weakCompareAndSwapBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, i
 
   ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 6);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg_weak_acq $mem, $oldval, $newval\t# (byte, weak) if $mem == $oldval then $mem <-- $newval\n\t"
@@ -5790,7 +5774,7 @@ instruct weakCompareAndSwapBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, i
 %}
 
 instruct weakCompareAndSwapSAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval,
-                                iRegI tmp1, iRegI tmp2, iRegI tmp3, rFlagsReg cr)
+                                iRegI tmp1, iRegI tmp2, iRegI tmp3)
 %{
   predicate(needs_acquiring_load_reserved(n));
 
@@ -5798,7 +5782,7 @@ instruct weakCompareAndSwapSAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, i
 
   ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 7);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
+  effect(TEMP_DEF res, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
   format %{
     "cmpxchg_weak_acq $mem, $oldval, $newval\t# (short, weak) if $mem == $oldval then $mem <-- $newval\n\t"
@@ -7518,9 +7502,8 @@ instruct xorL_reg_imm(iRegLNoSp dst, iRegL src1, immLAdd src2) %{
 // ============================================================================
 // BSWAP Instructions
 
-instruct bytes_reverse_int(rFlagsReg cr, iRegINoSp dst, iRegIorL2I src) %{
+instruct bytes_reverse_int(iRegINoSp dst, iRegIorL2I src) %{
   match(Set dst (ReverseBytesI src));
-  effect(TEMP cr);
 
   ins_cost(ALU_COST * 17);
   format %{ "grevw  $dst, $src\t#@bytes_reverse_int" %}
@@ -7532,9 +7515,8 @@ instruct bytes_reverse_int(rFlagsReg cr, iRegINoSp dst, iRegIorL2I src) %{
   ins_pipe(ialu_reg);
 %}
 
-instruct bytes_reverse_long(rFlagsReg cr, iRegLNoSp dst, iRegL src) %{
+instruct bytes_reverse_long(iRegLNoSp dst, iRegL src) %{
   match(Set dst (ReverseBytesL src));
-  effect(TEMP cr);
 
   ins_cost(ALU_COST * 45);
   format %{ "grev  $dst, $src\t#@bytes_reverse_long" %}
@@ -9820,11 +9802,11 @@ instruct CallStaticJavaDirect(method meth)
 // TO HERE
 
 // Call Java Dynamic Instruction
-instruct CallDynamicJavaDirect(method meth, rFlagsReg cr)
+instruct CallDynamicJavaDirect(method meth)
 %{
   match(CallDynamicJava);
 
-  effect(USE meth, KILL cr);
+  effect(USE meth);
 
   ins_cost(BRANCH_COST + ALU_COST * 6);
 
@@ -9838,11 +9820,11 @@ instruct CallDynamicJavaDirect(method meth, rFlagsReg cr)
 
 // Call Runtime Instruction
 
-instruct CallRuntimeDirect(method meth, rFlagsReg cr)
+instruct CallRuntimeDirect(method meth)
 %{
   match(CallRuntime);
 
-  effect(USE meth, KILL cr);
+  effect(USE meth);
 
   ins_cost(BRANCH_COST);
 
@@ -9855,11 +9837,11 @@ instruct CallRuntimeDirect(method meth, rFlagsReg cr)
 
 // Call Runtime Instruction
 
-instruct CallLeafDirect(method meth, rFlagsReg cr)
+instruct CallLeafDirect(method meth)
 %{
   match(CallLeaf);
 
-  effect(USE meth, KILL cr);
+  effect(USE meth);
 
   ins_cost(BRANCH_COST);
 
@@ -9872,11 +9854,11 @@ instruct CallLeafDirect(method meth, rFlagsReg cr)
 
 // Call Runtime Instruction
 
-instruct CallLeafNoFPDirect(method meth, rFlagsReg cr)
+instruct CallLeafNoFPDirect(method meth)
 %{
   match(CallLeafNoFP);
 
-  effect(USE meth, KILL cr);
+  effect(USE meth);
 
   ins_cost(BRANCH_COST);
 
@@ -9895,10 +9877,10 @@ instruct CallLeafNoFPDirect(method meth, rFlagsReg cr)
 // gen_subtype_check()).  Return zero for a hit.  The encoding
 // ALSO sets flags.
 
-instruct partialSubtypeCheck(rFlagsReg cr, iRegP_R14 sub, iRegP_R10 super, iRegP_R12 temp, iRegP_R15 result)
+instruct partialSubtypeCheck(iRegP_R14 sub, iRegP_R10 super, iRegP_R12 temp, iRegP_R15 result)
 %{
   match(Set result (PartialSubtypeCheck sub super));
-  effect(KILL temp, KILL cr);
+  effect(KILL temp);
 
   ins_cost(2 * STORE_COST + 3 * LOAD_COST + 4 * ALU_COST + BRANCH_COST * 4);
   format %{ "partialSubtypeCheck $result, $sub, $super\t#@partialSubtypeCheck" %}
@@ -9927,11 +9909,11 @@ instruct partialSubtypeCheckVsZero(iRegP_R14 sub, iRegP_R10 super, iRegP_R12 tem
 %}
 
 instruct string_compareU(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R14 cnt2,
-                         iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3, rFlagsReg cr)
+                         iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3)
 %{
   predicate(!UseRVV && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::UU);
   match(Set result(StrComp(Binary str1 cnt1)(Binary str2 cnt2)));
-  effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL cr);
+  effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2);
 
   format %{ "String Compare $str1, $cnt1, $str2, $cnt2 -> $result\t#@string_compareU" %}
   ins_encode %{
@@ -9945,11 +9927,11 @@ instruct string_compareU(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R
 %}
 
 instruct string_compareL(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R14 cnt2,
-                         iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3, rFlagsReg cr)
+                         iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3)
 %{
   predicate(!UseRVV && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::LL);
   match(Set result(StrComp(Binary str1 cnt1)(Binary str2 cnt2)));
-  effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL cr);
+  effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2);
 
   format %{ "String Compare $str1, $cnt1, $str2, $cnt2 -> $result\t#@string_compareL" %}
   ins_encode %{
@@ -9962,11 +9944,11 @@ instruct string_compareL(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R
 %}
 
 instruct string_compareUL(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R14 cnt2,
-                          iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3, rFlagsReg cr)
+                          iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3)
 %{
   predicate(!UseRVV && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::UL);
   match(Set result(StrComp(Binary str1 cnt1)(Binary str2 cnt2)));
-  effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL cr);
+  effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2);
 
   format %{"String Compare $str1, $cnt1, $str2, $cnt2 -> $result\t#@string_compareUL" %}
   ins_encode %{
@@ -9979,12 +9961,11 @@ instruct string_compareUL(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_
 %}
 
 instruct string_compareLU(iRegP_R11 str1, iRegI_R12 cnt1, iRegP_R13 str2, iRegI_R14 cnt2,
-                          iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3,
-                          rFlagsReg cr)
+                          iRegI_R10 result, iRegP_R28 tmp1, iRegL_R29 tmp2, iRegL_R30 tmp3)
 %{
   predicate(!UseRVV && ((StrCompNode *)n)->encoding() == StrIntrinsicNode::LU);
   match(Set result(StrComp(Binary str1 cnt1)(Binary str2 cnt2)));
-  effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL cr);
+  effect(KILL tmp1, KILL tmp2, KILL tmp3, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2);
 
   format %{ "String Compare $str1, $cnt1, $str2, $cnt2 -> $result\t#@string_compareLU" %}
   ins_encode %{
@@ -10162,7 +10143,7 @@ instruct stringL_indexof_char(iRegP_R11 str1, iRegI_R12 cnt1, iRegI_R13 ch,
 %}
 
 // clearing of an array
-instruct clearArray_reg_reg(iRegL_R29 cnt, iRegP_R28 base, Universe dummy, rFlagsReg cr)
+instruct clearArray_reg_reg(iRegL_R29 cnt, iRegP_R28 base, Universe dummy)
 %{
   predicate(!UseRVV);
   match(Set dummy (ClearArray cnt base));
@@ -10182,12 +10163,12 @@ instruct clearArray_reg_reg(iRegL_R29 cnt, iRegP_R28 base, Universe dummy, rFlag
   ins_pipe(pipe_class_memory);
 %}
 
-instruct clearArray_imm_reg(immL cnt, iRegP_R28 base, Universe dummy, rFlagsReg cr)
+instruct clearArray_imm_reg(immL cnt, iRegP_R28 base, Universe dummy)
 %{
   predicate(!UseRVV && (uint64_t)n->in(2)->get_long()
             < (uint64_t)(BlockZeroingLowLimit >> LogBytesPerWord));
   match(Set dummy (ClearArray cnt base));
-  effect(USE_KILL base, KILL cr);
+  effect(USE_KILL base);
 
   ins_cost(4 * DEFAULT_COST);
   format %{ "ClearArray $cnt, $base\t#@clearArray_imm_reg" %}
@@ -10199,12 +10180,11 @@ instruct clearArray_imm_reg(immL cnt, iRegP_R28 base, Universe dummy, rFlagsReg 
   ins_pipe(pipe_class_memory);
 %}
 
-instruct string_equalsL(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt,
-                        iRegI_R10 result, rFlagsReg cr)
+instruct string_equalsL(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt, iRegI_R10 result)
 %{
   predicate(!UseRVV && ((StrEqualsNode*)n)->encoding() == StrIntrinsicNode::LL);
   match(Set result (StrEquals (Binary str1 str2) cnt));
-  effect(USE_KILL str1, USE_KILL str2, USE_KILL cnt, KILL cr);
+  effect(USE_KILL str1, USE_KILL str2, USE_KILL cnt);
 
   format %{ "String Equals $str1, $str2, $cnt -> $result\t#@string_equalsL" %}
   ins_encode %{
@@ -10215,12 +10195,11 @@ instruct string_equalsL(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt,
   ins_pipe(pipe_class_memory);
 %}
 
-instruct string_equalsU(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt,
-                        iRegI_R10 result, rFlagsReg cr)
+instruct string_equalsU(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt, iRegI_R10 result)
 %{
   predicate(!UseRVV && ((StrEqualsNode*)n)->encoding() == StrIntrinsicNode::UU);
   match(Set result (StrEquals (Binary str1 str2) cnt));
-  effect(USE_KILL str1, USE_KILL str2, USE_KILL cnt, KILL cr);
+  effect(USE_KILL str1, USE_KILL str2, USE_KILL cnt);
 
   format %{ "String Equals $str1, $str2, $cnt -> $result\t#@string_equalsU" %}
   ins_encode %{
@@ -10233,11 +10212,11 @@ instruct string_equalsU(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt,
 
 instruct array_equalsB(iRegP_R11 ary1, iRegP_R12 ary2, iRegI_R10 result,
                        iRegP_R13 tmp1, iRegP_R14 tmp2, iRegP_R15 tmp3,
-                       iRegP_R16 tmp4, iRegP_R28 tmp, rFlagsReg cr)
+                       iRegP_R16 tmp4, iRegP_R28 tmp)
 %{
   predicate(!UseRVV && ((AryEqNode*)n)->encoding() == StrIntrinsicNode::LL);
   match(Set result (AryEq ary1 ary2));
-  effect(KILL tmp, USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL cr);
+  effect(KILL tmp, USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4);
 
   format %{ "Array Equals $ary1, ary2 -> $result\t#@array_equalsB // KILL $tmp" %}
   ins_encode %{
@@ -10250,11 +10229,11 @@ instruct array_equalsB(iRegP_R11 ary1, iRegP_R12 ary2, iRegI_R10 result,
 
 instruct array_equalsC(iRegP_R11 ary1, iRegP_R12 ary2, iRegI_R10 result,
                        iRegP_R13 tmp1, iRegP_R14 tmp2, iRegP_R15 tmp3,
-                       iRegP_R16 tmp4, iRegP_R28 tmp, rFlagsReg cr)
+                       iRegP_R16 tmp4, iRegP_R28 tmp)
 %{
   predicate(!UseRVV && ((AryEqNode*)n)->encoding() == StrIntrinsicNode::UU);
   match(Set result (AryEq ary1 ary2));
-  effect(KILL tmp, USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL cr);
+  effect(KILL tmp, USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4);
 
   format %{ "Array Equals $ary1, ary2 -> $result\t#@array_equalsC // KILL $tmp" %}
   ins_encode %{
@@ -10302,7 +10281,7 @@ instruct tlsLoadP(javaThread_RegP dst)
 %}
 
 // inlined locking and unlocking
-// using t1 as the 'flag' register to bridge the BoolNode producers and consumers
+// using t2 as the 'flag' register to bridge the BoolNode producers and consumers
 instruct cmpFastLock(rFlagsReg cr, iRegP object, iRegP box, iRegPNoSp tmp, iRegPNoSp tmp2)
 %{
   match(Set cr (FastLock object box));
@@ -10316,7 +10295,7 @@ instruct cmpFastLock(rFlagsReg cr, iRegP object, iRegP box, iRegPNoSp tmp, iRegP
   ins_pipe(pipe_serial);
 %}
 
-// using t1 as the 'flag' register to bridge the BoolNode producers and consumers
+// using t2 as the 'flag' register to bridge the BoolNode producers and consumers
 instruct cmpFastUnlock(rFlagsReg cr, iRegP object, iRegP box, iRegPNoSp tmp, iRegPNoSp tmp2)
 %{
   match(Set cr (FastUnlock object box));

@@ -28,11 +28,11 @@ source_hpp %{
 #include "gc/shenandoah/shenandoahBarrierSetAssembler.hpp"
 %}
 
-instruct compareAndSwapP_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp, rFlagsReg cr) %{
+instruct compareAndSwapP_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp) %{
   match(Set res (ShenandoahCompareAndSwapP mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP tmp, KILL cr);
+  effect(TEMP tmp);
 
   format %{
     "cmpxchg_shenandoah $mem, $oldval, $newval\t# (ptr) if $mem == $oldval then $mem <-- $newval with temp $tmp, #@compareAndSwapP_shenandoah"
@@ -49,11 +49,11 @@ instruct compareAndSwapP_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, i
   ins_pipe(pipe_slow);
 %}
 
-instruct compareAndSwapN_shenandoah(iRegINoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp, rFlagsReg cr) %{
+instruct compareAndSwapN_shenandoah(iRegINoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp) %{
   match(Set res (ShenandoahCompareAndSwapN mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP tmp, KILL cr);
+  effect(TEMP tmp);
 
   format %{
     "cmpxchgw_shenandoah $mem, $oldval, $newval\t# (ptr) if $mem == $oldval then $mem <-- $newval with temp $tmp, #@compareAndSwapN_shenandoah"
@@ -70,12 +70,12 @@ instruct compareAndSwapN_shenandoah(iRegINoSp res, indirect mem, iRegN oldval, i
   ins_pipe(pipe_slow);
 %}
 
-instruct compareAndSwapPAcq_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp, rFlagsReg cr) %{
+instruct compareAndSwapPAcq_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp) %{
   predicate(needs_acquiring_load_reserved(n));
   match(Set res (ShenandoahCompareAndSwapP mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP tmp, KILL cr);
+  effect(TEMP tmp);
 
   format %{
     "cmpxchg_acq_shenandoah_oop $mem, $oldval, $newval\t# (ptr) if $mem == $oldval then $mem <-- $newval with temp $tmp, #@compareAndSwapPAcq_shenandoah"
@@ -92,12 +92,12 @@ instruct compareAndSwapPAcq_shenandoah(iRegINoSp res, indirect mem, iRegP oldval
   ins_pipe(pipe_slow);
 %}
 
-instruct compareAndSwapNAcq_shenandoah(iRegINoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp, rFlagsReg cr) %{
+instruct compareAndSwapNAcq_shenandoah(iRegINoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp) %{
   predicate(needs_acquiring_load_reserved(n));
   match(Set res (ShenandoahCompareAndSwapN mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP tmp, KILL cr);
+  effect(TEMP tmp);
 
   format %{
     "cmpxchgw_acq_shenandoah_narrow_oop $mem, $oldval, $newval\t# (ptr) if $mem == $oldval then $mem <-- $newval with temp $tmp, #@compareAndSwapNAcq_shenandoah"
@@ -114,10 +114,10 @@ instruct compareAndSwapNAcq_shenandoah(iRegINoSp res, indirect mem, iRegN oldval
   ins_pipe(pipe_slow);
 %}
 
-instruct compareAndExchangeN_shenandoah(iRegNNoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp, rFlagsReg cr) %{
+instruct compareAndExchangeN_shenandoah(iRegNNoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp) %{
   match(Set res (ShenandoahCompareAndExchangeN mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
-  effect(TEMP_DEF res, TEMP tmp, KILL cr);
+  effect(TEMP_DEF res, TEMP tmp);
 
   format %{
     "cmpxchgw_shenandoah $res = $mem, $oldval, $newval\t# (narrow oop, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeN_shenandoah"
@@ -134,11 +134,11 @@ instruct compareAndExchangeN_shenandoah(iRegNNoSp res, indirect mem, iRegN oldva
   ins_pipe(pipe_slow);
 %}
 
-instruct compareAndExchangeP_shenandoah(iRegPNoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp, rFlagsReg cr) %{
+instruct compareAndExchangeP_shenandoah(iRegPNoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp) %{
   match(Set res (ShenandoahCompareAndExchangeP mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP_DEF res, TEMP tmp, KILL cr);
+  effect(TEMP_DEF res, TEMP tmp);
   format %{
     "cmpxchg_shenandoah $mem, $oldval, $newval\t# (ptr) if $mem == $oldval then $mem <-- $newval with temp $tmp, #@compareAndExchangeP_shenandoah"
   %}
@@ -154,11 +154,11 @@ instruct compareAndExchangeP_shenandoah(iRegPNoSp res, indirect mem, iRegP oldva
   ins_pipe(pipe_slow);
 %}
 
-instruct weakCompareAndSwapN_shenandoah(iRegINoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp, rFlagsReg cr) %{
+instruct weakCompareAndSwapN_shenandoah(iRegINoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp) %{
   match(Set res (ShenandoahWeakCompareAndSwapN mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP tmp, KILL cr);
+  effect(TEMP tmp);
   format %{
     "cmpxchgw_shenandoah $res = $mem, $oldval, $newval\t# (narrow oop, weak) if $mem == $oldval then $mem <-- $newval, #@weakCompareAndSwapN_shenandoah"
     "mv $res, EQ\t# $res <-- (EQ ? 1 : 0)"
@@ -176,12 +176,12 @@ instruct weakCompareAndSwapN_shenandoah(iRegINoSp res, indirect mem, iRegN oldva
   ins_pipe(pipe_slow);
 %}
 
-instruct compareAndExchangeNAcq_shenandoah(iRegNNoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp, rFlagsReg cr) %{
+instruct compareAndExchangeNAcq_shenandoah(iRegNNoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp) %{
   predicate(needs_acquiring_load_reserved(n));
   match(Set res (ShenandoahCompareAndExchangeN mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP_DEF res, TEMP tmp, KILL cr);
+  effect(TEMP_DEF res, TEMP tmp);
   format %{
     "cmpxchgw_acq_shenandoah $res = $mem, $oldval, $newval\t# (narrow oop, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeNAcq_shenandoah"
   %}
@@ -197,12 +197,12 @@ instruct compareAndExchangeNAcq_shenandoah(iRegNNoSp res, indirect mem, iRegN ol
   ins_pipe(pipe_slow);
 %}
 
-instruct compareAndExchangePAcq_shenandoah(iRegPNoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp, rFlagsReg cr) %{
+instruct compareAndExchangePAcq_shenandoah(iRegPNoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp) %{
   predicate(needs_acquiring_load_reserved(n));
   match(Set res (ShenandoahCompareAndExchangeP mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP_DEF res, TEMP tmp, KILL cr);
+  effect(TEMP_DEF res, TEMP tmp);
   format %{
     "cmpxchg_acq_shenandoah $res = $mem, $oldval, $newval\t# (narrow oop, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangePAcq_shenandoah"
   %}
@@ -218,11 +218,11 @@ instruct compareAndExchangePAcq_shenandoah(iRegPNoSp res, indirect mem, iRegP ol
   ins_pipe(pipe_slow);
 %}
 
-instruct weakCompareAndSwapP_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp, rFlagsReg cr) %{
+instruct weakCompareAndSwapP_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp) %{
   match(Set res (ShenandoahWeakCompareAndSwapP mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP tmp, KILL cr);
+  effect(TEMP tmp);
   format %{
     "cmpxchg_shenandoah $res = $mem, $oldval, $newval\t# (ptr, weak) if $mem == $oldval then $mem <-- $newval, #@weakCompareAndSwapP_shenandoah"
   %}
@@ -238,12 +238,12 @@ instruct weakCompareAndSwapP_shenandoah(iRegINoSp res, indirect mem, iRegP oldva
   ins_pipe(pipe_slow);
 %}
 
-instruct weakCompareAndSwapNAcq_shenandoah(iRegINoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp, rFlagsReg cr) %{
+instruct weakCompareAndSwapNAcq_shenandoah(iRegINoSp res, indirect mem, iRegN oldval, iRegN newval, iRegNNoSp tmp) %{
   predicate(needs_acquiring_load_reserved(n));
   match(Set res (ShenandoahWeakCompareAndSwapN mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP tmp, KILL cr);
+  effect(TEMP tmp);
   format %{
     "cmpxchgw_acq_shenandoah $res = $mem, $oldval, $newval\t# (ptr, weak) if $mem == $oldval then $mem <-- $newval, #@weakCompareAndSwapNAcq_shenandoah"
     "mv $res, EQ\t# $res <-- (EQ ? 1 : 0)"
@@ -261,12 +261,12 @@ instruct weakCompareAndSwapNAcq_shenandoah(iRegINoSp res, indirect mem, iRegN ol
   ins_pipe(pipe_slow);
 %}
 
-instruct weakCompareAndSwapPAcq_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp, rFlagsReg cr) %{
+instruct weakCompareAndSwapPAcq_shenandoah(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval, iRegPNoSp tmp) %{
   predicate(needs_acquiring_load_reserved(n));
   match(Set res (ShenandoahWeakCompareAndSwapP mem (Binary oldval newval)));
   ins_cost(10 * DEFAULT_COST);
 
-  effect(TEMP tmp, KILL cr);
+  effect(TEMP tmp);
   format %{
     "cmpxchg_acq_shenandoah $res = $mem, $oldval, $newval\t# (ptr, weak) if $mem == $oldval then $mem <-- $newval, #@weakCompareAndSwapPAcq_shenandoah"
     "mv $res, EQ\t# $res <-- (EQ ? 1 : 0)"
