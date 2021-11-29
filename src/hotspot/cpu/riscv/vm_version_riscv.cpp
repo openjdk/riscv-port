@@ -24,15 +24,61 @@
  */
 
 #include "precompiled.hpp"
+#include "asm/macroAssembler.hpp"
+#include "asm/macroAssembler.inline.hpp"
+#include "memory/resourceArea.hpp"
 #include "runtime/java.hpp"
 #include "runtime/os.hpp"
+#include "runtime/stubCodeGenerator.hpp"
 #include "runtime/vm_version.hpp"
 #include "utilities/formatBuffer.hpp"
 #include "utilities/macros.hpp"
 
 #include OS_HEADER_INLINE(os)
 
+static BufferBlob* stub_blob;
+static const int vlen_stub_size=100;
+
+extern "C" {
+  typedef uint32_t (*get_vector_len_stub_t)();
+}
+static get_vector_len_stub_t get_vector_len_stub = NULL;
+
+class VM_Version_StubGenerator: public StubCodeGenerator {
+ public:
+
+  VM_Version_StubGenerator(CodeBuffer *c) : StubCodeGenerator(c) {}
+  ~VM_Version_StubGenerator() {}
+
+  address generate_get_vector_len_stub(address* fault_pc, address* fault_pc2, address* continuation_pc) {
+    StubCodeMark mark(this, "VM_Version", "get_vector_len_stub");
+#   define __ _masm->
+    address start = __ pc();
+
+    __ enter();
+
+    // read vcsr and vlenb, it may raise sigill
+    __ mv(x10, zr);
+    *fault_pc = __ pc();
+    __ csrr(x10, CSR_VCSR);
+
+    __ mv(x10, zr);
+    *fault_pc2 = __ pc();
+    __ csrr(x10, CSR_VLENB);
+
+    *continuation_pc = __ pc();
+    __ leave();
+    __ ret();
+
+#   undef __
+    return start;
+  }
+};
+
 uint32_t VM_Version::_initial_vector_length = 0;
+address  VM_Version::_checkvext_fault_pc = NULL;
+address  VM_Version::_checkvext_fault_pc2 = NULL;
+address  VM_Version::_checkvext_continuation_pc = NULL;
 
 void VM_Version::get_processor_features() {
   if (FLAG_IS_DEFAULT(UseFMA)) {
@@ -109,7 +155,26 @@ void VM_Version::get_processor_features() {
       FLAG_SET_DEFAULT(UseRVV, false);
     } else {
       // read vector length from vector CSR vlenb
-      _initial_vector_length = get_current_vector_length();
+
+      // try to read vector register VLENB, if success, rvv is supported
+      // otherwise, csrr will trigger sigill
+      ResourceMark rm;
+
+      stub_blob = BufferBlob::create("get_vector_len_stub", vlen_stub_size);
+      if (stub_blob == NULL) {
+        vm_exit_during_initialization("Unable to allocate get_vector_len_stub");
+      }
+
+      CodeBuffer c(stub_blob);
+      VM_Version_StubGenerator g(&c);
+      get_vector_len_stub = CAST_TO_FN_PTR(get_vector_len_stub_t,
+                                     g.generate_get_vector_len_stub(&VM_Version::_checkvext_fault_pc,
+                                                &VM_Version::_checkvext_fault_pc2,
+                                                &VM_Version::_checkvext_continuation_pc));
+      _initial_vector_length = get_vector_len_stub();
+      if (_initial_vector_length == 0) {
+        FLAG_SET_DEFAULT(UseRVV, false);
+      }
     }
   }
 

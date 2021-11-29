@@ -39,6 +39,14 @@ public:
 
   constexpr static bool supports_stack_watermark_barrier() { return true; }
 
+  static bool is_checkvext_fault(address pc) {
+    return pc != NULL && (pc == _checkvext_fault_pc || pc == _checkvext_fault_pc2);
+  }
+
+  static address continuation_for_checkvext_fault(address pc) {
+    assert(_checkvext_continuation_pc != NULL, "not initialized");
+    return _checkvext_continuation_pc;
+  }
 
   enum Feature_Flag {
 #define CPU_FEATURE_FLAGS(decl)               \
@@ -58,9 +66,11 @@ public:
 
 protected:
   static uint32_t _initial_vector_length;
+  static address _checkvext_fault_pc;
+  static address _checkvext_fault_pc2;
+  static address _checkvext_continuation_pc;
   static void get_processor_features();
   static void get_cpu_info();
-  static uint32_t get_current_vector_length();
 
 #ifdef COMPILER2
 private:

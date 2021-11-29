@@ -74,11 +74,6 @@
         __v;                                                    \
 })
 
-uint32_t VM_Version::get_current_vector_length() {
-  assert(_features & CPU_V, "should not call this");
-  return (uint32_t)read_csr(CSR_VLENB);
-}
-
 void VM_Version::get_cpu_info() {
 
   uint64_t auxv = getauxval(AT_HWCAP);
