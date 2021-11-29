@@ -176,14 +176,24 @@ void BarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj,
   } else {
     Register end = tmp1;
     Label retry;
-    int32_t offset = 0;
     __ bind(retry);
+
+    // Get the current end of the heap
+    ExternalAddress address_end((address) Universe::heap()->end_addr());
+    {
+      int32_t offset;
+      __ la_patchable(t1, address_end, offset);
+      __ ld(t1, Address(t1, offset));
+    }
 
     // Get the current top of the heap
     ExternalAddress address_top((address) Universe::heap()->top_addr());
-    __ la_patchable(t0, address_top, offset);
-    __ addi(t0, t0, offset);
-    __ lr_d(obj, t0, Assembler::aqrl);
+    {
+      int32_t offset;
+      __ la_patchable(t0, address_top, offset);
+      __ addi(t0, t0, offset);
+      __ lr_d(obj, t0, Assembler::aqrl);
+    }
 
     // Adjust it my the size of our new object
     if (var_size_in_bytes == noreg) {
@@ -195,18 +205,12 @@ void BarrierSetAssembler::eden_allocate(MacroAssembler* masm, Register obj,
     // if end < obj then we wrapped around high memory
     __ bltu(end, obj, slow_case, is_far);
 
-    Register heap_end = t1;
-    // Get the current end of the heap
-    ExternalAddress address_end((address) Universe::heap()->end_addr());
-    offset = 0;
-    __ la_patchable(heap_end, address_end, offset);
-    __ ld(heap_end, Address(heap_end, offset));
-
-    __ bgtu(end, heap_end, slow_case, is_far);
+    __ bgtu(end, t1, slow_case, is_far);
 
     // If heap_top hasn't been changed by some other thread, update it.
     __ sc_d(t1, end, t0, Assembler::rl);
     __ bnez(t1, retry);
+
     incr_allocated_bytes(masm, var_size_in_bytes, con_size_in_bytes, tmp1);
   }
 }
