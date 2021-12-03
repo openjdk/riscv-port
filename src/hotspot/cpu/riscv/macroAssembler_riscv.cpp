@@ -2199,17 +2199,16 @@ void MacroAssembler::cmpxchgptr(Register oldv, Register newv, Register addr, Reg
   // addr identifies memory word to compare against/update
   Label retry_load, nope;
   bind(retry_load);
-  // flush and load exclusive from the memory location
-  // and fail if it is not what we expect
+  // Load reserved from the memory location
   lr_d(tmp, addr, Assembler::aqrl);
+  // Fail and exit if it is not what we expect
   bne(tmp, oldv, nope);
-  // if we store+flush with no intervening write tmp wil be zero
+  // If the store conditional succeeds, tmp will be zero
   sc_d(tmp, newv, addr, Assembler::rl);
   beqz(tmp, succeed);
-  // retry so we only ever return after a load fails to compare
-  // ensures we don't return a stale value after a failed write.
+  // Retry only when the store conditional failed
   j(retry_load);
-  // if the memory word differs we return it in oldv and signal a fail
+
   bind(nope);
   membar(AnyAny);
   mv(oldv, tmp);
