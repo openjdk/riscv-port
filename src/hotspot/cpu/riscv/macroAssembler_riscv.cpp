@@ -1886,6 +1886,7 @@ void MacroAssembler::decode_klass_not_null(Register dst, Register src, Register 
 
   assert_different_registers(src, xbase);
   li(xbase, (uintptr_t)CompressedKlassPointers::base());
+
   if (CompressedKlassPointers::shift() != 0) {
     assert(LogKlassAlignmentInBytes == CompressedKlassPointers::shift(), "decode alg wrong");
     assert_different_registers(t0, xbase);
@@ -1894,8 +1895,8 @@ void MacroAssembler::decode_klass_not_null(Register dst, Register src, Register 
   } else {
     add(dst, xbase, src);
   }
-  if (xbase == xheapbase) { reinit_heapbase(); }
 
+  if (xbase == xheapbase) { reinit_heapbase(); }
 }
 
 void MacroAssembler::encode_klass_not_null(Register r) {
@@ -2276,6 +2277,7 @@ void MacroAssembler::cmpxchg_narrow_value_helper(Register addr, Register expecte
   if (size == int8) {
     addi(mask, zr, 0xff);
   } else {
+    // size == int16 case
     addi(mask, zr, -1);
     zero_ext(mask, mask, registerSize - 16);
   }
