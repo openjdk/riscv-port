@@ -2473,17 +2473,6 @@ ATOMIC_XCHGU(xchgalwu, xchgalw)
 
 #undef ATOMIC_XCHGU
 
-void MacroAssembler::atomic_incw(Register counter_addr, Register tmp) {
-  Label retry_load;
-  bind(retry_load);
-  // flush and load exclusive from the memory location
-  lr_w(tmp, counter_addr);
-  addw(tmp, tmp, 1);
-  // if we store+flush with no intervening write tmp wil be zero
-  sc_w(tmp, tmp, counter_addr);
-  bnez(tmp, retry_load);
-}
-
 void MacroAssembler::far_jump(Address entry, CodeBuffer *cbuf, Register tmp) {
   assert(ReservedCodeCacheSize < 4*G, "branch out of range");
   assert(CodeCache::find_blob(entry.target()) != NULL,
