@@ -363,13 +363,7 @@ class MacroAssembler: public Assembler {
 
   void unimplemented(const char* what = "");
 
-  void should_not_reach_here()                   { stop("should not reach here"); }
-
-  virtual RegisterOrConstant delayed_value_impl(intptr_t* delayed_value_addr,
-                                                Register tmp,
-                                                int offset) {
-    return RegisterOrConstant(tmp);
-  }
+  void should_not_reach_here() { stop("should not reach here"); }
 
   static address target_addr_for_insn(address insn_addr);
 
@@ -402,9 +396,6 @@ class MacroAssembler: public Assembler {
   void store_sized_value(Address dst, Register src, size_t size_in_bytes, Register src2 = noreg);
 
  public:
-  // enum used for riscv64--x86 linkage to define return type of x86 function
-  enum ret_type { ret_type_void, ret_type_integral, ret_type_float, ret_type_double};
-
   // Standard pseudoinstruction
   void nop();
   void mv(Register Rd, Register Rs) ;

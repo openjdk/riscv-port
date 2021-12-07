@@ -438,9 +438,6 @@ class NativeJump: public NativeInstruction {
 
   void verify();
 
-  // Unit testing stuff
-  static void test() {}
-
   // Insertion of native jump instruction
   static void insert(address code_pos, address entry);
   // MT-safe insertion of native jump at verified method entry

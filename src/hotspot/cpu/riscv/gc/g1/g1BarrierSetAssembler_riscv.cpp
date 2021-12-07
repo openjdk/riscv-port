@@ -215,7 +215,7 @@ void G1BarrierSetAssembler::g1_write_barrier_post(MacroAssembler* masm,
   ExternalAddress cardtable((address) ct->byte_map_base());
   const Register card_addr = tmp;
 
-  __ srli(card_addr, store_addr, CardTable::card_shift);
+  __ srli(card_addr, store_addr, CardTable::card_shift());
 
   // get the address of the card
   __ load_byte_map_base(tmp2);
@@ -437,7 +437,7 @@ void G1BarrierSetAssembler::generate_c1_post_barrier_runtime_stub(StubAssembler*
   assert_different_registers(card_offset, byte_map_base, t0);
 
   __ load_parameter(0, card_offset);
-  __ srli(card_offset, card_offset, CardTable::card_shift);
+  __ srli(card_offset, card_offset, CardTable::card_shift());
   __ load_byte_map_base(byte_map_base);
 
   // Convert card offset into an address in card_addr
