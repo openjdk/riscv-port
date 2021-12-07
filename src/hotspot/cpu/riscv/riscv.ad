@@ -1180,19 +1180,18 @@ int MachCallRuntimeNode::ret_addr_offset() {
   //   jal(addr)
   // or with far branches
   //   jal(trampoline_stub)
-  // for real runtime callouts it will be six instructions
+  // for real runtime callouts it will be five instructions
   // see riscv64_enc_java_to_runtime
   //   la(t1, retaddr)
   //   la(t0, RuntimeAddress(addr))
   //   addi(sp, sp, -2 * wordSize)
-  //   sd(zr, Address(sp))
   //   sd(t1, Address(sp, wordSize))
   //   jalr(t0)
   CodeBlob *cb = CodeCache::find_blob(_entry_point);
   if (cb != NULL) {
     return 1 * NativeInstruction::instruction_size;
   } else {
-    return 12 * NativeInstruction::instruction_size;
+    return 11 * NativeInstruction::instruction_size;
   }
 }
 
@@ -2274,7 +2273,6 @@ encode %{
       __ la(t0, RuntimeAddress(entry));
       // Leave a breadcrumb for JavaFrameAnchor::capture_last_Java_pc()
       __ addi(sp, sp, -2 * wordSize);
-      __ sd(zr, Address(sp));
       __ sd(t1, Address(sp, wordSize));
       __ jalr(t0);
       __ bind(retaddr);
