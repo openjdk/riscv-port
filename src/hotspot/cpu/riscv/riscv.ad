@@ -68,8 +68,8 @@ register %{
 //
 // follow the C1 compiler in making registers
 //
-//   x7, x9-x17, x28-x31 volatile (caller save)
-//   x0-x4, x8, x27 system (no save, no allocate)
+//   x7, x9-x17, x27-x31 volatile (caller save)
+//   x0-x4, x8, x23 system (no save, no allocate)
 //   x5-x6 non-allocatable (so we can use them as temporary regs)
 
 //
@@ -82,8 +82,8 @@ register %{
 
 reg_def R0      ( NS,  NS,  Op_RegI, 0,  x0->as_VMReg()         ); // zr
 reg_def R0_H    ( NS,  NS,  Op_RegI, 0,  x0->as_VMReg()->next() );
-reg_def R1      ( SOC, SOC, Op_RegI, 1,  x1->as_VMReg()         ); // ra
-reg_def R1_H    ( SOC, SOC, Op_RegI, 1,  x1->as_VMReg()->next() );
+reg_def R1      ( NS,  SOC, Op_RegI, 1,  x1->as_VMReg()         ); // ra
+reg_def R1_H    ( NS,  SOC, Op_RegI, 1,  x1->as_VMReg()->next() );
 reg_def R2      ( NS,  SOE, Op_RegI, 2,  x2->as_VMReg()         ); // sp
 reg_def R2_H    ( NS,  SOE, Op_RegI, 2,  x2->as_VMReg()->next() );
 reg_def R3      ( NS,  NS,  Op_RegI, 3,  x3->as_VMReg()         ); // gp
@@ -1018,9 +1018,6 @@ bool needs_acquiring_load_reserved(const Node *load);
 
 // predicate controlling addressing modes
 bool size_fits_all_mem_uses(AddPNode* addp, int shift);
-
-// predicate using the temp register for decoding klass
-bool maybe_use_tmp_register_decoding_klass();
 %}
 
 source %{
@@ -1140,12 +1137,6 @@ bool needs_acquiring_load_reserved(const Node *n)
   }
   // so we can just return true here
   return true;
-}
-
-bool maybe_use_tmp_register_decoding_klass() {
-  return !UseCompressedOops &&
-         CompressedKlassPointers::base() != NULL &&
-         CompressedKlassPointers::shift() != 0;
 }
 #define __ _masm.
 
@@ -1276,9 +1267,9 @@ void MachPrologNode::format(PhaseRegAlloc *ra_, outputStream *st) const {
     st->print("# stack bang size=%d\n\t", framesize);
   }
 
-  st->print("sd  fp, [sp, #%d]", - 2 * wordSize);
-  st->print("sd  ra, [sp, #%d]", - wordSize);
-  if (PreserveFramePointer) { st->print("\n\tsub  fp, sp, #%d", 2 * wordSize); }
+  st->print("sd  fp, [sp, #%d]\n\t", - 2 * wordSize);
+  st->print("sd  ra, [sp, #%d]\n\t", - wordSize);
+  if (PreserveFramePointer) { st->print("sub  fp, sp, #%d\n\t", 2 * wordSize); }
   st->print("sub sp, sp, #%d\n\t", framesize);
 
   if (C->stub_function() == NULL && BarrierSet::barrier_set()->barrier_set_nmethod() != NULL) {
@@ -1681,14 +1672,16 @@ void MachUEPNode::format(PhaseRegAlloc* ra_, outputStream* st) const
   assert_cond(st != NULL);
   st->print_cr("# MachUEPNode");
   if (UseCompressedClassPointers) {
-    st->print_cr("\tlw t0, [j_rarg0, oopDesc::klass_offset_in_bytes()]\t# compressed klass");
+    st->print_cr("\tlwu t0, [j_rarg0, oopDesc::klass_offset_in_bytes()]\t# compressed klass");
     if (CompressedKlassPointers::shift() != 0) {
       st->print_cr("\tdecode_klass_not_null t0, t0");
     }
   } else {
-   st->print_cr("\tld t0, [j_rarg0, oopDesc::klass_offset_in_bytes()]\t# compressed klass");
+    st->print_cr("\tld t0, [j_rarg0, oopDesc::klass_offset_in_bytes()]\t# compressed klass");
   }
-  st->print_cr("\tbne x10, t0, SharedRuntime::_ic_miss_stub\t # Inline cache check");
+  st->print_cr("\tbeq t0, t1, ic_hit");
+  st->print_cr("\tj, SharedRuntime::_ic_miss_stub\t # Inline cache check");
+  st->print_cr("\tic_hit:");
 }
 #endif
 
@@ -8106,10 +8099,10 @@ instruct encodeKlass_not_null(iRegNNoSp dst, iRegP src) %{
    ins_pipe(ialu_reg);
 %}
 
-instruct decodeKlass_not_null(iRegPNoSp dst, iRegN src) %{
-  predicate(!maybe_use_tmp_register_decoding_klass());
-
+instruct decodeKlass_not_null(iRegPNoSp dst, iRegN src, iRegPNoSp tmp) %{
   match(Set dst (DecodeNKlass src));
+
+  effect(TEMP tmp);
 
   ins_cost(ALU_COST);
   format %{ "decode_klass_not_null  $dst, $src\t#@decodeKlass_not_null" %}
@@ -8117,26 +8110,7 @@ instruct decodeKlass_not_null(iRegPNoSp dst, iRegN src) %{
   ins_encode %{
     Register src_reg = as_Register($src$$reg);
     Register dst_reg = as_Register($dst$$reg);
-    __ decode_klass_not_null(dst_reg, src_reg, UseCompressedOops ? xheapbase : t0);
-  %}
-
-   ins_pipe(ialu_reg);
-%}
-
-instruct decodeKlass_not_null_with_tmp(iRegPNoSp dst, iRegN src, rFlagsReg cr) %{
-  predicate(maybe_use_tmp_register_decoding_klass());
-
-  match(Set dst (DecodeNKlass src));
-
-  effect(TEMP cr);
-
-  ins_cost(ALU_COST);
-  format %{ "decode_klass_not_null  $dst, $src\t#@decodeKlass_not_null" %}
-
-  ins_encode %{
-    Register src_reg = as_Register($src$$reg);
-    Register dst_reg = as_Register($dst$$reg);
-    Register tmp_reg = as_Register($cr$$reg);
+    Register tmp_reg = as_Register($tmp$$reg);
     __ decode_klass_not_null(dst_reg, src_reg, tmp_reg);
   %}
 

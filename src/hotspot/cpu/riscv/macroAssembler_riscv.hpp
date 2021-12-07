@@ -597,13 +597,6 @@ class MacroAssembler: public Assembler {
     return ReservedCodeCacheSize > branch_range;
   }
 
-  //atomic
-  void atomic_incw(Register counter_addr, Register tmp1);
-  void atomic_incw(Address counter_addr, Register tmp1, Register tmp2) {
-    la(tmp1, counter_addr);
-    atomic_incw(tmp1, tmp2);
-  }
-
   // Jumps that can reach anywhere in the code cache.
   // Trashes tmp.
   void far_call(Address entry, CodeBuffer *cbuf = NULL, Register tmp = t0);
