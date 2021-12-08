@@ -954,8 +954,6 @@ void MacroAssembler::pop_reg(Register Rd)
 
 int MacroAssembler::bitset_to_regs(unsigned int bitset, unsigned char* regs) {
   int count = 0;
-  // Zr and sp (x0, x2) should not be pushed
-  assert((bitset & 0b101) == 0, "zr or sp is in bitset: %x", bitset);
   // Scan bitset to accumulate register pairs
   for (int reg = 31; reg >= 0; reg --) {
     if ((1U << 31) & bitset) {
@@ -980,7 +978,7 @@ int MacroAssembler::push_reg(unsigned int bitset, Register stack) {
     addi(stack, stack, - count * wordSize - offset);
   }
   for (int i = count - 1; i >= 0; i--) {
-    sd(as_Register(regs[i]), Address(stack, (count -1 - i) * wordSize + offset));
+    sd(as_Register(regs[i]), Address(stack, (count - 1 - i) * wordSize + offset));
     DEBUG_ONLY(words_pushed ++;)
   }
 
