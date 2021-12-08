@@ -330,7 +330,11 @@ int LIR_Assembler::emit_unwind_handler() {
   if (method()->is_synchronized()) {
     monitor_address(0, FrameMap::r10_opr);
     stub = new MonitorExitStub(FrameMap::r10_opr, true, 0);
-    __ unlock_object(x15, x14, x10, *stub->entry());
+    if (UseHeavyMonitors) {
+      __ j(*stub->entry());
+    } else {
+      __ unlock_object(x15, x14, x10, *stub->entry());
+    }
     __ bind(*stub->continuation());
   }
 

@@ -1517,37 +1517,40 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
     // Load the oop from the handle
     __ ld(obj_reg, Address(oop_handle_reg, 0));
 
-    // Load (object->mark() | 1) into swap_reg % x10
-    __ ld(t0, Address(obj_reg, oopDesc::mark_offset_in_bytes()));
-    __ ori(swap_reg, t0, 1);
+    if (!UseHeavyMonitors) {
+      // Load (object->mark() | 1) into swap_reg % x10
+      __ ld(t0, Address(obj_reg, oopDesc::mark_offset_in_bytes()));
+      __ ori(swap_reg, t0, 1);
 
-    // Save (object->mark() | 1) into BasicLock's displaced header
-    __ sd(swap_reg, Address(lock_reg, mark_word_offset));
+      // Save (object->mark() | 1) into BasicLock's displaced header
+      __ sd(swap_reg, Address(lock_reg, mark_word_offset));
 
-    // src -> dest if dest == x10 else x10 <- dest
-    {
-      Label here;
-      __ cmpxchg_obj_header(x10, lock_reg, obj_reg, t0, lock_done, /*fallthrough*/NULL);
+      // src -> dest if dest == x10 else x10 <- dest
+      {
+        Label here;
+        __ cmpxchg_obj_header(x10, lock_reg, obj_reg, t0, lock_done, /*fallthrough*/NULL);
+      }
+
+      // Test if the oopMark is an obvious stack pointer, i.e.,
+      //  1) (mark & 3) == 0, and
+      //  2) sp <= mark < mark + os::pagesize()
+      // These 3 tests can be done by evaluating the following
+      // expression: ((mark - sp) & (3 - os::vm_page_size())),
+      // assuming both stack pointer and pagesize have their
+      // least significant 2 bits clear.
+      // NOTE: the oopMark is in swap_reg % 10 as the result of cmpxchg
+
+      __ sub(swap_reg, swap_reg, sp);
+      __ andi(swap_reg, swap_reg, 3 - os::vm_page_size());
+
+      // Save the test result, for recursive case, the result is zero
+      __ sd(swap_reg, Address(lock_reg, mark_word_offset));
+      __ bnez(swap_reg, slow_path_lock);
+    } else {
+      __ j(slow_path_lock);
     }
 
-    // Test if the oopMark is an obvious stack pointer, i.e.,
-    //  1) (mark & 3) == 0, and
-    //  2) sp <= mark < mark + os::pagesize()
-    // These 3 tests can be done by evaluating the following
-    // expression: ((mark - sp) & (3 - os::vm_page_size())),
-    // assuming both stack pointer and pagesize have their
-    // least significant 2 bits clear.
-    // NOTE: the oopMark is in swap_reg % 10 as the result of cmpxchg
-
-    __ sub(swap_reg, swap_reg, sp);
-    __ andi(swap_reg, swap_reg, 3 - os::vm_page_size());
-
-    // Save the test result, for recursive case, the result is zero
-    __ sd(swap_reg, Address(lock_reg, mark_word_offset));
-    __ bnez(swap_reg, slow_path_lock);
-
     // Slow path will re-enter here
-
     __ bind(lock_done);
   }
 
@@ -1634,26 +1637,29 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
     Label done;
 
-    // Simple recursive lock?
+    if (!UseHeavyMonitors) {
+      // Simple recursive lock?
+      __ ld(t0, Address(sp, lock_slot_offset * VMRegImpl::stack_slot_size));
+      __ beqz(t0, done);
 
-    __ ld(t0, Address(sp, lock_slot_offset * VMRegImpl::stack_slot_size));
-    __ beqz(t0, done);
+      // Must save x10 if if it is live now because cmpxchg must use it
+      if (ret_type != T_FLOAT && ret_type != T_DOUBLE && ret_type != T_VOID) {
+        save_native_result(masm, ret_type, stack_slots);
+      }
 
-    // Must save x10 if if it is live now because cmpxchg must use it
-    if (ret_type != T_FLOAT && ret_type != T_DOUBLE && ret_type != T_VOID) {
-      save_native_result(masm, ret_type, stack_slots);
+
+      // get address of the stack lock
+      __ la(x10, Address(sp, lock_slot_offset * VMRegImpl::stack_slot_size));
+      //  get old displaced header
+      __ ld(old_hdr, Address(x10, 0));
+
+      // Atomic swap old header if oop still contains the stack lock
+      Label succeed;
+      __ cmpxchg_obj_header(x10, old_hdr, obj_reg, t0, succeed, &slow_path_unlock);
+      __ bind(succeed);
+    } else {
+      __ j(slow_path_unlock);
     }
-
-
-    // get address of the stack lock
-    __ la(x10, Address(sp, lock_slot_offset * VMRegImpl::stack_slot_size));
-    //  get old displaced header
-    __ ld(old_hdr, Address(x10, 0));
-
-    // Atomic swap old header if oop still contains the stack lock
-    Label succeed;
-    __ cmpxchg_obj_header(x10, old_hdr, obj_reg, t0, succeed, &slow_path_unlock);
-    __ bind(succeed);
 
     // slow path re-enters here
     __ bind(unlock_done);
