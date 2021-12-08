@@ -22,8 +22,8 @@
  * questions.
  */
 
-#ifndef CPU_RISCV64_GC_Z_ZGLOBALS_RISCV_HPP
-#define CPU_RISCV64_GC_Z_ZGLOBALS_RISCV_HPP
+#ifndef CPU_RISCV_GC_Z_ZGLOBALS_RISCV_HPP
+#define CPU_RISCV_GC_Z_ZGLOBALS_RISCV_HPP
 
 const size_t ZPlatformGranuleSizeShift = 21; // 2MB
 const size_t ZPlatformHeapViews        = 3;
@@ -32,4 +32,4 @@ const size_t ZPlatformCacheLineSize    = 64;
 size_t ZPlatformAddressOffsetBits();
 size_t ZPlatformAddressMetadataShift();
 
-#endif // CPU_RISCV64_GC_Z_ZGLOBALS_RISCV_HPP
+#endif // CPU_RISCV_GC_Z_ZGLOBALS_RISCV_HPP
