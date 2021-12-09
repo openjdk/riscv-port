@@ -2022,7 +2022,7 @@ bool Arguments::check_vm_args_consistency() {
   }
 #endif
 
-#if !defined(X86) && !defined(AARCH64) && !defined(PPC64)
+#if !defined(X86) && !defined(AARCH64) && !defined(PPC64) && !defined(RISCV64)
   if (UseHeavyMonitors) {
     warning("UseHeavyMonitors is not fully implemented on this architecture");
   }
