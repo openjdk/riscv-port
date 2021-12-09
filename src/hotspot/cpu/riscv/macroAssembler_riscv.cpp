@@ -955,7 +955,7 @@ void MacroAssembler::pop_reg(Register Rd)
 int MacroAssembler::bitset_to_regs(unsigned int bitset, unsigned char* regs) {
   int count = 0;
   // Scan bitset to accumulate register pairs
-  for (int reg = 31; reg >= 0; reg --) {
+  for (int reg = 31; reg >= 0; reg--) {
     if ((1U << 31) & bitset) {
       regs[count++] = reg;
     }
@@ -1008,25 +1008,12 @@ int MacroAssembler::pop_reg(unsigned int bitset, Register stack) {
   return count;
 }
 
-int MacroAssembler::bitset_to_fregs(unsigned int bitset, unsigned char* regs) {
-  int count = 0;
-  // Scan bitset to accumulate register pairs
-  for (int reg = 31; reg >= 0; reg--) {
-    if ((1U << 31) & bitset) {
-      regs[count++] = reg;
-    }
-    bitset <<= 1;
-  }
-
-  return count;
-}
-
 // Push float registers in the bitset, except sp.
 // Return the number of heapwords pushed.
 int MacroAssembler::push_fp(unsigned int bitset, Register stack) {
   int words_pushed = 0;
   unsigned char regs[32];
-  int count = bitset_to_fregs(bitset, regs);
+  int count = bitset_to_regs(bitset, regs);
   int push_slots = count + (count & 1);
 
   if (count) {
@@ -1045,7 +1032,7 @@ int MacroAssembler::push_fp(unsigned int bitset, Register stack) {
 int MacroAssembler::pop_fp(unsigned int bitset, Register stack) {
   int words_popped = 0;
   unsigned char regs[32];
-  int count = bitset_to_fregs(bitset, regs);
+  int count = bitset_to_regs(bitset, regs);
   int pop_slots = count + (count & 1);
 
   for (int i = count - 1; i >= 0; i--) {

@@ -796,7 +796,6 @@ private:
     }
   }
 
-  int bitset_to_fregs(unsigned int bitset, unsigned char* regs);
   int bitset_to_regs(unsigned int bitset, unsigned char* regs);
   Address add_memory_helper(const Address dst);
 
