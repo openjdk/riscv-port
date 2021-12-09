@@ -953,14 +953,7 @@ void MacroAssembler::pop_reg(Register Rd)
 }
 
 int MacroAssembler::bitset_to_regs(unsigned int bitset, unsigned char* regs) {
-  DEBUG_ONLY(int words_pushed = 0;)
-
   int count = 0;
-  // Sp is x2, and zr is x0, which should not be pushed.
-  // If the number of registers is odd, zr is used for stack alignment.Otherwise, it will be ignored.
-  bitset &= ~ (1U << 2);
-  bitset |= 0x1;
-
   // Scan bitset to accumulate register pairs
   for (int reg = 31; reg >= 0; reg --) {
     if ((1U << 31) & bitset) {
@@ -968,7 +961,6 @@ int MacroAssembler::bitset_to_regs(unsigned int bitset, unsigned char* regs) {
     }
     bitset <<= 1;
   }
-  count &= ~1;  // Only push an even number of regs
   return count;
 }
 
@@ -979,12 +971,14 @@ int MacroAssembler::push_reg(unsigned int bitset, Register stack) {
 
   unsigned char regs[32];
   int count = bitset_to_regs(bitset, regs);
+  // reserve one slot to align for odd count
+  int offset = is_even(count) ? 0 : wordSize;
 
   if (count) {
-    addi(stack, stack, - count * wordSize);
+    addi(stack, stack, - count * wordSize - offset);
   }
   for (int i = count - 1; i >= 0; i--) {
-    sd(as_Register(regs[i]), Address(stack, (count -1 - i) * wordSize));
+    sd(as_Register(regs[i]), Address(stack, (count - 1 - i) * wordSize + offset));
     DEBUG_ONLY(words_pushed ++;)
   }
 
@@ -998,14 +992,16 @@ int MacroAssembler::pop_reg(unsigned int bitset, Register stack) {
 
   unsigned char regs[32];
   int count = bitset_to_regs(bitset, regs);
+  // reserve one slot to align for odd count
+  int offset = is_even(count) ? 0 : wordSize;
 
   for (int i = count - 1; i >= 0; i--) {
-    ld(as_Register(regs[i]), Address(stack, (count -1 - i) * wordSize));
+    ld(as_Register(regs[i]), Address(stack, (count - 1 - i) * wordSize + offset));
     DEBUG_ONLY(words_popped ++;)
   }
 
   if (count) {
-    addi(stack, stack, count * wordSize);
+    addi(stack, stack, count * wordSize + offset);
   }
   assert(words_popped == count, "oops, popped != count");
 
