@@ -47,12 +47,12 @@ public class RISCV64Frame extends Frame {
   }
 
   // Java frames
-  private static final int LINK_OFFSET                =  0;
-  private static final int RETURN_ADDR_OFFSET         =  1;
-  private static final int SENDER_SP_OFFSET           =  2;
+  private static final int LINK_OFFSET                =  -2;
+  private static final int RETURN_ADDR_OFFSET         =  -1;
+  private static final int SENDER_SP_OFFSET           =   0;
 
   // Interpreter frames
-  private static final int INTERPRETER_FRAME_SENDER_SP_OFFSET = -1;
+  private static final int INTERPRETER_FRAME_SENDER_SP_OFFSET = -3;
   private static final int INTERPRETER_FRAME_LAST_SP_OFFSET   = INTERPRETER_FRAME_SENDER_SP_OFFSET - 1;
   private static final int INTERPRETER_FRAME_METHOD_OFFSET    = INTERPRETER_FRAME_LAST_SP_OFFSET - 1;
   private static       int INTERPRETER_FRAME_MDX_OFFSET;         // Non-core builds only
@@ -66,7 +66,7 @@ public class RISCV64Frame extends Frame {
   private static       int INTERPRETER_FRAME_MONITOR_BLOCK_BOTTOM_OFFSET;
 
   // Entry frames
-  private static       int ENTRY_FRAME_CALL_WRAPPER_OFFSET = -8;
+  private static       int ENTRY_FRAME_CALL_WRAPPER_OFFSET = -10;
 
   // Native frames
   private static final int NATIVE_FRAME_INITIAL_PARAM_OFFSET =  2;
