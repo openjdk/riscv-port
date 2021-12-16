@@ -332,10 +332,10 @@ static void restore_live_registers_except_r10(StubAssembler* sasm, bool restore_
     __ addi(sp, sp, 32 * wordSize);
   }
 
-  // if the number of popped regs is odd, the reserved slot for alignment will be removed
-  // integer registers except ra(x1) & sp(x2) & gp(x3) & tp(x4) & x10
-  __ pop_reg(RegSet::range(x5, x9), sp);   // pop zr, x5 ~ x9
-  __ pop_reg(RegSet::range(x11, x31), sp); // pop x10 ~ x31, x10 will be loaded to zr
+  // pop integer registers except ra(x1) & sp(x2) & gp(x3) & tp(x4) & x10
+  // there is one reserved slot for alignment on the stack in save_live_registers().
+  __ pop_reg(RegSet::range(x5, x9), sp);   // pop x5 ~ x9 with the reserved slot for alignment
+  __ pop_reg(RegSet::range(x11, x31), sp); // pop x11 ~ x31; x10 will be automatically skipped here
 }
 
 void Runtime1::initialize_pd() {
