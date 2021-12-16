@@ -33,6 +33,17 @@
 #include "utilities/sizes.hpp"
 
 class VM_Version : public Abstract_VM_Version {
+#ifdef COMPILER2
+private:
+  static void get_c2_processor_features();
+#endif // COMPILER2
+
+protected:
+  static uint32_t _initial_vector_length;
+  static void get_processor_features();
+  static void get_cpu_info();
+  static uint32_t get_current_vector_length();
+
 public:
   // Initialization
   static void initialize();
@@ -56,16 +67,7 @@ public:
 #undef DECLARE_CPU_FEATURE_FLAG
   };
 
-protected:
-  static uint32_t _initial_vector_length;
-  static void get_processor_features();
-  static void get_cpu_info();
-  static uint32_t get_current_vector_length();
-
-#ifdef COMPILER2
-private:
-  static void get_c2_processor_features();
-#endif // COMPILER2
+  static void initialize_cpu_information(void);
 };
 
 #endif // CPU_RISCV_VM_VERSION_RISCV_HPP
