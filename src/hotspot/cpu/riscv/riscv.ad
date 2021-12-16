@@ -2398,7 +2398,7 @@ encode %{
       // Check if it is still a light weight lock, this is true if we
       // see the stack address of the basicLock in the markWord of the
       // object.
-  
+
       __ cmpxchg(/*memory address*/oop, /*expected value*/box, /*new value*/disp_hdr, Assembler::int64, Assembler::relaxed,
                  Assembler::rl, /*result*/tmp);
       __ xorr(flag, box, tmp); // box == tmp if cas succeeds
