@@ -79,7 +79,7 @@ uint32_t VM_Version::get_current_vector_length() {
   return (uint32_t)read_csr(CSR_VLENB);
 }
 
-void VM_Version::get_cpu_info() {
+void VM_Version::get_os_cpu_info() {
 
   uint64_t auxv = getauxval(AT_HWCAP);
 
@@ -100,4 +100,19 @@ void VM_Version::get_cpu_info() {
       HWCAP_ISA_C |
       HWCAP_ISA_V |
       HWCAP_ISA_B);
+
+  if (FILE *f = fopen("/proc/cpuinfo", "r")) {
+    char buf[512], *p;
+    while (fgets(buf, sizeof (buf), f) != NULL) {
+      if ((p = strchr(buf, ':')) != NULL) {
+        if (strncmp(buf, "uarch", sizeof "uarch" - 1) == 0) {
+          char* uarch = os::strdup(p + 2);
+          uarch[strcspn(uarch, "\n")] = '\0';
+          _uarch = uarch;
+          break;
+        }
+      }
+    }
+    fclose(f);
+  }
 }
