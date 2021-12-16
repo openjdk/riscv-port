@@ -90,7 +90,7 @@ class RegisterSaver {
   // Offsets into the register save area
   // Used by deoptimization when it is managing result register
   // values on its own
-  // gregs:30, float_register:32; except: x1(ra) & x2(sp)
+  // gregs:28, float_register:32; except: x1(ra) & x2(sp) & gp(x3) & tp(x4)
   // |---v0---|<---SP
   // |---v1---|save vectors only in generate_handler_blob
   // |-- .. --|
@@ -99,9 +99,9 @@ class RegisterSaver {
   // |---f1---|
   // |   ..   |
   // |---f31--|
-  // |---zr---|
-  // |---x3---|
-  // |   x4   |
+  // |---reserved slot for stack alignment---|
+  // |---x5---|
+  // |   x6   |
   // |---.. --|
   // |---x31--|
   // |---fp---|
@@ -117,7 +117,7 @@ class RegisterSaver {
 #endif
     return f0_offset;
   }
-  int x0_offset_in_bytes(void) {
+  int reserved_slot_offset_in_bytes(void) {
     return f0_offset_in_bytes() +
            FloatRegisterImpl::max_slots_per_register *
            FloatRegisterImpl::number_of_registers *
@@ -125,8 +125,8 @@ class RegisterSaver {
   }
 
   int reg_offset_in_bytes(Register r) {
-    assert (r->encoding() > 2, "ra and sp not saved");
-    return x0_offset_in_bytes() + (r->encoding() - 2 /* x1, x2*/) * wordSize;
+    assert (r->encoding() > 4, "ra, sp, gp and tp not saved");
+    return reserved_slot_offset_in_bytes() + (r->encoding() - 4 /* x1, x2, x3, x4 */) * wordSize;
   }
 
   int freg_offset_in_bytes(FloatRegister f) {
@@ -134,8 +134,8 @@ class RegisterSaver {
   }
 
   int ra_offset_in_bytes(void) {
-    return x0_offset_in_bytes() +
-           (RegisterImpl::number_of_registers - 1) *
+    return reserved_slot_offset_in_bytes() +
+           (RegisterImpl::number_of_registers - 3) *
            RegisterImpl::max_slots_per_register *
            BytesPerInt;
   }
@@ -190,12 +190,14 @@ OopMap* RegisterSaver::save_live_registers(MacroAssembler* masm, int additional_
     oop_map->set_callee_saved(VMRegImpl::stack2reg(sp_offset_in_slots), r->as_VMReg());
   }
 
-  // ignore zr, ra and sp, being ignored also by push_CPU_state (pushing zr only for stack alignment)
-  sp_offset_in_slots += RegisterImpl::max_slots_per_register;
   step_in_slots = RegisterImpl::max_slots_per_register;
-  for (int i = 3; i < RegisterImpl::number_of_registers; i++, sp_offset_in_slots += step_in_slots) {
+  // skip the slot reserved for alignment, see MacroAssembler::push_reg;
+  // also skip x5 ~ x6 on the stack because they are caller-saved registers.
+  sp_offset_in_slots += RegisterImpl::max_slots_per_register * 3;
+  // besides, we ignore x0 ~ x4 because push_CPU_state won't push them on the stack.
+  for (int i = 7; i < RegisterImpl::number_of_registers; i++, sp_offset_in_slots += step_in_slots) {
     Register r = as_Register(i);
-    if (r != xthread && r != t0 && r != t1) {
+    if (r != xthread) {
       oop_map->set_callee_saved(VMRegImpl::stack2reg(sp_offset_in_slots + additional_frame_slots), r->as_VMReg());
     }
   }

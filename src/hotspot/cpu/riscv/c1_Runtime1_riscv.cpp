@@ -237,7 +237,7 @@ const int float_regs_as_doubles_size_in_slots = pd_nof_fpu_regs_frame_map * 2;
 //
 
 enum reg_save_layout {
-  reg_save_frame_size = 32 /* float */ + 32 /* integer */
+  reg_save_frame_size = 32 /* float */ + 30 /* integer excluding x3, x4 */
 };
 
 // Save off registers which might be killed by calls into the runtime.
@@ -262,7 +262,7 @@ static OopMap* generate_oop_map(StubAssembler* sasm, bool save_fpu_registers) {
   // in c1_FrameMap_riscv.cpp for detail.
   const static Register caller_save_cpu_regs[FrameMap::max_nof_caller_save_cpu_regs] = {x7, x10, x11, x12,
                                                                                         x13, x14, x15, x16, x17,
-                                                                                        x28,  x29, x30, x31};
+                                                                                        x28, x29, x30, x31};
   for (int i = 0; i < FrameMap::max_nof_caller_save_cpu_regs; i++) {
     Register r = caller_save_cpu_regs[i];
     int sp_offset = cpu_reg_save_offsets[r->encoding()];
@@ -286,8 +286,8 @@ static OopMap* save_live_registers(StubAssembler* sasm,
                                    bool save_fpu_registers = true) {
   __ block_comment("save_live_registers");
 
-  // if the number of pushed regs is odd, zr will be added
-  __ push_reg(RegSet::range(x3, x31), sp);    // integer registers except ra(x1) & sp(x2)
+  // if the number of pushed regs is odd, one slot will be reserved for alignment
+  __ push_reg(RegSet::range(x5, x31), sp);    // integer registers except ra(x1) & sp(x2) & gp(x3) & tp(x4)
 
   if (save_fpu_registers) {
     // float registers
@@ -296,7 +296,7 @@ static OopMap* save_live_registers(StubAssembler* sasm,
       __ fsd(as_FloatRegister(i), Address(sp, i * wordSize));
     }
   } else {
-    // we define reg_save_layout = 64 as the fixed frame size,
+    // we define reg_save_layout = 62 as the fixed frame size,
     // we should also sub 32 * wordSize to sp when save_fpu_registers == false
     __ addi(sp, sp, -32 * wordSize);
   }
@@ -316,8 +316,8 @@ static void restore_live_registers(StubAssembler* sasm, bool restore_fpu_registe
     __ addi(sp, sp, 32 * wordSize);
   }
 
-  // if the number of popped regs is odd, zr will be added
-  __ pop_reg(RegSet::range(x3, x31), sp);   // integer registers except ra(x1) & sp(x2)
+  // if the number of popped regs is odd, the reserved slot for alignment will be removed
+  __ pop_reg(RegSet::range(x5, x31), sp);   // integer registers except ra(x1) & sp(x2) & gp(x3) & tp(x4)
 }
 
 static void restore_live_registers_except_r10(StubAssembler* sasm, bool restore_fpu_registers = true) {
@@ -332,10 +332,10 @@ static void restore_live_registers_except_r10(StubAssembler* sasm, bool restore_
     __ addi(sp, sp, 32 * wordSize);
   }
 
-  // if the number of popped regs is odd, zr will be added
-  // integer registers except ra(x1) & sp(x2) & x10
-  __ pop_reg(RegSet::range(x3, x9), sp);   // pop zr, x3 ~ x9
-  __ pop_reg(RegSet::range(x11, x31), sp); // pop x10 ~ x31, x10 will be loaded to zr
+  // pop integer registers except ra(x1) & sp(x2) & gp(x3) & tp(x4) & x10
+  // there is one reserved slot for alignment on the stack in save_live_registers().
+  __ pop_reg(RegSet::range(x5, x9), sp);   // pop x5 ~ x9 with the reserved slot for alignment
+  __ pop_reg(RegSet::range(x11, x31), sp); // pop x11 ~ x31; x10 will be automatically skipped here
 }
 
 void Runtime1::initialize_pd() {
@@ -349,11 +349,10 @@ void Runtime1::initialize_pd() {
     sp_offset += step;
   }
 
-  // we save x0, x3 ~ x31, except x1, x2
-  cpu_reg_save_offsets[0] = sp_offset;
+  // a slot reserved for stack 16-byte alignment, see MacroAssembler::push_reg
   sp_offset += step;
-  // 3: loop starts from x3
-  for (i = 3; i < FrameMap::nof_cpu_regs; i++) {
+  // we save x5 ~ x31, except x0 ~ x4: loop starts from x5
+  for (i = 5; i < FrameMap::nof_cpu_regs; i++) {
     cpu_reg_save_offsets[i] = sp_offset;
     sp_offset += step;
   }
