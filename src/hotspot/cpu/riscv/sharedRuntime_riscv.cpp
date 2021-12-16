@@ -2197,7 +2197,7 @@ void SharedRuntime::generate_deopt_blob() {
 // Number of stack slots between incoming argument block and the start of
 // a new frame. The PROLOG must add this many slots to the stack. The
 // EPILOG must remove this many slots.
-// Riscv64 needs two words for RA (return address) and FP (frame pointer).
+// RISCV64 needs two words for RA (return address) and FP (frame pointer).
 uint SharedRuntime::in_preserve_stack_slots() {
   return 2 * VMRegImpl::slots_per_word;
 }

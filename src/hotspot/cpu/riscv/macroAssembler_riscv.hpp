@@ -780,8 +780,7 @@ private:
 #endif
   void repne_scan(Register addr, Register value, Register count, Register temp);
 
-  // Return true if an addres is within the 48-bit Riscv64 address
-  // space.
+  // Return true if an address is within the 48-bit RISCV64 address space.
   bool is_valid_riscv64_address(address addr) {
     return ((uintptr_t)addr >> 48) == 0;
   }

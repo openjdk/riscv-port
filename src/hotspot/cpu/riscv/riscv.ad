@@ -3457,7 +3457,7 @@ operand indOffLN(iRegN reg, immLOffset off)
   %}
 %}
 
-// Riscv64 opto stubs need to write to the pc slot in the thread anchor
+// RISCV64 opto stubs need to write to the pc slot in the thread anchor
 operand thread_anchor_pc(javaThread_RegP reg, immL_pc_off off)
 %{
   constraint(ALLOC_IN_RC(ptr_reg));
