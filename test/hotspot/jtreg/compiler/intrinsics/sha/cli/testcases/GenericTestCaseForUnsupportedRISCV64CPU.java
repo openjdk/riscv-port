@@ -32,20 +32,20 @@ import jdk.test.lib.cli.predicate.AndPredicate;
 import jdk.test.lib.cli.predicate.NotPredicate;
 
 /**
- * Generic test case for SHA-related options targeted to Riscv64 CPUs
+ * Generic test case for SHA-related options targeted to RISCV64 CPUs
  * which don't support instruction required by the tested option.
  */
-public class GenericTestCaseForUnsupportedRiscv64CPU extends
+public class GenericTestCaseForUnsupportedRISCV64CPU extends
         DigestOptionsBase.TestCase {
 
     final private boolean checkUseSHA;
 
-    public GenericTestCaseForUnsupportedRiscv64CPU(String optionName) {
+    public GenericTestCaseForUnsupportedRISCV64CPU(String optionName) {
         this(optionName, true);
     }
 
-    public GenericTestCaseForUnsupportedRiscv64CPU(String optionName, boolean checkUseSHA) {
-        super(optionName, new AndPredicate(Platform::isRiscv64,
+    public GenericTestCaseForUnsupportedRISCV64CPU(String optionName, boolean checkUseSHA) {
+        super(optionName, new AndPredicate(Platform::isRISCV64,
                 new NotPredicate(DigestOptionsBase.getPredicateForOption(
                         optionName))));
 
@@ -97,14 +97,14 @@ public class GenericTestCaseForUnsupportedRiscv64CPU extends
             // using CLI options.
             CommandLineOptionTest.verifyOptionValueForSameVM(optionName, "false",
                     String.format("Option '%s' should be off on unsupported "
-                            + "Riscv64CPU even if set to true directly", optionName),
+                            + "RISCV64CPU even if set to true directly", optionName),
                     DigestOptionsBase.UNLOCK_DIAGNOSTIC_VM_OPTIONS,
                     CommandLineOptionTest.prepareBooleanFlag(optionName, true));
 
             // Verify that option is disabled when +UseSHA was passed to JVM.
             CommandLineOptionTest.verifyOptionValueForSameVM(optionName, "false",
                     String.format("Option '%s' should be off on unsupported "
-                            + "Riscv64CPU even if %s flag set to JVM",
+                            + "RISCV64CPU even if %s flag set to JVM",
                             optionName, CommandLineOptionTest.prepareBooleanFlag(
                                 DigestOptionsBase.USE_SHA_OPTION, true)),
                     DigestOptionsBase.UNLOCK_DIAGNOSTIC_VM_OPTIONS,
