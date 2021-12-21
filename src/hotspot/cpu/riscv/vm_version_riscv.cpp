@@ -161,6 +161,10 @@ void VM_Version::get_c2_processor_features() {
   if (FLAG_IS_DEFAULT(AllocatePrefetchStyle)) {
     FLAG_SET_DEFAULT(AllocatePrefetchStyle, 0);
   }
+
+  if (FLAG_IS_DEFAULT(UseMulAddIntrinsic)) {
+    FLAG_SET_DEFAULT(UseMulAddIntrinsic, true);
+  }
 }
 #endif // COMPILER2
 
