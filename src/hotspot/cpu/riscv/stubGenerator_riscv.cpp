@@ -2770,6 +2770,31 @@ class StubGenerator: public StubCodeGenerator {
     StubRoutines::riscv64::_string_indexof_linear_ul = generate_string_indexof_linear(true, false);
   }
 
+#ifdef COMPILER2
+  address generate_mulAdd()
+  {
+    __ align(CodeEntryAlignment);
+    StubCodeMark mark(this, "StubRoutines", "mulAdd");
+
+    address entry = __ pc();
+
+    const Register out     = x10;
+    const Register in      = x11;
+    const Register offset  = x12;
+    const Register len     = x13;
+    const Register k       = x14;
+    const Register tmp     = x28;
+
+    BLOCK_COMMENT("Entry:");
+    __ enter();
+    __ mul_add(out, in, offset, len, k, tmp);
+    __ leave();
+    __ ret();
+
+    return entry;
+  }
+#endif
+
   // Continuation point for throwing of implicit exceptions that are
   // not handled in the current activation. Fabricates an exception
   // oop and initiates normal exception dispatching in this
@@ -2939,6 +2964,12 @@ class StubGenerator: public StubCodeGenerator {
                                                 throw_NullPointerException_at_call));
     // arraycopy stubs used by compilers
     generate_arraycopy_stubs();
+
+#ifdef COMPILER2
+    if (UseMulAddIntrinsic) {
+      StubRoutines::_mulAdd = generate_mulAdd();
+    }
+#endif
 
     generate_compare_long_strings();
 

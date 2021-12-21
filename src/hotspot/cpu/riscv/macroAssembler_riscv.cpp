@@ -3025,6 +3025,72 @@ void MacroAssembler::compute_match_mask(Register src, Register pattern, Register
   andr(match_mask, match_mask, src);
 }
 
+#ifdef COMPILER2
+// Code for BigInteger::mulAdd instrinsic
+// out     = x10
+// in      = x11
+// offset  = x12  (already out.length-offset)
+// len     = x13
+// k       = x14
+// tmp     = x28
+//
+// pseudo code from java implementation:
+// carry = 0;
+// offset = out.length-offset - 1;
+// for (int j = len - 1; j >= 0; j--) {
+//     product = (in[j] & LONG_MASK) * kLong + (out[offset] & LONG_MASK) + carry;
+//     out[offset--] = (int)product;
+//     carry = product >>> 32;
+// }
+// return (int)carry;
+void MacroAssembler::mul_add(Register out, Register in, Register offset,
+                             Register len, Register k, Register tmp) {
+  Label L_tail_loop, L_unroll, L_end;
+  mv(tmp, out);
+  mv(out, zr);
+  beqz(len, L_end);
+  zero_ext(k, k, 32);
+  slli(t0, offset, LogBytesPerInt);
+  add(offset, tmp, t0);
+  slli(t0, len, LogBytesPerInt);
+  add(in, in, t0);
+
+  const int unroll = 8;
+  li(tmp, unroll);
+  blt(len, tmp, L_tail_loop);
+  bind(L_unroll);
+  for (int i = 0; i < unroll; i++) {
+    sub(in, in, BytesPerInt);
+    lwu(t0, Address(in, 0));
+    mul(t1, t0, k);
+    add(t0, t1, out);
+    sub(offset, offset, BytesPerInt);
+    lwu(t1, Address(offset, 0));
+    add(t0, t0, t1);
+    sw(t0, Address(offset, 0));
+    srli(out, t0, 32);
+  }
+  sub(len, len, tmp);
+  bge(len, tmp, L_unroll);
+
+  bind(L_tail_loop);
+  beqz(len, L_end);
+  sub(in, in, BytesPerInt);
+  lwu(t0, Address(in, 0));
+  mul(t1, t0, k);
+  add(t0, t1, out);
+  sub(offset, offset, BytesPerInt);
+  lwu(t1, Address(offset, 0));
+  add(t0, t0, t1);
+  sw(t0, Address(offset, 0));
+  srli(out, t0, 32);
+  sub(len, len, 1);
+  j(L_tail_loop);
+
+  bind(L_end);
+}
+#endif
+
 // Count bits of trailing zero chars from lsb to msb until first non-zero element.
 // For LL case, one byte for one element, so shift 8 bits once, and for other case,
 // shift 16 bits once.

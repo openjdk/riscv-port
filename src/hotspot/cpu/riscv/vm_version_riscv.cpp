@@ -174,6 +174,10 @@ void VM_Version::initialize_c2() {
   if (FLAG_IS_DEFAULT(AllocatePrefetchStyle)) {
     FLAG_SET_DEFAULT(AllocatePrefetchStyle, 0);
   }
+
+  if (FLAG_IS_DEFAULT(UseMulAddIntrinsic)) {
+    FLAG_SET_DEFAULT(UseMulAddIntrinsic, true);
+  }
 }
 #endif // COMPILER2
 

@@ -656,6 +656,11 @@ class MacroAssembler: public Assembler {
   void compute_match_mask(Register src, Register pattern, Register match_mask,
                           Register mask1, Register mask2);
 
+#ifdef COMPILER2
+  void mul_add(Register out, Register in, Register offset,
+               Register len, Register k, Register tmp);
+#endif
+
   void inflate_lo32(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2 = t1);
   void inflate_hi32(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2 = t1);
 
