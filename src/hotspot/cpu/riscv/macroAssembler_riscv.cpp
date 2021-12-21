@@ -3059,7 +3059,7 @@ void MacroAssembler::mul_add(Register out, Register in, Register offset,
   li(tmp, unroll);
   blt(len, tmp, L_tail_loop);
   bind(L_unroll);
-  for (unsigned i = 0; i < unroll; i++) {
+  for (int i = 0; i < unroll; i++) {
     sub(in, in, BytesPerInt);
     lwu(t0, Address(in, 0));
     mul(t1, t0, k);
