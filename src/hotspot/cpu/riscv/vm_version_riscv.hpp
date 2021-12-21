@@ -35,13 +35,13 @@
 class VM_Version : public Abstract_VM_Version {
 #ifdef COMPILER2
 private:
-  static void get_c2_processor_features();
+  static void initialize_c2();
 #endif // COMPILER2
 
 protected:
+  static const char* _uarch;
   static uint32_t _initial_vector_length;
-  static void get_processor_features();
-  static void get_cpu_info();
+  static void get_os_cpu_info();
   static uint32_t get_current_vector_length();
 
 public:
@@ -53,14 +53,14 @@ public:
 
   enum Feature_Flag {
 #define CPU_FEATURE_FLAGS(decl)               \
-    decl(I,            "I",            8)     \
-    decl(M,            "M",           12)     \
-    decl(A,            "A",            0)     \
-    decl(F,            "F",            5)     \
-    decl(D,            "D",            3)     \
-    decl(C,            "C",            2)     \
-    decl(V,            "V",           21)     \
-    decl(B,            "B",            1)
+    decl(I,            "i",            8)     \
+    decl(M,            "m",           12)     \
+    decl(A,            "a",            0)     \
+    decl(F,            "f",            5)     \
+    decl(D,            "d",            3)     \
+    decl(C,            "c",            2)     \
+    decl(V,            "v",           21)     \
+    decl(B,            "b",            1)
 
 #define DECLARE_CPU_FEATURE_FLAG(id, name, bit) CPU_##id = (1 << bit),
     CPU_FEATURE_FLAGS(DECLARE_CPU_FEATURE_FLAG)

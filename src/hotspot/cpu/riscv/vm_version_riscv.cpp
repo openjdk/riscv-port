@@ -32,9 +32,12 @@
 
 #include OS_HEADER_INLINE(os)
 
+const char* VM_Version::_uarch = "";
 uint32_t VM_Version::_initial_vector_length = 0;
 
-void VM_Version::get_processor_features() {
+void VM_Version::initialize() {
+  get_os_cpu_info();
+
   if (FLAG_IS_DEFAULT(UseFMA)) {
     FLAG_SET_DEFAULT(UseFMA, true);
   }
@@ -117,13 +120,23 @@ void VM_Version::get_processor_features() {
     FLAG_SET_DEFAULT(AvoidUnalignedAccesses, true);
   }
 
+  char buf[512];
+  buf[0] = '\0';
+  if (_uarch != NULL && strcmp(_uarch, "") != 0) snprintf(buf, sizeof(buf), "%s,", _uarch);
+  strcat(buf, "rv64");
+#define ADD_FEATURE_IF_SUPPORTED(id, name, bit) if (_features & CPU_##id) strcat(buf, name);
+  CPU_FEATURE_FLAGS(ADD_FEATURE_IF_SUPPORTED)
+#undef ADD_FEATURE_IF_SUPPORTED
+
+  _features_string = os::strdup(buf);
+
 #ifdef COMPILER2
-  get_c2_processor_features();
+  initialize_c2();
 #endif // COMPILER2
 }
 
 #ifdef COMPILER2
-void VM_Version::get_c2_processor_features() {
+void VM_Version::initialize_c2() {
   // lack of cmove in riscv64
   if (UseCMoveUnconditionally) {
     FLAG_SET_DEFAULT(UseCMoveUnconditionally, false);
@@ -163,11 +176,6 @@ void VM_Version::get_c2_processor_features() {
   }
 }
 #endif // COMPILER2
-
-void VM_Version::initialize() {
-  get_cpu_info();
-  get_processor_features();
-}
 
 void VM_Version::initialize_cpu_information(void) {
   // do nothing if cpu info has been initialized
