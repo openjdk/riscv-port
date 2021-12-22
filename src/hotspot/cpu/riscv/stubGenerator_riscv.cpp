@@ -990,7 +990,7 @@ class StubGenerator: public StubCodeGenerator {
 
   // Scan over array at a for count oops, verifying each one.
   // Preserves a and count, clobbers t0 and t1.
-  void verify_oop_array (size_t size, Register a, Register count, Register temp) {
+  void verify_oop_array(size_t size, Register a, Register count, Register temp) {
     Label loop, end;
     __ mv(t1, zr);
     __ slli(t0, count, log2i_exact(size));

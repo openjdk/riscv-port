@@ -2274,12 +2274,12 @@ encode %{
   %}
 
   // using the cr register as the bool result: 0 for success; others failed.
-  enc_class riscv64_enc_fast_lock(iRegP object, iRegP box, iRegP tmp, iRegP tmp2) %{
+  enc_class riscv64_enc_fast_lock(iRegP object, iRegP box, iRegP tmp1, iRegP tmp2) %{
     C2_MacroAssembler _masm(&cbuf);
     Register flag = t1;
     Register oop = as_Register($object$$reg);
     Register box = as_Register($box$$reg);
-    Register disp_hdr = as_Register($tmp$$reg);
+    Register disp_hdr = as_Register($tmp1$$reg);
     Register tmp = as_Register($tmp2$$reg);
     Label cont;
     Label object_has_monitor;
@@ -2368,12 +2368,12 @@ encode %{
   %}
 
   // using cr flag to indicate the fast_unlock result: 0 for success; others failed.
-  enc_class riscv64_enc_fast_unlock(iRegP object, iRegP box, iRegP tmp, iRegP tmp2) %{
+  enc_class riscv64_enc_fast_unlock(iRegP object, iRegP box, iRegP tmp1, iRegP tmp2) %{
     C2_MacroAssembler _masm(&cbuf);
     Register flag = t1;
     Register oop = as_Register($object$$reg);
     Register box = as_Register($box$$reg);
-    Register disp_hdr = as_Register($tmp$$reg);
+    Register disp_hdr = as_Register($tmp1$$reg);
     Register tmp = as_Register($tmp2$$reg);
     Label cont;
     Label object_has_monitor;
@@ -9880,31 +9880,31 @@ instruct CallLeafNoFPDirect(method meth, rFlagsReg cr)
 // gen_subtype_check()).  Return zero for a hit.  The encoding
 // ALSO sets flags.
 
-instruct partialSubtypeCheck(iRegP_R15 result, iRegP_R14 sub, iRegP_R10 super, iRegP_R12 temp, rFlagsReg cr)
+instruct partialSubtypeCheck(iRegP_R15 result, iRegP_R14 sub, iRegP_R10 super, iRegP_R12 tmp, rFlagsReg cr)
 %{
   match(Set result (PartialSubtypeCheck sub super));
-  effect(KILL temp, KILL cr);
+  effect(KILL tmp, KILL cr);
 
   ins_cost(2 * STORE_COST + 3 * LOAD_COST + 4 * ALU_COST + BRANCH_COST * 4);
   format %{ "partialSubtypeCheck $result, $sub, $super\t#@partialSubtypeCheck" %}
 
-  ins_encode(riscv64_enc_partial_subtype_check(sub, super, temp, result));
+  ins_encode(riscv64_enc_partial_subtype_check(sub, super, tmp, result));
 
   opcode(0x1); // Force zero of result reg on hit
 
   ins_pipe(pipe_class_memory);
 %}
 
-instruct partialSubtypeCheckVsZero(iRegP_R15 result, iRegP_R14 sub, iRegP_R10 super, iRegP_R12 temp,
+instruct partialSubtypeCheckVsZero(iRegP_R15 result, iRegP_R14 sub, iRegP_R10 super, iRegP_R12 tmp,
                                    immP0 zero, rFlagsReg cr)
 %{
   match(Set cr (CmpP (PartialSubtypeCheck sub super) zero));
-  effect(KILL temp, KILL result);
+  effect(KILL tmp, KILL result);
 
   ins_cost(2 * STORE_COST + 3 * LOAD_COST + 4 * ALU_COST + BRANCH_COST * 4);
   format %{ "partialSubtypeCheck $result, $sub, $super == 0\t#@partialSubtypeCheckVsZero" %}
 
-  ins_encode(riscv64_enc_partial_subtype_check(sub, super, temp, result));
+  ins_encode(riscv64_enc_partial_subtype_check(sub, super, tmp, result));
 
   opcode(0x0); // Don't zero result reg on hit
 
@@ -10217,34 +10217,34 @@ instruct string_equalsU(iRegP_R11 str1, iRegP_R13 str2, iRegI_R14 cnt,
 
 instruct array_equalsB(iRegP_R11 ary1, iRegP_R12 ary2, iRegI_R10 result,
                        iRegP_R13 tmp1, iRegP_R14 tmp2, iRegP_R15 tmp3,
-                       iRegP_R16 tmp4, iRegP_R28 tmp, rFlagsReg cr)
+                       iRegP_R16 tmp4, iRegP_R28 tmp5, rFlagsReg cr)
 %{
   predicate(!UseRVV && ((AryEqNode*)n)->encoding() == StrIntrinsicNode::LL);
   match(Set result (AryEq ary1 ary2));
-  effect(KILL tmp, USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL cr);
+  effect(USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL tmp5, KILL cr);
 
-  format %{ "Array Equals $ary1, ary2 -> $result\t#@array_equalsB // KILL $tmp" %}
+  format %{ "Array Equals $ary1, ary2 -> $result\t#@array_equalsB // KILL $tmp5" %}
   ins_encode %{
     __ arrays_equals($ary1$$Register, $ary2$$Register,
                      $tmp1$$Register, $tmp2$$Register, $tmp3$$Register, $tmp4$$Register,
-                     $result$$Register, $tmp$$Register, 1);
+                     $result$$Register, $tmp5$$Register, 1);
   %}
   ins_pipe(pipe_class_memory);
 %}
 
 instruct array_equalsC(iRegP_R11 ary1, iRegP_R12 ary2, iRegI_R10 result,
                        iRegP_R13 tmp1, iRegP_R14 tmp2, iRegP_R15 tmp3,
-                       iRegP_R16 tmp4, iRegP_R28 tmp, rFlagsReg cr)
+                       iRegP_R16 tmp4, iRegP_R28 tmp5, rFlagsReg cr)
 %{
   predicate(!UseRVV && ((AryEqNode*)n)->encoding() == StrIntrinsicNode::UU);
   match(Set result (AryEq ary1 ary2));
-  effect(KILL tmp, USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL cr);
+  effect(USE_KILL ary1, USE_KILL ary2, TEMP tmp1, TEMP tmp2, TEMP tmp3, TEMP tmp4, KILL tmp5, KILL cr);
 
-  format %{ "Array Equals $ary1, ary2 -> $result\t#@array_equalsC // KILL $tmp" %}
+  format %{ "Array Equals $ary1, ary2 -> $result\t#@array_equalsC // KILL $tmp5" %}
   ins_encode %{
     __ arrays_equals($ary1$$Register, $ary2$$Register,
                      $tmp1$$Register, $tmp2$$Register, $tmp3$$Register, $tmp4$$Register,
-                     $result$$Register, $tmp$$Register, 2);
+                     $result$$Register, $tmp5$$Register, 2);
   %}
   ins_pipe(pipe_class_memory);
 %}
@@ -10287,29 +10287,29 @@ instruct tlsLoadP(javaThread_RegP dst)
 
 // inlined locking and unlocking
 // using t1 as the 'flag' register to bridge the BoolNode producers and consumers
-instruct cmpFastLock(rFlagsReg cr, iRegP object, iRegP box, iRegPNoSp tmp, iRegPNoSp tmp2)
+instruct cmpFastLock(rFlagsReg cr, iRegP object, iRegP box, iRegPNoSp tmp1, iRegPNoSp tmp2)
 %{
   match(Set cr (FastLock object box));
-  effect(TEMP tmp, TEMP tmp2);
+  effect(TEMP tmp1, TEMP tmp2);
 
   ins_cost(LOAD_COST * 2 + STORE_COST * 3 + ALU_COST * 6 + BRANCH_COST * 3);
-  format %{ "fastlock $object,$box\t! kills $tmp,$tmp2, #@cmpFastLock" %}
+  format %{ "fastlock $object,$box\t! kills $tmp1,$tmp2, #@cmpFastLock" %}
 
-  ins_encode(riscv64_enc_fast_lock(object, box, tmp, tmp2));
+  ins_encode(riscv64_enc_fast_lock(object, box, tmp1, tmp2));
 
   ins_pipe(pipe_serial);
 %}
 
 // using t1 as the 'flag' register to bridge the BoolNode producers and consumers
-instruct cmpFastUnlock(rFlagsReg cr, iRegP object, iRegP box, iRegPNoSp tmp, iRegPNoSp tmp2)
+instruct cmpFastUnlock(rFlagsReg cr, iRegP object, iRegP box, iRegPNoSp tmp1, iRegPNoSp tmp2)
 %{
   match(Set cr (FastUnlock object box));
-  effect(TEMP tmp, TEMP tmp2);
+  effect(TEMP tmp1, TEMP tmp2);
 
   ins_cost(LOAD_COST * 2 + STORE_COST + ALU_COST * 2 + BRANCH_COST * 4);
-  format %{ "fastunlock $object,$box\t! kills $tmp, $tmp2, #@cmpFastUnlock" %}
+  format %{ "fastunlock $object,$box\t! kills $tmp1, $tmp2, #@cmpFastUnlock" %}
 
-  ins_encode(riscv64_enc_fast_unlock(object, box, tmp, tmp2));
+  ins_encode(riscv64_enc_fast_unlock(object, box, tmp1, tmp2));
 
   ins_pipe(pipe_serial);
 %}
