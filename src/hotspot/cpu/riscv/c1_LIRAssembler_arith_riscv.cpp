@@ -64,8 +64,7 @@ void LIR_Assembler::arithmetic_idiv(LIR_Code code, LIR_Opr left, LIR_Opr right, 
         if (is_imm_in_range(c - 1, 12, 0)) {
           __ andi(t1, t1, c - 1);
         } else {
-          __ slli(t1, t1, registerSize - shift);
-          __ srli(t1, t1, registerSize - shift);
+          __ zero_extend(t1, t1, shift);
         }
         __ subw(dreg, t1, t0);
       }
@@ -79,8 +78,7 @@ void LIR_Assembler::arithmetic_idiv(LIR_Code code, LIR_Opr left, LIR_Opr right, 
         if (is_imm_in_range(c - 1, 12, 0)) {
           __ andi(t0, t0, c - 1);
         } else {
-          __ slli(t0, t0, registerSize - shift);
-          __ srli(t0, t0, registerSize - shift);
+          __ zero_extend(t0, t0, shift);
         }
         __ addw(dreg, t0, lreg);
         __ sraiw(dreg, dreg, shift);
@@ -203,8 +201,7 @@ void LIR_Assembler::arith_op_double_cpu(LIR_Code code, LIR_Opr left, LIR_Opr rig
           if (is_imm_in_range(c - 1, 12, 0)) {
             __ andi(t0, t0, c - 1);
           } else {
-            __ slli(t0, t0, registerSize - shift);
-            __ srli(t0, t0, registerSize - shift);
+            __ zero_extend(t0, t0, shift);
           }
           __ add(dreg, t0, lreg_lo);
           __ srai(dreg, dreg, shift);
@@ -223,8 +220,7 @@ void LIR_Assembler::arith_op_double_cpu(LIR_Code code, LIR_Opr left, LIR_Opr rig
           if (is_imm_in_range(c - 1, 12, 0)) {
             __ andi(t1, t1, c - 1);
           } else {
-            __ slli(t1, t1, registerSize - shift);
-            __ srli(t1, t1, registerSize - shift);
+            __ zero_extend(t1, t1, shift);
           }
           __ sub(dreg, t1, t0);
         }

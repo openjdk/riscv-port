@@ -30,7 +30,7 @@
 #include "asm/register.hpp"
 #include "assembler_riscv.inline.hpp"
 
-#define registerSize 64
+#define XLEN 64
 
 // definitions of various symbolic names for machine registers
 
@@ -1257,6 +1257,7 @@ enum operand_size { int8, int16, int32, uint32, int64 };
   }
 
   #include "assembler_riscv_v.hpp"
+  #include "assembler_riscv_b.hpp"
 
   virtual ~Assembler() {}
 

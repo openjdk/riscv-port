@@ -402,7 +402,7 @@ class MacroAssembler: public Assembler {
   void notr(Register Rd, Register Rs);
   void neg(Register Rd, Register Rs);
   void negw(Register Rd, Register Rs);
-  void sext_w(Register Rd, Register Rs);        // mv Rd[31:0], Rs[31:0]
+  void sext_w(Register Rd, Register Rs);
   void seqz(Register Rd, Register Rs);          // set if = zero
   void snez(Register Rd, Register Rs);          // set if != zero
   void sltz(Register Rd, Register Rs);          // set if < zero
@@ -618,17 +618,6 @@ class MacroAssembler: public Assembler {
 
   #define call_Unimplemented() _call_Unimplemented((address)__PRETTY_FUNCTION__)
 
-  void clear_upper_bits(Register r, unsigned upper_bits) {
-    assert(upper_bits < 64, "bit count to clear must be less than 64");
-
-    int sig_bits = 64 - upper_bits; // significance bits
-    if (sig_bits < 12) {
-      andi(r, r, (1UL << sig_bits) - 1);
-    } else {
-      zero_ext(r, r, upper_bits);
-    }
-  }
-
   // Frame creation and destruction shared between JITs.
   void build_frame(int framesize);
   void remove_frame(int framesize);
@@ -725,13 +714,13 @@ class MacroAssembler: public Assembler {
         sltu(Rt, zr, Rt);
         break;
       case T_CHAR   :
-        zero_ext(Rt, Rt, registerSize - 16);
+        zero_extend(Rt, Rt, 16);
         break;
       case T_BYTE   :
-        sign_ext(Rt, Rt, registerSize - 8);
+        sign_extend(Rt, Rt, 8);
         break;
       case T_SHORT  :
-        sign_ext(Rt, Rt, registerSize - 16);
+        sign_extend(Rt, Rt, 16);
         break;
       case T_INT    :
         addw(Rt, Rt, zr);
@@ -749,8 +738,8 @@ class MacroAssembler: public Assembler {
   void double_compare(Register result, FloatRegister Rs1, FloatRegister Rs2, int unordered_result);
 
   // Zero/Sign-extend
-  void zero_ext(Register dst, Register src, int clear_bits);
-  void sign_ext(Register dst, Register src, int clear_bits);
+  void zero_extend(Register dst, Register src, int bits);
+  void sign_extend(Register dst, Register src, int bits);
 
   // compare src1 and src2 and get -1/0/1 in dst.
   // if [src1 > src2], dst = 1;

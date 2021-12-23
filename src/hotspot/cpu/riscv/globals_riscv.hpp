@@ -90,6 +90,7 @@ define_pd_global(intx, InlineSmallCode,          1000);
           "Extend fence.i to fence.i + fence.")                                  \
   product(bool, AvoidUnalignedAccesses, true,                                    \
           "Avoid generating unaligned memory accesses")                          \
-  product(bool, UseRVV, false, EXPERIMENTAL, "Use RVV instructions")
+  product(bool, UseRVV, false, EXPERIMENTAL, "Use RVV instructions")             \
+  product(bool, UseRVB, false, EXPERIMENTAL, "Use RVB instructions")
 
 #endif // CPU_RISCV_GLOBALS_RISCV_HPP

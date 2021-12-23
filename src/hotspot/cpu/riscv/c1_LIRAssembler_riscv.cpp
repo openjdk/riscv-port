@@ -951,13 +951,13 @@ void LIR_Assembler::emit_opConvert(LIR_OpConvert* op) {
     case Bytecodes::_d2f:
       __ fcvt_s_d(dest->as_float_reg(), src->as_double_reg()); break;
     case Bytecodes::_i2c:
-      __ zero_ext(dest->as_register(), src->as_register(), registerSize - 16); break; // 16: char size
+      __ zero_extend(dest->as_register(), src->as_register(), 16); break;
     case Bytecodes::_i2l:
       __ addw(dest->as_register_lo(), src->as_register(), zr); break;
     case Bytecodes::_i2s:
-      __ sign_ext(dest->as_register(), src->as_register(), registerSize - 16); break; // 16: short size
+      __ sign_extend(dest->as_register(), src->as_register(), 16); break;
     case Bytecodes::_i2b:
-      __ sign_ext(dest->as_register(), src->as_register(), registerSize - 8); break;  // 8: byte size
+      __ sign_extend(dest->as_register(), src->as_register(), 8); break;
     case Bytecodes::_l2i:
       _masm->block_comment("FIXME: This coulde be no-op");
       __ addw(dest->as_register(), src->as_register_lo(), zr); break;
