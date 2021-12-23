@@ -231,12 +231,18 @@ void BarrierSetAssembler::incr_allocated_bytes(MacroAssembler* masm,
   __ sd(tmp1, Address(xthread, in_bytes(JavaThread::allocated_bytes_offset())));
 }
 
+extern int nmethod_barrier_guard_offset();
+
 void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
   BarrierSetNMethod* bs_nm = BarrierSet::barrier_set()->barrier_set_nmethod();
 
   if (bs_nm == NULL) {
     return;
   }
+
+  // C-Ext: RISCV's amoswap instructions need an alignment for the memory address it swaps
+  //   when we reach here we may get a 2-byte alignment so need to align it
+  __ align(4, nmethod_barrier_guard_offset());
 
   Label skip, guard;
   Address thread_disarmed_addr(xthread, in_bytes(bs_nm->thread_disarmed_offset()));
@@ -256,6 +262,7 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
 
   __ bind(guard);
 
+  assert(__ offset() % 4 == 0, "RISCV CAS needs an alignment for memory");
   __ emit_int32(0); // nmethod guard value. Skipped over in common case.
 
   __ bind(skip);

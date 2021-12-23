@@ -84,6 +84,11 @@ void Assembler::zext_w(Register Rd, Register Rs) {
 }
 
 void Assembler::li(Register Rd, int64_t imm) {
+  CHECK_CEXT_AND_COMPRESSIBLE(is_imm_in_range(imm, 6, 0) && Rd != x0) {
+    c_li(Rd, imm);
+    return;
+  }
+
   // int64_t is in range 0x8000 0000 0000 0000 ~ 0x7fff ffff ffff ffff
   int shift = 12;
   int64_t upper = imm, lower = imm;

@@ -88,8 +88,9 @@ static void pass_arg3(MacroAssembler* masm, Register arg) {
   }
 }
 
-void MacroAssembler::align(int modulus) {
-  while (offset() % modulus != 0) { nop(); }
+void MacroAssembler::align(int modulus, int extra_offset) {
+  CompressibleRegion cr(this);
+  while ((offset() + extra_offset) % modulus != 0) { nop(); }
 }
 
 void MacroAssembler::call_VM_helper(Register oop_result, address entry_point, int number_of_arguments, bool check_exceptions) {
@@ -801,6 +802,7 @@ void MacroAssembler::la(Register Rd, Label &label) {
 
   INSN(beq, feq, bnez);
   INSN(bne, feq, beqz);
+
 #undef INSN
 
 
@@ -2920,7 +2922,8 @@ address MacroAssembler::emit_trampoline_stub(int insts_call_instruction_offset,
 
   // make sure 4 byte aligned here, so that the destination address would be
   // 8 byte aligned after 3 intructions
-  while (offset() % wordSize == 0) { nop(); }
+  // C-Ext: when we reach here we may get a 2-byte alignment so need to align it
+  align(wordSize, NativeCallTrampolineStub::data_offset);
 
   relocate(trampoline_stub_Relocation::spec(code()->insts()->start() +
                                             insts_call_instruction_offset));
@@ -2935,6 +2938,7 @@ address MacroAssembler::emit_trampoline_stub(int insts_call_instruction_offset,
   bind(target);
   assert(offset() - stub_start_offset == NativeCallTrampolineStub::data_offset,
          "should be");
+  assert(offset() % wordSize == 0, "address loaded by ld must be 8-byte aligned under riscv64");
   emit_int64((intptr_t)dest);
 
   const address stub_start_addr = addr_at(stub_start_offset);

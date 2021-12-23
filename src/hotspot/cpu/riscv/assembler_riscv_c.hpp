@@ -545,6 +545,329 @@ public:
 
 #undef INSN
 
+// --------------  C-Ext Transformation Macros  --------------
+
+// two C-Ext macros
+#define COMPRESSIBLE          true
+#define NOT_COMPRESSIBLE      false
+
+// a pivotal dispatcher for C-Ext
+#define EMIT_MAY_COMPRESS(C, NAME, ...)               EMIT_MAY_COMPRESS_##C(NAME, __VA_ARGS__)
+#define EMIT_MAY_COMPRESS_true(NAME, ...)             EMIT_MAY_COMPRESS_##NAME(__VA_ARGS__)
+#define EMIT_MAY_COMPRESS_false(NAME, ...)
+
+#define IS_COMPRESSIBLE(...)                          if (__VA_ARGS__)
+#define CHECK_CEXT_AND_COMPRESSIBLE(...)              IS_COMPRESSIBLE(UseRVC && in_compressible_region() && __VA_ARGS__)
+#define CHECK_CEXT()                                  if (UseRVC && in_compressible_region())
+
+// C-Ext transformation macros
+#define EMIT_RVC_cond(PREFIX, COND, EMIT) {                                            \
+    PREFIX                                                                             \
+    CHECK_CEXT_AND_COMPRESSIBLE(COND) {                                                \
+      EMIT;                                                                            \
+      return;                                                                          \
+    }                                                                                  \
+  }
+
+#define EMIT_RVC_cond2(PREFIX, COND1, EMIT1, COND2, EMIT2) {                           \
+    PREFIX                                                                             \
+    CHECK_CEXT() {                                                                     \
+      IS_COMPRESSIBLE(COND1) {                                                         \
+        EMIT1;                                                                         \
+        return;                                                                        \
+      } else IS_COMPRESSIBLE(COND2) {                                                  \
+        EMIT2;                                                                         \
+        return;                                                                        \
+      }                                                                                \
+    }                                                                                  \
+  }
+
+#define EMIT_RVC_cond4(PREFIX, COND1, EMIT1, COND2, EMIT2, COND3, EMIT3, COND4, EMIT4) {  \
+    PREFIX                                                                             \
+    CHECK_CEXT() {                                                                     \
+      IS_COMPRESSIBLE(COND1) {                                                         \
+        EMIT1;                                                                         \
+        return;                                                                        \
+      } else IS_COMPRESSIBLE(COND2) {                                                  \
+        EMIT2;                                                                         \
+        return;                                                                        \
+      } else IS_COMPRESSIBLE(COND3) {                                                  \
+        EMIT3;                                                                         \
+        return;                                                                        \
+      } else IS_COMPRESSIBLE(COND4) {                                                  \
+        EMIT4;                                                                         \
+        return;                                                                        \
+      }                                                                                \
+    }                                                                                  \
+  }
+
+// --------------------------
+// Register instructions
+// --------------------------
+// add -> c.add
+#define EMIT_MAY_COMPRESS_add(Rd, Rs1, Rs2)                                            \
+  EMIT_RVC_cond(                                                                       \
+    Register src = noreg;,                                                             \
+    Rs1 != x0 && Rs2 != x0 && ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd)),      \
+    c_add(Rd, src)                                                                     \
+  )
+
+// --------------------------
+// sub/subw -> c.sub/c.subw
+#define EMIT_MAY_COMPRESS_sub_helper(C_NAME, Rd, Rs1, Rs2)                             \
+  EMIT_RVC_cond(,                                                                      \
+    Rs1 == Rd && Rd->is_compressed_valid() && Rs2->is_compressed_valid(),              \
+    C_NAME(Rd, Rs2)                                                                    \
+  )
+
+#define EMIT_MAY_COMPRESS_sub(Rd, Rs1, Rs2)                                            \
+  EMIT_MAY_COMPRESS_sub_helper(c_sub, Rd, Rs1, Rs2)
+
+#define EMIT_MAY_COMPRESS_subw(Rd, Rs1, Rs2)                                           \
+  EMIT_MAY_COMPRESS_sub_helper(c_subw, Rd, Rs1, Rs2)
+
+// --------------------------
+// xor/or/and/addw -> c.xor/c.or/c.and/c.addw
+#define EMIT_MAY_COMPRESS_xorr_orr_andr_addw_helper(C_NAME, Rd, Rs1, Rs2)              \
+  EMIT_RVC_cond(                                                                       \
+    Register src = noreg;,                                                             \
+    Rs1->is_compressed_valid() && Rs2->is_compressed_valid() &&                        \
+      ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd)),                              \
+    C_NAME(Rd, src)                                                                    \
+  )
+
+#define EMIT_MAY_COMPRESS_xorr(Rd, Rs1, Rs2)                                           \
+  EMIT_MAY_COMPRESS_xorr_orr_andr_addw_helper(c_xor, Rd, Rs1, Rs2)
+
+#define EMIT_MAY_COMPRESS_orr(Rd, Rs1, Rs2)                                            \
+  EMIT_MAY_COMPRESS_xorr_orr_andr_addw_helper(c_or, Rd, Rs1, Rs2)
+
+#define EMIT_MAY_COMPRESS_andr(Rd, Rs1, Rs2)                                           \
+  EMIT_MAY_COMPRESS_xorr_orr_andr_addw_helper(c_and, Rd, Rs1, Rs2)
+
+#define EMIT_MAY_COMPRESS_addw(Rd, Rs1, Rs2)                                           \
+  EMIT_MAY_COMPRESS_xorr_orr_andr_addw_helper(c_addw, Rd, Rs1, Rs2)
+
+// --------------------------
+// Load/store register (all modes)
+// --------------------------
+private:
+
+#define FUNC(NAME, funct3, bits)                                                       \
+  bool NAME(Register rs1, Register rd_rs2, int32_t imm12, bool ld) {                   \
+    return rs1 == sp &&                                                                \
+      is_unsigned_imm_in_range(imm12, bits, 0) &&                                      \
+      (intx(imm12) & funct3) == 0x0 &&                                                 \
+      (!ld || rd_rs2 != x0);                                                           \
+  }                                                                                    \
+
+  FUNC(is_c_ldsdsp,  0b111, 9);
+  FUNC(is_c_lwswsp,  0b011, 8);
+#undef FUNC
+
+#define FUNC(NAME, funct3, bits)                                                       \
+  bool NAME(Register rs1, int32_t imm12) {                                             \
+    return rs1 == sp &&                                                                \
+      is_unsigned_imm_in_range(imm12, bits, 0) &&                                      \
+      (intx(imm12) & funct3) == 0x0;                                                   \
+  }                                                                                    \
+
+  FUNC(is_c_fldsdsp, 0b111, 9);
+#undef FUNC
+
+#define FUNC(NAME, REG_TYPE, funct3, bits)                                             \
+  bool NAME(Register rs1, REG_TYPE rd_rs2, int32_t imm12) {                            \
+    return rs1->is_compressed_valid() &&                                               \
+      rd_rs2->is_compressed_valid() &&                                                 \
+      is_unsigned_imm_in_range(imm12, bits, 0) &&                                      \
+      (intx(imm12) & funct3) == 0x0;                                                   \
+  }                                                                                    \
+
+  FUNC(is_c_ldsd,  Register,      0b111, 8);
+  FUNC(is_c_lwsw,  Register,      0b011, 7);
+  FUNC(is_c_fldsd, FloatRegister, 0b111, 8);
+#undef FUNC
+
+public:
+// --------------------------
+// ld -> c.ldsp/c.ld
+#define EMIT_MAY_COMPRESS_ld(Rd, Rs, offset)                                           \
+  EMIT_RVC_cond2(,                                                                     \
+     is_c_ldsdsp(Rs, Rd, offset, true),                                                \
+     c_ldsp(Rd, offset),                                                               \
+     is_c_ldsd(Rs, Rd, offset),                                                        \
+     c_ld(Rd, Rs, offset)                                                              \
+  )
+
+// --------------------------
+// sd -> c.sdsp/c.sd
+#define EMIT_MAY_COMPRESS_sd(Rd, Rs, offset)                                           \
+  EMIT_RVC_cond2(,                                                                     \
+     is_c_ldsdsp(Rs, Rd, offset, false),                                               \
+     c_sdsp(Rd, offset),                                                               \
+     is_c_ldsd(Rs, Rd, offset),                                                        \
+     c_sd(Rd, Rs, offset)                                                              \
+  )
+
+// --------------------------
+// lw -> c.lwsp/c.lw
+#define EMIT_MAY_COMPRESS_lw(Rd, Rs, offset)                                           \
+  EMIT_RVC_cond2(,                                                                     \
+     is_c_lwswsp(Rs, Rd, offset, true),                                                \
+     c_lwsp(Rd, offset),                                                               \
+     is_c_lwsw(Rs, Rd, offset),                                                        \
+     c_lw(Rd, Rs, offset)                                                              \
+  )
+
+// --------------------------
+// sw -> c.swsp/c.sw
+#define EMIT_MAY_COMPRESS_sw(Rd, Rs, offset)                                           \
+  EMIT_RVC_cond2(,                                                                     \
+     is_c_lwswsp(Rs, Rd, offset, false),                                               \
+     c_swsp(Rd, offset),                                                               \
+     is_c_lwsw(Rs, Rd, offset),                                                        \
+     c_sw(Rd, Rs, offset)                                                              \
+  )
+
+// --------------------------
+// fld -> c.fldsp/c.fld
+#define EMIT_MAY_COMPRESS_fld(Rd, Rs, offset)                                          \
+  EMIT_RVC_cond2(,                                                                     \
+     is_c_fldsdsp(Rs, offset),                                                         \
+     c_fldsp(Rd, offset),                                                              \
+     is_c_fldsd(Rs, Rd, offset),                                                       \
+     c_fld(Rd, Rs, offset)                                                             \
+  )
+
+// --------------------------
+// fsd -> c.fsdsp/c.fsd
+#define EMIT_MAY_COMPRESS_fsd(Rd, Rs, offset)                                          \
+  EMIT_RVC_cond2(,                                                                     \
+     is_c_fldsdsp(Rs, offset),                                                         \
+     c_fsdsp(Rd, offset),                                                              \
+     is_c_fldsd(Rs, Rd, offset),                                                       \
+     c_fsd(Rd, Rs, offset)                                                             \
+  )
+
+// --------------------------
+// Conditional branch instructions
+// --------------------------
+// beq/bne -> c.beqz/c.bnez
+
+// Note: offset == 0 means this beqz/benz is jumping forward and we cannot know the future position
+//   so we cannot compress this instrution.
+#define EMIT_MAY_COMPRESS_beqz_bnez_helper(C_NAME, Rs1, Rs2, offset)                   \
+  EMIT_RVC_cond(,                                                                      \
+    offset != 0 && Rs2 == x0 && Rs1->is_compressed_valid() &&                          \
+      is_imm_in_range(offset, 8, 1),                                                   \
+    C_NAME(Rs1, offset)                                                                \
+  )
+
+#define EMIT_MAY_COMPRESS_beq(Rs1, Rs2, offset)                                        \
+  EMIT_MAY_COMPRESS_beqz_bnez_helper(c_beqz, Rs1, Rs2, offset)
+
+#define EMIT_MAY_COMPRESS_bne(Rs1, Rs2, offset)                                        \
+  EMIT_MAY_COMPRESS_beqz_bnez_helper(c_bnez, Rs1, Rs2, offset)
+
+// --------------------------
+// Unconditional branch instructions
+// --------------------------
+// jalr/jal -> c.jr/c.jalr/c.j
+
+#define EMIT_MAY_COMPRESS_jalr(Rd, Rs, offset)                                         \
+  EMIT_RVC_cond2(,                                                                     \
+    offset == 0 && Rd == x1 && Rs != x0,                                               \
+    c_jalr(Rs),                                                                        \
+    offset == 0 && Rd == x0 && Rs != x0,                                               \
+    c_jr(Rs)                                                                           \
+  )
+
+// Note: offset == 0 means this j() is jumping forward and we cannot know the future position
+//   so we cannot compress this instrution.
+#define EMIT_MAY_COMPRESS_jal(Rd, offset)                                              \
+  EMIT_RVC_cond(,                                                                      \
+    offset != 0 && Rd == x0 && is_imm_in_range(offset, 11, 1),                         \
+    c_j(offset)                                                                        \
+  )
+
+// --------------------------
+// Upper Immediate Instruction
+// --------------------------
+// lui -> c.lui
+#define EMIT_MAY_COMPRESS_lui(Rd, imm)                                                 \
+  EMIT_RVC_cond(,                                                                      \
+    Rd != x0 && Rd != x2 && imm != 0 && is_imm_in_range(imm, 18, 0),                   \
+    c_lui(Rd, imm)                                                                     \
+  )
+
+// --------------------------
+// Miscellaneous Instructions
+// --------------------------
+// ebreak -> c.ebreak
+#define EMIT_MAY_COMPRESS_ebreak()                                                     \
+  EMIT_RVC_cond(,                                                                      \
+    true,                                                                              \
+    c_ebreak()                                                                         \
+  )
+
+// --------------------------
+// Immediate Instructions
+// --------------------------
+// addi -> c.addi/c.nop/c.mv/c.addi16sp/c.addi4spn.
+#define EMIT_MAY_COMPRESS_addi(Rd, Rs1, imm)                                                          \
+  EMIT_RVC_cond4(,                                                                                    \
+    Rd == Rs1 && is_imm_in_range(imm, 6, 0),                                                          \
+    c_addi(Rd, imm),                                                                                  \
+    imm == 0 && Rd != x0 && Rs1 != x0,                                                                \
+    c_mv(Rd, Rs1),                                                                                    \
+    Rs1 == sp && Rd == Rs1 && imm != 0 && (imm & 0b1111) == 0x0 && is_imm_in_range(imm, 10, 0),       \
+    c_addi16sp(imm),                                                                                  \
+    Rs1 == sp && Rd->is_compressed_valid() && imm != 0 && (imm & 0b11) == 0x0 && is_unsigned_imm_in_range(imm, 10, 0),  \
+    c_addi4spn(Rd, imm)                                                                               \
+  )
+
+// --------------------------
+// addiw -> c.addiw
+#define EMIT_MAY_COMPRESS_addiw(Rd, Rs1, imm)                                          \
+  EMIT_RVC_cond(,                                                                      \
+    Rd == Rs1 && Rd != x0 && is_imm_in_range(imm, 6, 0),                               \
+    c_addiw(Rd, imm)                                                                   \
+  )
+
+// --------------------------
+// and_imm12 -> c.andi
+#define EMIT_MAY_COMPRESS_and_imm12(Rd, Rs1, imm)                                      \
+  EMIT_RVC_cond(,                                                                      \
+    Rd == Rs1 && Rd->is_compressed_valid() && is_imm_in_range(imm, 6, 0),              \
+    c_andi(Rd, imm)                                                                    \
+  )
+
+// --------------------------
+// Shift Immediate Instructions
+// --------------------------
+// slli -> c.slli
+#define EMIT_MAY_COMPRESS_slli(Rd, Rs1, shamt)                                         \
+  EMIT_RVC_cond(,                                                                      \
+    Rd == Rs1 && Rd != x0 && shamt != 0,                                               \
+    c_slli(Rd, shamt)                                                                  \
+  )
+
+// --------------------------
+// srai/srli -> c.srai/c.srli
+#define EMIT_MAY_COMPRESS_srai_srli_helper(C_NAME, Rd, Rs1, shamt)                     \
+  EMIT_RVC_cond(,                                                                      \
+    Rd == Rs1 && Rd->is_compressed_valid() && shamt != 0,                              \
+    C_NAME(Rd, shamt)                                                                  \
+  )
+
+#define EMIT_MAY_COMPRESS_srai(Rd, Rs1, shamt)                                         \
+  EMIT_MAY_COMPRESS_srai_srli_helper(c_srai, Rd, Rs1, shamt)
+
+#define EMIT_MAY_COMPRESS_srli(Rd, Rs1, shamt)                                         \
+  EMIT_MAY_COMPRESS_srai_srli_helper(c_srli, Rd, Rs1, shamt)
+
+// --------------------------
+
 public:
 // C-Ext: an abstact compressible region
 class AbstractCompressibleRegion : public StackObj {

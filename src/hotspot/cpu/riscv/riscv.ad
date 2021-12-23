@@ -1190,6 +1190,34 @@ int MachCallNativeNode::ret_addr_offset() {
   return -1;
 }
 
+// C-Ext: With C-Ext a call may get 2-byte aligned.
+//   The offset encoding in jal ranges bits [12, 31], which could span the cache line.
+//   Patching this unaligned address will make the write operation not atomic.
+//   Other threads may be running the same piece of code at full speed, causing concurrency issues.
+//   So we must ensure that it does not span a cache line so that it can be patched.
+int CallStaticJavaDirectNode::compute_padding(int current_offset) const
+{
+  // to make sure the address of jal 4-byte aligned.
+  return align_up(current_offset, alignment_required()) - current_offset;
+}
+
+// C-Ext: With C-Ext a call may get 2-byte aligned.
+//   The offset encoding in jal ranges bits [12, 31], which could span the cache line.
+//   Patching this unaligned address will make the write operation not atomic.
+//   Other threads may be running the same piece of code at full speed, causing concurrency issues.
+//   So we must ensure that it does not span a cache line so that it can be patched.
+int CallDynamicJavaDirectNode::compute_padding(int current_offset) const
+{
+  // skip the movptr in MacroAssembler::ic_call():
+  // lui + addi + slli + addi + slli + addi
+  // Though movptr() has already 4-byte aligned with or without C-Ext,
+  // We need to prevent from further changes by explicitly calculating the size.
+  const int movptr_size = 6 * NativeInstruction::instruction_size;
+  current_offset += movptr_size;
+  // to make sure the address of jal 4-byte aligned.
+  return align_up(current_offset, alignment_required()) - current_offset;
+}
+
 //=============================================================================
 
 #ifndef PRODUCT
@@ -1218,13 +1246,14 @@ uint MachBreakpointNode::size(PhaseRegAlloc *ra_) const {
 
   void MachNopNode::emit(CodeBuffer &cbuf, PhaseRegAlloc*) const {
     C2_MacroAssembler _masm(&cbuf);
+    Assembler::CompressibleRegion cr(&_masm);
     for (int i = 0; i < _count; i++) {
       __ nop();
     }
   }
 
   uint MachNopNode::size(PhaseRegAlloc*) const {
-    return _count * NativeInstruction::instruction_size;
+    return _count * (UseRVC ? NativeInstruction::compressed_instruction_size : NativeInstruction::instruction_size);
   }
 
 //=============================================================================
@@ -6379,6 +6408,7 @@ instruct addI_reg_imm(iRegINoSp dst, iRegIorL2I src1, immIAdd src2) %{
   format %{ "addiw  $dst, $src1, $src2\t#@addI_reg_imm" %}
 
   ins_encode %{
+    Assembler::CompressibleRegion cr(&_masm);
     int32_t con = (int32_t)$src2$$constant;
     __ addiw(as_Register($dst$$reg),
              as_Register($src1$$reg),
@@ -9830,6 +9860,7 @@ instruct CallStaticJavaDirect(method meth)
               riscv64_enc_call_epilog );
 
   ins_pipe(pipe_class_call);
+  ins_alignment(4);
 %}
 
 // TO HERE
@@ -9849,6 +9880,7 @@ instruct CallDynamicJavaDirect(method meth, rFlagsReg cr)
                riscv64_enc_call_epilog );
 
   ins_pipe(pipe_class_call);
+  ins_alignment(4);
 %}
 
 // Call Runtime Instruction
