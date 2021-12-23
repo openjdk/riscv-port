@@ -2922,7 +2922,7 @@ address MacroAssembler::emit_trampoline_stub(int insts_call_instruction_offset,
 
   // make sure 4 byte aligned here, so that the destination address would be
   // 8 byte aligned after 3 intructions
-  // C-Ext: when we reach here we may get a 2-byte alignment so need to align it
+  // RVC: when we reach here we may get a 2-byte alignment so need to align it
   align(wordSize, NativeCallTrampolineStub::data_offset);
 
   relocate(trampoline_stub_Relocation::spec(code()->insts()->start() +

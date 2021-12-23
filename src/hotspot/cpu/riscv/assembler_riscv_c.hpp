@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef CPU_RISCV_ASSEMBLER_RISCV_CEXT_HPP
-#define CPU_RISCV_ASSEMBLER_RISCV_CEXT_HPP
+#ifndef CPU_RISCV_ASSEMBLER_RISCV_C_HPP
+#define CPU_RISCV_ASSEMBLER_RISCV_C_HPP
 
 private:
   bool _in_compressible_region;
@@ -33,7 +33,7 @@ public:
   void set_in_compressible_region(bool b) { _in_compressible_region = b; }
 public:
 
-  // C-Ext: If an instruction is compressible, then
+  // RVC: If an instruction is compressible, then
   //   we will implicitly emit a 16-bit compressed instruction instead of the 32-bit
   //   instruction in Assembler. All below logic follows Chapter -
   //   "C" Standard Extension for Compressed Instructions, Version 2.0.
@@ -43,27 +43,20 @@ public:
   // Note:
   //   1. When UseRVC is enabled, 32-bit instructions under 'CompressibleRegion's will be
   //      transformed to 16-bit instructions if compressible.
-  //   2. C-Ext's instructions in Assembler always begin with 'c_' prefix, as 'c_li',
+  //   2. RVC instructions in Assembler always begin with 'c_' prefix, as 'c_li',
   //      but most of time we have no need to explicitly use these instructions.
-  //   3. In some cases, we need to force using one instruction's uncompressed version,
-  //      for instance code being patched should remain its general and longest version
-  //      to cover all possible cases, or code requiring a fixed length.
-  //      So we introduce 'UncompressibleRegion' to force instructions in its range
-  //      to remain its normal 4-byte version.
+  //   3. We introduce 'CompressibleRegion' to hint instructions in this Region's RTTI range
+  //      are qualified to change to their 2-byte versions.
   //      An example:
   //
   //        CompressibleRegion cr(_masm);
-  //        __ andr(...);      // this instruction could change to c.and if qualified
-  //        {
-  //          UncompressibleRegion ur(_masm);
-  //          __ andr(...);    // this instruction would remain the normal 32-bit form of andr
-  //        }
+  //        __ andr(...);      // this instruction could change to c.and if able to
   //
-  //   4. Using -XX:PrintAssemblyOptions=no-aliases could print C-Ext instructions instead of
+  //   4. Using -XX:PrintAssemblyOptions=no-aliases could print RVC instructions instead of
   //      normal ones.
   //
 
-  // C-Ext: extract a 16-bit instruction.
+  // RVC: extract a 16-bit instruction.
   static inline uint16_t c_extract(uint16_t val, unsigned msb, unsigned lsb) {
     assert_cond(msb >= lsb && msb <= 15);
     unsigned nbits = msb - lsb + 1;
@@ -80,7 +73,7 @@ public:
     return result;
   }
 
-  // C-Ext: patch a 16-bit instruction.
+  // RVC: patch a 16-bit instruction.
   static void c_patch(address a, unsigned msb, unsigned lsb, uint16_t val) {
     assert_cond(a != NULL);
     assert_cond(msb >= lsb && msb <= 15);
@@ -99,31 +92,31 @@ public:
     c_patch(a, bit, bit, val);
   }
 
-  // C-Ext: patch a 16-bit instruction with a general purpose register ranging [0, 31] (5 bits)
+  // RVC: patch a 16-bit instruction with a general purpose register ranging [0, 31] (5 bits)
   static void c_patch_reg(address a, unsigned lsb, Register reg) {
     c_patch(a, lsb + 4, lsb, reg->encoding_nocheck());
   }
 
-  // C-Ext: patch a 16-bit instruction with a general purpose register ranging [8, 15] (3 bits)
+  // RVC: patch a 16-bit instruction with a general purpose register ranging [8, 15] (3 bits)
   static void c_patch_compressed_reg(address a, unsigned lsb, Register reg) {
     c_patch(a, lsb + 2, lsb, reg->compressed_encoding_nocheck());
   }
 
-  // C-Ext: patch a 16-bit instruction with a float register ranging [0, 31] (5 bits)
+  // RVC: patch a 16-bit instruction with a float register ranging [0, 31] (5 bits)
   static void c_patch_reg(address a, unsigned lsb, FloatRegister reg) {
     c_patch(a, lsb + 4, lsb, reg->encoding_nocheck());
   }
 
-  // C-Ext: patch a 16-bit instruction with a float register ranging [8, 15] (3 bits)
+  // RVC: patch a 16-bit instruction with a float register ranging [8, 15] (3 bits)
   static void c_patch_compressed_reg(address a, unsigned lsb, FloatRegister reg) {
     c_patch(a, lsb + 2, lsb, reg->compressed_encoding_nocheck());
   }
 
 public:
 
-// C-Ext: Compressed Instructions
+// RVC: Compressed Instructions
 
-// --------------  C-Ext Instruction Definitions  --------------
+// --------------  RVC Instruction Definitions  --------------
 
   void c_nop() {
     c_addi(x0, 0);
@@ -545,13 +538,13 @@ public:
 
 #undef INSN
 
-// --------------  C-Ext Transformation Macros  --------------
+// --------------  RVC Transformation Macros  --------------
 
-// two C-Ext macros
+// two RVC macros
 #define COMPRESSIBLE          true
 #define NOT_COMPRESSIBLE      false
 
-// a pivotal dispatcher for C-Ext
+// a pivotal dispatcher for RVC
 #define EMIT_MAY_COMPRESS(C, NAME, ...)               EMIT_MAY_COMPRESS_##C(NAME, __VA_ARGS__)
 #define EMIT_MAY_COMPRESS_true(NAME, ...)             EMIT_MAY_COMPRESS_##NAME(__VA_ARGS__)
 #define EMIT_MAY_COMPRESS_false(NAME, ...)
@@ -560,7 +553,7 @@ public:
 #define CHECK_CEXT_AND_COMPRESSIBLE(...)              IS_COMPRESSIBLE(UseRVC && in_compressible_region() && __VA_ARGS__)
 #define CHECK_CEXT()                                  if (UseRVC && in_compressible_region())
 
-// C-Ext transformation macros
+// RVC transformation macros
 #define EMIT_RVC_cond(PREFIX, COND, EMIT) {                                            \
     PREFIX                                                                             \
     CHECK_CEXT_AND_COMPRESSIBLE(COND) {                                                \
@@ -869,20 +862,15 @@ public:
 // --------------------------
 
 public:
-// C-Ext: an abstact compressible region
-class AbstractCompressibleRegion : public StackObj {
+// RVC: a compressible region
+class CompressibleRegion : public StackObj {
 protected:
   Assembler *_masm;
   bool _prev_in_compressible_region;
-protected:
-  AbstractCompressibleRegion(Assembler *_masm)
-  : _masm(_masm)
-  , _prev_in_compressible_region(_masm->in_compressible_region()) {}
-};
-
-class CompressibleRegion : public AbstractCompressibleRegion {
 public:
-  CompressibleRegion(Assembler *_masm) : AbstractCompressibleRegion(_masm) {
+  CompressibleRegion(Assembler *_masm)
+  : _masm(_masm)
+  , _prev_in_compressible_region(_masm->in_compressible_region()) {
     _masm->set_in_compressible_region(true);
   }
   ~CompressibleRegion() {
@@ -890,15 +878,4 @@ public:
   }
 };
 
-// C-Ext: an uncompressible region
-class UncompressibleRegion : public AbstractCompressibleRegion {
-public:
-  UncompressibleRegion(Assembler *_masm) : AbstractCompressibleRegion(_masm) {
-    _masm->set_in_compressible_region(false);
-  }
-  ~UncompressibleRegion() {
-    _masm->set_in_compressible_region(_prev_in_compressible_region);
-  }
-};
-
-#endif // CPU_RISCV_ASSEMBLER_RISCV_CEXT_HPP
+#endif // CPU_RISCV_ASSEMBLER_RISCV_C_HPP

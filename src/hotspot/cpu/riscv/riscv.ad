@@ -1190,7 +1190,7 @@ int MachCallNativeNode::ret_addr_offset() {
   return -1;
 }
 
-// C-Ext: With C-Ext a call may get 2-byte aligned.
+// RVC: With RVC a call may get 2-byte aligned.
 //   The offset encoding in jal ranges bits [12, 31], which could span the cache line.
 //   Patching this unaligned address will make the write operation not atomic.
 //   Other threads may be running the same piece of code at full speed, causing concurrency issues.
@@ -1201,7 +1201,7 @@ int CallStaticJavaDirectNode::compute_padding(int current_offset) const
   return align_up(current_offset, alignment_required()) - current_offset;
 }
 
-// C-Ext: With C-Ext a call may get 2-byte aligned.
+// RVC: With RVC a call may get 2-byte aligned.
 //   The offset encoding in jal ranges bits [12, 31], which could span the cache line.
 //   Patching this unaligned address will make the write operation not atomic.
 //   Other threads may be running the same piece of code at full speed, causing concurrency issues.
@@ -1210,7 +1210,7 @@ int CallDynamicJavaDirectNode::compute_padding(int current_offset) const
 {
   // skip the movptr in MacroAssembler::ic_call():
   // lui + addi + slli + addi + slli + addi
-  // Though movptr() has already 4-byte aligned with or without C-Ext,
+  // Though movptr() has already 4-byte aligned with or without RVC,
   // We need to prevent from further changes by explicitly calculating the size.
   const int movptr_size = 6 * NativeInstruction::instruction_size;
   current_offset += movptr_size;
@@ -1246,7 +1246,7 @@ uint MachBreakpointNode::size(PhaseRegAlloc *ra_) const {
 
   void MachNopNode::emit(CodeBuffer &cbuf, PhaseRegAlloc*) const {
     C2_MacroAssembler _masm(&cbuf);
-    Assembler::CompressibleRegion cr(&_masm);
+    Assembler::CompressibleRegion cr(&_masm); // RVC: nops shall be 2-byte under RVC for alignment purposes.
     for (int i = 0; i < _count; i++) {
       __ nop();
     }

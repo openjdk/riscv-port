@@ -240,7 +240,7 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
     return;
   }
 
-  // C-Ext: RISCV's amoswap instructions need an alignment for the memory address it swaps
+  // RVC: RISCV's amoswap instructions need an alignment for the memory address it swaps
   //   when we reach here we may get a 2-byte alignment so need to align it
   __ align(4, nmethod_barrier_guard_offset());
 

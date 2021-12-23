@@ -60,7 +60,7 @@ class RegisterImpl: public AbstractRegisterImpl {
     number_of_byte_registers = 32,
     max_slots_per_register   = 2,
 
-    // C-Ext: integer registers in the range of [x8~x15] are correspond for RVC. Please see Table 16.2 in spec.
+    // RVC: integer registers in the range of [x8~x15] correspond to RVC. Please see Table 16.2 in spec.
     compressed_register_base = 8,
     compressed_register_top  = 15,
   };
@@ -140,7 +140,7 @@ class FloatRegisterImpl: public AbstractRegisterImpl {
     number_of_registers     = 32,
     max_slots_per_register  = 2,
 
-    // C-Ext: float registers in the range of [f8~f15] are correspond for RVC. Please see Table 16.2 in spec.
+    // RVC: float registers in the range of [f8~f15] correspond to RVC. Please see Table 16.2 in spec.
     compressed_register_base = 8,
     compressed_register_top  = 15,
   };
