@@ -131,16 +131,16 @@ void VM_Version::initialize() {
   _features_string = os::strdup(buf);
 
 #ifdef COMPILER2
-  initialize_c2();
+  c2_initialize();
 #endif // COMPILER2
 }
 
 #ifdef COMPILER2
-void VM_Version::initialize_c2() {
-  // lack of cmove in riscv64
+void VM_Version::c2_initialize() {
   if (UseCMoveUnconditionally) {
     FLAG_SET_DEFAULT(UseCMoveUnconditionally, false);
   }
+
   if (ConditionalMoveLimit > 0) {
     FLAG_SET_DEFAULT(ConditionalMoveLimit, 0);
   }

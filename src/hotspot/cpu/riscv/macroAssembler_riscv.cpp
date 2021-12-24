@@ -3035,6 +3035,7 @@ void MacroAssembler::compute_match_mask(Register src, Register pattern, Register
 // tmp     = x28
 //
 // pseudo code from java implementation:
+// long kLong = k & LONG_MASK;
 // carry = 0;
 // offset = out.length-offset - 1;
 // for (int j = len - 1; j >= 0; j--) {

@@ -35,7 +35,7 @@
 class VM_Version : public Abstract_VM_Version {
 #ifdef COMPILER2
 private:
-  static void initialize_c2();
+  static void c2_initialize();
 #endif // COMPILER2
 
 protected:
