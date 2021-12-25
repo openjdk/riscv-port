@@ -683,6 +683,10 @@ void MacroAssembler::sext_w(Register Rd, Register Rs) {
   addiw(Rd, Rs, 0);
 }
 
+void MacroAssembler::zext_b(Register Rd, Register Rs) {
+  andi(Rd, Rs, 0xFF);
+}
+
 void MacroAssembler::seqz(Register Rd, Register Rs) {
   sltiu(Rd, Rs, 1);
 }
@@ -1902,7 +1906,7 @@ void MacroAssembler::encode_klass_not_null(Register dst, Register src, Register 
 
   if (((uint64_t)(uintptr_t)CompressedKlassPointers::base() & 0xffffffff) == 0 &&
       CompressedKlassPointers::shift() == 0) {
-    zero_ext(dst, src, 32); // clear upper 32 bits
+    zero_extend(dst, src, 32);
     return;
   }
 
@@ -2219,7 +2223,7 @@ void MacroAssembler::load_reserved(Register addr,
       break;
     case uint32:
       lr_w(t0, addr, acquire);
-      clear_upper_bits(t0, 32);
+      zero_extend(t0, t0, 32);
       break;
     default:
       ShouldNotReachHere();
@@ -2262,7 +2266,7 @@ void MacroAssembler::cmpxchg_narrow_value_helper(Register addr, Register expecte
   } else {
     // size == int16 case
     addi(mask, zr, -1);
-    zero_ext(mask, mask, registerSize - 16);
+    zero_extend(mask, mask, 16);
   }
   sll(mask, mask, shift);
 
@@ -2315,10 +2319,10 @@ void MacroAssembler::cmpxchg_narrow_value(Register addr, Register expected,
     srl(result, tmp, shift);
 
     if (size == int8) {
-      sign_ext(result, result, registerSize - 8);
+      sign_extend(result, result, 8);
     } else {
       // size == int16 case
-      sign_ext(result, result, registerSize - 16);
+      sign_extend(result, result, 16);
     }
   }
 }
@@ -2448,7 +2452,7 @@ ATOMIC_XCHG(xchgalw, amoswap_w, Assembler::aq, Assembler::rl)
 #define ATOMIC_XCHGU(OP1, OP2)                                                       \
 void MacroAssembler::atomic_##OP1(Register prev, Register newv, Register addr) {     \
   atomic_##OP2(prev, newv, addr);                                                    \
-  clear_upper_bits(prev, 32);                                                        \
+  zero_extend(prev, prev, 32);                                                       \
   return;                                                                            \
 }
 
@@ -2827,7 +2831,7 @@ void  MacroAssembler::set_narrow_oop(Register dst, jobject obj) {
   RelocationHolder rspec = oop_Relocation::spec(oop_index);
   code_section()->relocate(inst_mark(), rspec);
   li32(dst, 0xDEADBEEF);
-  clear_upper_bits(dst, 32); // clear upper 32bit, do not sign extend.
+  zero_extend(dst, dst, 32);
 }
 
 void  MacroAssembler::set_narrow_klass(Register dst, Klass* k) {
@@ -2841,7 +2845,7 @@ void  MacroAssembler::set_narrow_klass(Register dst, Klass* k) {
   code_section()->relocate(inst_mark(), rspec);
   narrowKlass nk = CompressedKlassPointers::encode(k);
   li32(dst, nk);
-  clear_upper_bits(dst, 32); // clear upper 32bit, do not sign extend.
+  zero_extend(dst, dst, 32);
 }
 
 // Maybe emit a call via a trampoline.  If the code cache is small
@@ -3050,7 +3054,7 @@ void MacroAssembler::mul_add(Register out, Register in, Register offset,
   mv(tmp, out);
   mv(out, zr);
   beqz(len, L_end);
-  zero_ext(k, k, 32);
+  zero_extend(k, k, 32);
   slli(t0, offset, LogBytesPerInt);
   add(offset, tmp, t0);
   slli(t0, len, LogBytesPerInt);
@@ -3427,14 +3431,42 @@ void MacroAssembler::zero_memory(Register addr, Register len, Register tmp1) {
   bnez(len, loop);
 }
 
-void MacroAssembler::zero_ext(Register dst, Register src, int clear_bits) {
-  slli(dst, src, clear_bits);
-  srli(dst, dst, clear_bits);
+void MacroAssembler::zero_extend(Register dst, Register src, int bits) {
+  if (UseRVB) {
+    if (bits == 16) {
+      zext_h(dst, src);
+      return;
+    } else if (bits == 32) {
+      zext_w(dst, src);
+      return;
+    }
+  }
+
+  if (bits == 8) {
+    zext_b(dst, src);
+  } else {
+    slli(dst, src, XLEN - bits);
+    srli(dst, dst, XLEN - bits);
+  }
 }
 
-void MacroAssembler::sign_ext(Register dst, Register src, int clear_bits) {
-  slli(dst, src, clear_bits);
-  srai(dst, dst, clear_bits);
+void MacroAssembler::sign_extend(Register dst, Register src, int bits) {
+  if (UseRVB) {
+    if (bits == 8) {
+      sext_b(dst, src);
+      return;
+    } else if (bits == 16) {
+      sext_h(dst, src);
+      return;
+    }
+  }
+
+  if (bits == 32) {
+    sext_w(dst, src);
+  } else {
+    slli(dst, src, XLEN - bits);
+    srai(dst, dst, XLEN - bits);
+  }
 }
 
 void MacroAssembler::cmp_l2i(Register dst, Register src1, Register src2, Register tmp)

@@ -116,6 +116,11 @@ void VM_Version::initialize() {
     }
   }
 
+  if (UseRVB && !(_features & CPU_B)) {
+    warning("RVB is not supported on this CPU");
+    FLAG_SET_DEFAULT(UseRVB, false);
+  }
+
   if (FLAG_IS_DEFAULT(AvoidUnalignedAccesses)) {
     FLAG_SET_DEFAULT(AvoidUnalignedAccesses, true);
   }

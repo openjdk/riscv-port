@@ -67,17 +67,17 @@ void InterpreterMacroAssembler::narrow(Register result) {
   bind(notBool);
   mv(t1, T_BYTE);
   bne(t0, t1, notByte);
-  sign_ext(result, result, registerSize - 8);
+  sign_extend(result, result, 8);
   j(done);
 
   bind(notByte);
   mv(t1, T_CHAR);
   bne(t0, t1, notChar);
-  zero_ext(result, result, registerSize - 16); // turncate upper 48 bits
+  zero_extend(result, result, 16);
   j(done);
 
   bind(notChar);
-  sign_ext(result, result, registerSize - 16); // sign-extend short
+  sign_extend(result, result, 16);
 
   // Nothing to do for T_INT
   bind(done);
@@ -250,8 +250,8 @@ void InterpreterMacroAssembler::get_cache_and_index_and_bytecode_at_bcp(Register
   lwu(bytecode, bytecode);
   membar(MacroAssembler::LoadLoad | MacroAssembler::LoadStore);
   const int shift_count = (1 + byte_no) * BitsPerByte;
-  slli(bytecode, bytecode, registerSize - (shift_count + BitsPerByte));
-  srli(bytecode, bytecode, registerSize - BitsPerByte);
+  slli(bytecode, bytecode, XLEN - (shift_count + BitsPerByte));
+  srli(bytecode, bytecode, XLEN - BitsPerByte);
 }
 
 void InterpreterMacroAssembler::get_cache_entry_pointer_at_bcp(Register cache,

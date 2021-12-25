@@ -819,8 +819,8 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
           __ sll(arr_size, length, t0);
           int lh_header_size_width = log2i_exact(Klass::_lh_header_size_mask + 1);
           int lh_header_size_msb = Klass::_lh_header_size_shift + lh_header_size_width;
-          __ slli(tmp1, tmp1, registerSize - lh_header_size_msb);
-          __ srli(tmp1, tmp1, registerSize - lh_header_size_width);
+          __ slli(tmp1, tmp1, XLEN - lh_header_size_msb);
+          __ srli(tmp1, tmp1, XLEN - lh_header_size_width);
           __ add(arr_size, arr_size, tmp1);
           __ addi(arr_size, arr_size, MinObjAlignmentInBytesMask); // align up
           __ andi(arr_size, arr_size, ~(uint)MinObjAlignmentInBytesMask);

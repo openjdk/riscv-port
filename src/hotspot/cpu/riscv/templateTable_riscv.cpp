@@ -484,8 +484,8 @@ void TemplateTable::condy_helper(Label& Done)
   __ add(off, obj, off);
   const Address field(off, 0); // base + R---->base + offset
 
-  __ slli(flags, flags, registerSize - (ConstantPoolCacheEntry::tos_state_shift + ConstantPoolCacheEntry::tos_state_bits));
-  __ srli(flags, flags, registerSize - ConstantPoolCacheEntry::tos_state_bits); // (1 << 5) - 4 --> 28~31==> flags:0~3
+  __ slli(flags, flags, XLEN - (ConstantPoolCacheEntry::tos_state_shift + ConstantPoolCacheEntry::tos_state_bits));
+  __ srli(flags, flags, XLEN - ConstantPoolCacheEntry::tos_state_bits); // (1 << 5) - 4 --> 28~31==> flags:0~3
 
   switch (bytecode()) {
     case Bytecodes::_ldc:   // fall through
@@ -1571,7 +1571,7 @@ void TemplateTable::wide_iinc()
   transition(vtos, vtos);
   __ lwu(x11, at_bcp(2)); // get constant and index
   __ grev16wu(x11, x11); // reverse bytes in half-word (32bit) and zero-extend
-  __ zero_ext(x12, x11, 48);
+  __ zero_extend(x12, x11, 16);
   __ neg(x12, x12);
   __ slli(x11, x11, 32);
   __ srai(x11, x11, 48);
@@ -1630,7 +1630,7 @@ void TemplateTable::convert()
   // Conversion
   switch (bytecode()) {
     case Bytecodes::_i2l:
-      __ sign_ext(x10, x10, registerSize - 32);
+      __ sign_extend(x10, x10, 32);
       break;
     case Bytecodes::_i2f:
       __ fcvt_s_w(f10, x10);
@@ -1639,13 +1639,13 @@ void TemplateTable::convert()
       __ fcvt_d_w(f10, x10);
       break;
     case Bytecodes::_i2b:
-      __ sign_ext(x10, x10, registerSize - 8);
+      __ sign_extend(x10, x10, 8);
       break;
     case Bytecodes::_i2c:
-      __ zero_ext(x10, x10, registerSize - 16);
+      __ zero_extend(x10, x10, 16);
       break;
     case Bytecodes::_i2s:
-      __ sign_ext(x10, x10, registerSize - 16);
+      __ sign_extend(x10, x10, 16);
       break;
     case Bytecodes::_l2i:
       __ addw(x10, x10, zr);
@@ -2445,9 +2445,9 @@ void TemplateTable::getfield_or_static(int byte_no, bool is_static, RewriteContr
   Label Done, notByte, notBool, notInt, notShort, notChar,
               notLong, notFloat, notObj, notDouble;
 
-  __ slli(flags, raw_flags, registerSize - (ConstantPoolCacheEntry::tos_state_shift +
-                                            ConstantPoolCacheEntry::tos_state_bits));
-  __ srli(flags, flags, registerSize - ConstantPoolCacheEntry::tos_state_bits);
+  __ slli(flags, raw_flags, XLEN - (ConstantPoolCacheEntry::tos_state_shift +
+                                    ConstantPoolCacheEntry::tos_state_bits));
+  __ srli(flags, flags, XLEN - ConstantPoolCacheEntry::tos_state_bits);
 
   assert(btos == 0, "change code, btos != 0");
   __ bnez(flags, notByte);
@@ -2680,9 +2680,9 @@ void TemplateTable::putfield_or_static(int byte_no, bool is_static, RewriteContr
   Label notByte, notBool, notInt, notShort, notChar,
         notLong, notFloat, notObj, notDouble;
 
-  __ slli(flags, flags, registerSize - (ConstantPoolCacheEntry::tos_state_shift +
-                                        ConstantPoolCacheEntry::tos_state_bits));
-  __ srli(flags, flags, registerSize - ConstantPoolCacheEntry::tos_state_bits);
+  __ slli(flags, flags, XLEN - (ConstantPoolCacheEntry::tos_state_shift +
+                                ConstantPoolCacheEntry::tos_state_bits));
+  __ srli(flags, flags, XLEN - ConstantPoolCacheEntry::tos_state_bits);
 
   assert(btos == 0, "change code, btos != 0");
   __ bnez(flags, notByte);
@@ -3231,8 +3231,8 @@ void TemplateTable::prepare_invoke(int byte_no,
   }
 
   // compute return type
-  __ slli(t1, flags, registerSize - (ConstantPoolCacheEntry::tos_state_shift + ConstantPoolCacheEntry::tos_state_bits));
-  __ srli(t1, t1, registerSize - ConstantPoolCacheEntry::tos_state_bits); // (1 << 5) - 4 --> 28~31==> t1:0~3
+  __ slli(t1, flags, XLEN - (ConstantPoolCacheEntry::tos_state_shift + ConstantPoolCacheEntry::tos_state_bits));
+  __ srli(t1, t1, XLEN - ConstantPoolCacheEntry::tos_state_bits); // (1 << 5) - 4 --> 28~31==> t1:0~3
 
   // load return address
   {

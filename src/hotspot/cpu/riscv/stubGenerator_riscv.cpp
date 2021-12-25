@@ -1559,8 +1559,8 @@ class StubGenerator: public StubCodeGenerator {
     __ bgtu(temp, t0, L_failed);
 
     // Have to clean up high 32 bits of 'src_pos' and 'dst_pos'.
-    __ clear_upper_bits(src_pos, 32);
-    __ clear_upper_bits(dst_pos, 32);
+    __ zero_extend(src_pos, src_pos, 32);
+    __ zero_extend(dst_pos, dst_pos, 32);
 
     BLOCK_COMMENT("arraycopy_range_checks done");
   }
@@ -1774,8 +1774,8 @@ class StubGenerator: public StubCodeGenerator {
     // Get array_header_in_bytes()
     int lh_header_size_width = log2i_exact(Klass::_lh_header_size_mask + 1);
     int lh_header_size_msb = Klass::_lh_header_size_shift + lh_header_size_width;
-    __ slli(t0_offset, lh, registerSize - lh_header_size_msb);          // left shift to remove 24 ~ 32;
-    __ srli(t0_offset, t0_offset, registerSize - lh_header_size_width); // array_offset
+    __ slli(t0_offset, lh, XLEN - lh_header_size_msb);          // left shift to remove 24 ~ 32;
+    __ srli(t0_offset, t0_offset, XLEN - lh_header_size_width); // array_offset
 
     __ add(src, src, t0_offset);           // src array offset
     __ add(dst, dst, t0_offset);           // dst array offset

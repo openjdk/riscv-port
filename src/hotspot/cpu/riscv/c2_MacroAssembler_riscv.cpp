@@ -450,10 +450,10 @@ void C2_MacroAssembler::string_indexof(Register haystack, Register needle,
     // convert Latin1 to UTF. eg: 0x0000abcd -> 0x0a0b0c0d
     // We'll have to wait until load completed, but it's still faster than per-character loads+checks
     srli(tmp3, tmp6, BitsPerByte * (wordSize / 2 - needle_chr_size)); // pattern[m-1], eg:0x0000000a
-    slli(ch2, tmp6, registerSize - 24);
-    srli(ch2, ch2, registerSize - 8); // pattern[m-2], 0x0000000b
-    slli(ch1, tmp6, registerSize - 16);
-    srli(ch1, ch1, registerSize - 8); // pattern[m-3], 0x0000000c
+    slli(ch2, tmp6, XLEN - 24);
+    srli(ch2, ch2, XLEN - 8); // pattern[m-2], 0x0000000b
+    slli(ch1, tmp6, XLEN - 16);
+    srli(ch1, ch1, XLEN - 8); // pattern[m-3], 0x0000000c
     andi(tmp6, tmp6, 0xff); // pattern[m-4], 0x0000000d
     slli(ch2, ch2, 16);
     orr(ch2, ch2, ch1); // 0x00000b0c
