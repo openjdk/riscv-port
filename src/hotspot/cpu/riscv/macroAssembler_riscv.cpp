@@ -683,6 +683,10 @@ void MacroAssembler::sext_w(Register Rd, Register Rs) {
   addiw(Rd, Rs, 0);
 }
 
+void MacroAssembler::zext_b(Register Rd, Register Rs) {
+  andi(Rd, Rs, 0xFF);
+}
+
 void MacroAssembler::seqz(Register Rd, Register Rs) {
   sltiu(Rd, Rs, 1);
 }
@@ -3437,8 +3441,13 @@ void MacroAssembler::zero_extend(Register dst, Register src, int bits) {
       return;
     }
   }
-  slli(dst, src, XLEN - bits);
-  srli(dst, dst, XLEN - bits);
+
+  if (bits == 8) {
+    zext_b(dst, src);
+  } else {
+    slli(dst, src, XLEN - bits);
+    srli(dst, dst, XLEN - bits);
+  }
 }
 
 void MacroAssembler::sign_extend(Register dst, Register src, int bits) {

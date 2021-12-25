@@ -403,6 +403,7 @@ class MacroAssembler: public Assembler {
   void neg(Register Rd, Register Rs);
   void negw(Register Rd, Register Rs);
   void sext_w(Register Rd, Register Rs);
+  void zext_b(Register Rd, Register Rs);
   void seqz(Register Rd, Register Rs);          // set if = zero
   void snez(Register Rd, Register Rs);          // set if != zero
   void sltz(Register Rd, Register Rs);          // set if < zero
