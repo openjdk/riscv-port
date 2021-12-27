@@ -1669,7 +1669,7 @@ void MacroAssembler::movoop(Register dst, jobject obj, bool immediate) {
   // ordered with respected to oop access.
   // Using immediate literals would necessitate fence.i.
   if (BarrierSet::barrier_set()->barrier_set_nmethod() != NULL || !immediate) {
-    address dummy = address(uintptr_t(pc()) & -wordSize); // A nearby    address
+    address dummy = address(uintptr_t(pc()) & -wordSize); // A nearby aligned address
     ld_constant(dst, Address(dummy, rspec));
   } else
     mv(dst, Address((address)obj, rspec));
