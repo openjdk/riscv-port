@@ -1669,7 +1669,7 @@ void MacroAssembler::movoop(Register dst, jobject obj, bool immediate) {
   // ordered with respected to oop access.
   // Using immediate literals would necessitate fence.i.
   if (BarrierSet::barrier_set()->barrier_set_nmethod() != NULL || !immediate) {
-    address dummy = address(uintptr_t(pc()) & -wordSize); // A nearby aligned address
+    address dummy = address(uintptr_t(pc()) & -wordSize); // A nearby    address
     ld_constant(dst, Address(dummy, rspec));
   } else
     mv(dst, Address((address)obj, rspec));
@@ -3431,8 +3431,8 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   add(t0, z, t0);
   sw(carry, Address(t0, 0));
 
-  Label L_second_loop_unaliged;
-  bind(L_second_loop_unaliged);
+  Label L_second_loop_unaligned;
+  bind(L_second_loop_unaligned);
   mv(carry, zr);
   mv(jdx, ylen);
   sub(xstart, xstart, 1);
@@ -3472,7 +3472,7 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   add(t0, z, t0);
   sw(carry, Address(t0, 0));
 
-  j(L_second_loop_unaliged);
+  j(L_second_loop_unaligned);
 
   bind(L_multiply_64_x_64_loop);
   multiply_64_x_64_loop(x, xstart, x_xstart, y, y_idx, z, carry, product, idx, kdx);
