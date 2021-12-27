@@ -183,6 +183,14 @@ void VM_Version::c2_initialize() {
   if (FLAG_IS_DEFAULT(UseMulAddIntrinsic)) {
     FLAG_SET_DEFAULT(UseMulAddIntrinsic, true);
   }
+
+  if (FLAG_IS_DEFAULT(UseMultiplyToLenIntrinsic)) {
+    FLAG_SET_DEFAULT(UseMultiplyToLenIntrinsic, true);
+  }
+
+  if (FLAG_IS_DEFAULT(UseSquareToLenIntrinsic)) {
+    FLAG_SET_DEFAULT(UseSquareToLenIntrinsic, true);
+  }
 }
 #endif // COMPILER2
 

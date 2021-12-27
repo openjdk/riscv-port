@@ -2793,6 +2793,82 @@ class StubGenerator: public StubCodeGenerator {
 
     return entry;
   }
+
+  /**
+   *  Arguments:
+   *
+   *  Input:
+   *    c_rarg0   - x address
+   *    c_rarg1   - x length
+   *    c_rarg2   - y address
+   *    c_rarg3   - y length
+   *    c_rarg4   - z address
+   *    c_rarg5   - z length
+   */
+  address generate_multiplyToLen()
+  {
+    __ align(CodeEntryAlignment);
+    StubCodeMark mark(this, "StubRoutines", "multiplyToLen");
+    address entry = __ pc();
+
+    const Register x     = x10;
+    const Register xlen  = x11;
+    const Register y     = x12;
+    const Register ylen  = x13;
+    const Register z     = x14;
+    const Register zlen  = x15;
+
+    const Register tmp1  = x16;
+    const Register tmp2  = x17;
+    const Register tmp3  = x7;
+    const Register tmp4  = x28;
+    const Register tmp5  = x29;
+    const Register tmp6  = x30;
+    const Register tmp7  = x31;
+
+    BLOCK_COMMENT("Entry:");
+    __ enter(); // required for proper stackwalking of RuntimeStub frame
+    __ multiply_to_len(x, xlen, y, ylen, z, zlen, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7);
+    __ leave(); // required for proper stackwalking of RuntimeStub frame
+    __ ret();
+
+    return entry;
+  }
+
+  address generate_squareToLen()
+  {
+    // squareToLen algorithm for sizes 1..127 described in java code works
+    // faster than multiply_to_len on some CPUs and slower on others, but
+    // multiply_to_len shows a bit better overall results
+    __ align(CodeEntryAlignment);
+    StubCodeMark mark(this, "StubRoutines", "squareToLen");
+    address entry = __ pc();
+
+    const Register x     = x10;
+    const Register xlen  = x11;
+    const Register z     = x12;
+    const Register zlen  = x13;
+    const Register y     = x14; // == x
+    const Register ylen  = x15; // == xlen
+
+    const Register tmp1  = x16;
+    const Register tmp2  = x17;
+    const Register tmp3  = x7;
+    const Register tmp4  = x28;
+    const Register tmp5  = x29;
+    const Register tmp6  = x30;
+    const Register tmp7  = x31;
+
+    BLOCK_COMMENT("Entry:");
+    __ enter();
+    __ mv(y, x);
+    __ mv(ylen, xlen);
+    __ multiply_to_len(x, xlen, y, ylen, z, zlen, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7);
+    __ leave();
+    __ ret();
+
+    return entry;
+  }
 #endif
 
   // Continuation point for throwing of implicit exceptions that are
@@ -2968,6 +3044,14 @@ class StubGenerator: public StubCodeGenerator {
 #ifdef COMPILER2
     if (UseMulAddIntrinsic) {
       StubRoutines::_mulAdd = generate_mulAdd();
+    }
+
+    if (UseMultiplyToLenIntrinsic) {
+      StubRoutines::_multiplyToLen = generate_multiplyToLen();
+    }
+
+    if (UseSquareToLenIntrinsic) {
+      StubRoutines::_squareToLen = generate_squareToLen();
     }
 #endif
 

@@ -649,6 +649,30 @@ class MacroAssembler: public Assembler {
 #ifdef COMPILER2
   void mul_add(Register out, Register in, Register offset,
                Register len, Register k, Register tmp);
+  void cad(Register dst, Register src1, Register src2, Register carry);
+  void cadc(Register dst, Register src1, Register src2, Register carry);
+  void adc(Register dst, Register src1, Register src2, Register carry);
+  void add2_with_carry(Register final_dest_hi, Register dest_hi, Register dest_lo,
+                       Register src1, Register src2, Register carry);
+  void ror(Register dst, Register src, uint32_t imm, Register tmp = t0);
+  void multiply_32_x_32_loop(Register x, Register xstart, Register x_xstart,
+                             Register y, Register y_idx, Register z,
+                             Register carry, Register product,
+                             Register idx, Register kdx);
+  void multiply_64_x_64_loop(Register x, Register xstart, Register x_xstart,
+                             Register y, Register y_idx, Register z,
+                             Register carry, Register product,
+                             Register idx, Register kdx);
+  void multiply_128_x_128_loop(Register y, Register z,
+                               Register carry, Register carry2,
+                               Register idx, Register jdx,
+                               Register yz_idx1, Register yz_idx2,
+                               Register tmp, Register tmp3, Register tmp4,
+                               Register tmp6, Register product_hi);
+  void multiply_to_len(Register x, Register xlen, Register y, Register ylen,
+                       Register z, Register zlen,
+                       Register tmp1, Register tmp2, Register tmp3, Register tmp4,
+                       Register tmp5, Register tmp6, Register product_hi);
 #endif
 
   void inflate_lo32(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2 = t1);
