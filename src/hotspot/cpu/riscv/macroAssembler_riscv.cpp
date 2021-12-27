@@ -3246,7 +3246,7 @@ void MacroAssembler::multiply_64_x_64_loop(Register x, Register xstart, Register
 }
 
 /**
- * Multiply 128 bit by 128. Unrolled inner loop.
+ * Multiply 128 bit by 128 bit. Unrolled inner loop.
  *
  */
 void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
@@ -3378,7 +3378,7 @@ void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
 }
 
 /**
- * Code for BigInteger::multiplyToLen() instrinsic.
+ * Code for BigInteger::multiplyToLen() intrinsic.
  *
  * x10: x
  * x11: xlen
@@ -3414,25 +3414,25 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   mv(kdx, zlen); // kdx = xlen+ylen;
   mv(carry, zr); // carry = 0;
 
-  Label L_multiply_64_or_128, L_done;
+  Label L_multiply_64_x_64_loop, L_done;
 
   sub(xstart, xlen, 1);
   bltz(xstart, L_done);
 
   const Register jdx = tmp1;
 
-  // if x and y are both 8 bytes aligend.
+  // Check if x and y are both 8-byte aligned.
   orr(t0, xlen, ylen);
   andi(t0, t0, 0x1);
-  beqz(t0, L_multiply_64_or_128);
+  beqz(t0, L_multiply_64_x_64_loop);
 
   multiply_32_x_32_loop(x, xstart, x_xstart, y, y_idx, z, carry, product, idx, kdx);
   slli(t0, xstart, LogBytesPerInt);
   add(t0, z, t0);
   sw(carry, Address(t0, 0));
 
-  Label L_second_loop_1;
-  bind(L_second_loop_1);
+  Label L_second_loop_unaliged;
+  bind(L_second_loop_unaliged);
   mv(carry, zr);
   mv(jdx, ylen);
   sub(xstart, xstart, 1);
@@ -3472,13 +3472,13 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   add(t0, z, t0);
   sw(carry, Address(t0, 0));
 
-  j(L_second_loop_1);
+  j(L_second_loop_unaliged);
 
-  bind(L_multiply_64_or_128);
+  bind(L_multiply_64_x_64_loop);
   multiply_64_x_64_loop(x, xstart, x_xstart, y, y_idx, z, carry, product, idx, kdx);
 
-  Label L_second_loop_2;
-  beqz(kdx, L_second_loop_2);
+  Label L_second_loop_aligned;
+  beqz(kdx, L_second_loop_aligned);
 
   Label L_carry;
   sub(kdx, kdx, 1);
@@ -3510,7 +3510,7 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   //
   // i = xlen, j = tmp1, k = tmp2, carry = tmp5, x[i] = product_hi
 
-  bind(L_second_loop_2);
+  bind(L_second_loop_aligned);
   mv(carry, zr); // carry = 0;
   mv(jdx, ylen); // j = ystart+1
 
@@ -3558,7 +3558,7 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   slli(t0, tmp3, LogBytesPerInt);
   add(t0, z, t0);
   sw(carry, Address(t0, 0));
-  j(L_second_loop_2);
+  j(L_second_loop_aligned);
 
   // Next infrequent code is moved outside loops.
   bind(L_last_x);

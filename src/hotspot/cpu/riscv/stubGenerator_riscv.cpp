@@ -2837,9 +2837,6 @@ class StubGenerator: public StubCodeGenerator {
 
   address generate_squareToLen()
   {
-    // squareToLen algorithm for sizes 1..127 described in java code works
-    // faster than multiply_to_len on some CPUs and slower on others, but
-    // multiply_to_len shows a bit better overall results
     __ align(CodeEntryAlignment);
     StubCodeMark mark(this, "StubRoutines", "squareToLen");
     address entry = __ pc();
