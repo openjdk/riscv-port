@@ -3421,58 +3421,60 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
 
   const Register jdx = tmp1;
 
-  // Check if x and y are both 8-byte aligned.
-  orr(t0, xlen, ylen);
-  andi(t0, t0, 0x1);
-  beqz(t0, L_multiply_64_x_64_loop);
+  if (AvoidUnalignedAccesses) {
+    // Check if x and y are both 8-byte aligned.
+    orr(t0, xlen, ylen);
+    andi(t0, t0, 0x1);
+    beqz(t0, L_multiply_64_x_64_loop);
 
-  multiply_32_x_32_loop(x, xstart, x_xstart, y, y_idx, z, carry, product, idx, kdx);
-  slli(t0, xstart, LogBytesPerInt);
-  add(t0, z, t0);
-  sw(carry, Address(t0, 0));
+    multiply_32_x_32_loop(x, xstart, x_xstart, y, y_idx, z, carry, product, idx, kdx);
+    slli(t0, xstart, LogBytesPerInt);
+    add(t0, z, t0);
+    sw(carry, Address(t0, 0));
 
-  Label L_second_loop_unaligned;
-  bind(L_second_loop_unaligned);
-  mv(carry, zr);
-  mv(jdx, ylen);
-  sub(xstart, xstart, 1);
-  bltz(xstart, L_done);
-  sub(sp, sp, 2 * wordSize);
-  sd(z, Address(sp, 0));
-  sd(zr, Address(sp, wordSize));
-  slli(t0, xstart, LogBytesPerInt);
-  add(t0, z, t0);
-  addi(z, t0, 4);
-  slli(t0, xstart, LogBytesPerInt);
-  add(t0, x, t0);
-  lwu(product, Address(t0, 0));
-  Label L_third_loop, L_third_loop_exit;
+    Label L_second_loop_unaligned;
+    bind(L_second_loop_unaligned);
+    mv(carry, zr);
+    mv(jdx, ylen);
+    sub(xstart, xstart, 1);
+    bltz(xstart, L_done);
+    sub(sp, sp, 2 * wordSize);
+    sd(z, Address(sp, 0));
+    sd(zr, Address(sp, wordSize));
+    slli(t0, xstart, LogBytesPerInt);
+    add(t0, z, t0);
+    addi(z, t0, 4);
+    slli(t0, xstart, LogBytesPerInt);
+    add(t0, x, t0);
+    lwu(product, Address(t0, 0));
+    Label L_third_loop, L_third_loop_exit;
 
-  blez(jdx, L_third_loop_exit);
+    blez(jdx, L_third_loop_exit);
 
-  bind(L_third_loop);
-  sub(jdx, jdx, 1);
-  slli(t0, jdx, LogBytesPerInt);
-  add(t0, y, t0);
-  lwu(t0, Address(t0, 0));
-  mul(t1, t0, product);
-  add(t0, t1, carry);
-  slli(t1, jdx, LogBytesPerInt);
-  add(tmp6, z, t1);
-  lwu(t1, Address(tmp6, 0));
-  add(t0, t0, t1);
-  sw(t0, Address(tmp6, 0));
-  srli(carry, t0, 32);
-  bgtz(jdx, L_third_loop);
+    bind(L_third_loop);
+    sub(jdx, jdx, 1);
+    slli(t0, jdx, LogBytesPerInt);
+    add(t0, y, t0);
+    lwu(t0, Address(t0, 0));
+    mul(t1, t0, product);
+    add(t0, t1, carry);
+    slli(t1, jdx, LogBytesPerInt);
+    add(tmp6, z, t1);
+    lwu(t1, Address(tmp6, 0));
+    add(t0, t0, t1);
+    sw(t0, Address(tmp6, 0));
+    srli(carry, t0, 32);
+    bgtz(jdx, L_third_loop);
 
-  bind(L_third_loop_exit);
-  ld(z, Address(sp, 0));
-  addi(sp, sp, 2 * wordSize);
-  slli(t0, xstart, LogBytesPerInt);
-  add(t0, z, t0);
-  sw(carry, Address(t0, 0));
+    bind(L_third_loop_exit);
+    ld(z, Address(sp, 0));
+    addi(sp, sp, 2 * wordSize);
+    slli(t0, xstart, LogBytesPerInt);
+    add(t0, z, t0);
+    sw(carry, Address(t0, 0));
 
-  j(L_second_loop_unaligned);
+    j(L_second_loop_unaligned);
+  }
 
   bind(L_multiply_64_x_64_loop);
   multiply_64_x_64_loop(x, xstart, x_xstart, y, y_idx, z, carry, product, idx, kdx);
