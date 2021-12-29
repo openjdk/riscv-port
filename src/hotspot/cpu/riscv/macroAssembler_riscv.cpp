@@ -3053,11 +3053,12 @@ void MacroAssembler::mul_add(Register out, Register in, Register offset,
   Label L_tail_loop, L_unroll, L_end;
   mv(tmp, out);
   mv(out, zr);
-  beqz(len, L_end);
+  sign_extend(len, len, 32);
+  blez(len, L_end);
   zero_extend(k, k, 32);
-  slli(t0, offset, LogBytesPerInt);
+  slliw(t0, offset, LogBytesPerInt);
   add(offset, tmp, t0);
-  slli(t0, len, LogBytesPerInt);
+  slliw(t0, len, LogBytesPerInt);
   add(in, in, t0);
 
   const int unroll = 8;
@@ -3075,11 +3076,11 @@ void MacroAssembler::mul_add(Register out, Register in, Register offset,
     sw(t0, Address(offset, 0));
     srli(out, t0, 32);
   }
-  sub(len, len, tmp);
+  subw(len, len, tmp);
   bge(len, tmp, L_unroll);
 
   bind(L_tail_loop);
-  beqz(len, L_end);
+  blez(len, L_end);
   sub(in, in, BytesPerInt);
   lwu(t0, Address(in, 0));
   mul(t1, t0, k);
@@ -3089,10 +3090,485 @@ void MacroAssembler::mul_add(Register out, Register in, Register offset,
   add(t0, t0, t1);
   sw(t0, Address(offset, 0));
   srli(out, t0, 32);
-  sub(len, len, 1);
+  subw(len, len, 1);
   j(L_tail_loop);
 
   bind(L_end);
+}
+
+// add two unsigned input and output carry
+void MacroAssembler::cad(Register dst, Register src1, Register src2, Register carry)
+{
+  assert_different_registers(dst, carry);
+  assert_different_registers(dst, src2);
+  add(dst, src1, src2);
+  sltu(carry, dst, src2);
+}
+
+// add two input with carry
+void MacroAssembler::adc(Register dst, Register src1, Register src2, Register carry)
+{
+  assert_different_registers(dst, carry);
+  add(dst, src1, src2);
+  add(dst, dst, carry);
+}
+
+// add two unsigned input with carry and output carry
+void MacroAssembler::cadc(Register dst, Register src1, Register src2, Register carry)
+{
+  assert_different_registers(dst, src2);
+  adc(dst, src1, src2, carry);
+  sltu(carry, dst, src2);
+}
+
+// rotate right with shift bits
+void MacroAssembler::ror(Register dst, Register src, uint32_t shift, Register tmp)
+{
+  assert_different_registers(dst, tmp);
+  assert_different_registers(src, tmp);
+  assert(shift <= 64, "shift amount must be <= 64");
+  slli(tmp, src, 64 - shift);
+  srli(dst, src, shift);
+  orr(dst, dst, tmp);
+}
+
+void MacroAssembler::add2_with_carry(Register final_dest_hi, Register dest_hi, Register dest_lo,
+                                     Register src1, Register src2, Register carry)
+{
+  cad(dest_lo, dest_lo, src1, carry);
+  add(dest_hi, dest_hi, carry);
+  cad(dest_lo, dest_lo, src2, carry);
+  add(final_dest_hi, dest_hi, carry);
+}
+
+/**
+ * Multiply 32 bit by 32 bit first loop.
+ */
+void MacroAssembler::multiply_32_x_32_loop(Register x, Register xstart, Register x_xstart,
+                                           Register y, Register y_idx, Register z,
+                                           Register carry, Register product,
+                                           Register idx, Register kdx)
+{
+  // jlong carry, x[], y[], z[];
+  // for (int idx=ystart, kdx=ystart+1+xstart; idx >= 0; idx--, kdx--) {
+  //     long product = y[idx] * x[xstart] + carry;
+  //     z[kdx] = (int)product;
+  //     carry = product >>> 32;
+  // }
+  // z[xstart] = (int)carry;
+
+  Label L_first_loop, L_first_loop_exit;
+  blez(idx, L_first_loop_exit);
+
+  slli(t0, xstart, LogBytesPerInt);
+  add(t0, x, t0);
+  lwu(x_xstart, Address(t0, 0));
+
+  bind(L_first_loop);
+  subw(idx, idx, 1);
+  slli(t0, idx, LogBytesPerInt);
+  add(t0, y, t0);
+  lwu(y_idx, Address(t0, 0));
+  mul(product, x_xstart, y_idx);
+  add(product, product, carry);
+  srli(carry, product, 32);
+  subw(kdx, kdx, 1);
+  slli(t0, kdx, LogBytesPerInt);
+  add(t0, z, t0);
+  sw(product, Address(t0, 0));
+  bgtz(idx, L_first_loop);
+
+  bind(L_first_loop_exit);
+}
+
+/**
+ * Multiply 64 bit by 64 bit first loop.
+ */
+void MacroAssembler::multiply_64_x_64_loop(Register x, Register xstart, Register x_xstart,
+                                           Register y, Register y_idx, Register z,
+                                           Register carry, Register product,
+                                           Register idx, Register kdx)
+{
+  //
+  //  jlong carry, x[], y[], z[];
+  //  for (int idx=ystart, kdx=ystart+1+xstart; idx >= 0; idx--, kdx--) {
+  //    huge_128 product = y[idx] * x[xstart] + carry;
+  //    z[kdx] = (jlong)product;
+  //    carry  = (jlong)(product >>> 64);
+  //  }
+  //  z[xstart] = carry;
+  //
+
+  Label L_first_loop, L_first_loop_exit;
+  Label L_one_x, L_one_y, L_multiply;
+
+  subw(xstart, xstart, 1);
+  bltz(xstart, L_one_x);
+
+  slli(t0, xstart, LogBytesPerInt);
+  add(t0, x, t0);
+  ld(x_xstart, Address(t0, 0));
+  ror(x_xstart, x_xstart, 32); // convert big-endian to little-endian
+
+  bind(L_first_loop);
+  subw(idx, idx, 1);
+  bltz(idx, L_first_loop_exit);
+  subw(idx, idx, 1);
+  bltz(idx, L_one_y);
+
+  slli(t0, idx, LogBytesPerInt);
+  add(t0, y, t0);
+  ld(y_idx, Address(t0, 0));
+  ror(y_idx, y_idx, 32); // convert big-endian to little-endian
+  bind(L_multiply);
+
+  mulhu(t0, x_xstart, y_idx);
+  mul(product, x_xstart, y_idx);
+  cad(product, product, carry, t1);
+  adc(carry, t0, zr, t1);
+
+  subw(kdx, kdx, 2);
+  ror(product, product, 32); // back to big-endian
+  slli(t0, kdx, LogBytesPerInt);
+  add(t0, z, t0);
+  sd(product, Address(t0, 0));
+
+  j(L_first_loop);
+
+  bind(L_one_y);
+  lwu(y_idx, Address(y, 0));
+  j(L_multiply);
+
+  bind(L_one_x);
+  lwu(x_xstart, Address(x, 0));
+  j(L_first_loop);
+
+  bind(L_first_loop_exit);
+}
+
+/**
+ * Multiply 128 bit by 128 bit. Unrolled inner loop.
+ *
+ */
+void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
+                                             Register carry, Register carry2,
+                                             Register idx, Register jdx,
+                                             Register yz_idx1, Register yz_idx2,
+                                             Register tmp, Register tmp3, Register tmp4,
+                                             Register tmp6, Register product_hi)
+{
+  //   jlong carry, x[], y[], z[];
+  //   int kdx = xstart+1;
+  //   for (int idx=ystart-2; idx >= 0; idx -= 2) { // Third loop
+  //     huge_128 tmp3 = (y[idx+1] * product_hi) + z[kdx+idx+1] + carry;
+  //     jlong carry2  = (jlong)(tmp3 >>> 64);
+  //     huge_128 tmp4 = (y[idx]   * product_hi) + z[kdx+idx] + carry2;
+  //     carry  = (jlong)(tmp4 >>> 64);
+  //     z[kdx+idx+1] = (jlong)tmp3;
+  //     z[kdx+idx] = (jlong)tmp4;
+  //   }
+  //   idx += 2;
+  //   if (idx > 0) {
+  //     yz_idx1 = (y[idx] * product_hi) + z[kdx+idx] + carry;
+  //     z[kdx+idx] = (jlong)yz_idx1;
+  //     carry  = (jlong)(yz_idx1 >>> 64);
+  //   }
+  //
+
+  Label L_third_loop, L_third_loop_exit, L_post_third_loop_done;
+
+  srliw(jdx, idx, 2);
+
+  bind(L_third_loop);
+
+  subw(jdx, jdx, 1);
+  bltz(jdx, L_third_loop_exit);
+  subw(idx, idx, 4);
+
+  slli(t0, idx, LogBytesPerInt);
+  add(t0, y, t0);
+  ld(yz_idx2, Address(t0, 0));
+  ld(yz_idx1, Address(t0, wordSize));
+
+  slli(t0, idx, LogBytesPerInt);
+  add(tmp6, z, t0);
+
+  ror(yz_idx1, yz_idx1, 32); // convert big-endian to little-endian
+  ror(yz_idx2, yz_idx2, 32);
+
+  ld(t1, Address(tmp6, 0));
+  ld(t0, Address(tmp6, wordSize));
+
+  mul(tmp3, product_hi, yz_idx1); //  yz_idx1 * product_hi -> tmp4:tmp3
+  mulhu(tmp4, product_hi, yz_idx1);
+
+  ror(t0, t0, 32, tmp); // convert big-endian to little-endian
+  ror(t1, t1, 32, tmp);
+
+  mul(tmp, product_hi, yz_idx2); //  yz_idx2 * product_hi -> carry2:tmp
+  mulhu(carry2, product_hi, yz_idx2);
+
+  cad(tmp3, tmp3, carry, carry);
+  adc(tmp4, tmp4, zr, carry);
+  cad(tmp3, tmp3, t0, t0);
+  cadc(tmp4, tmp4, tmp, t0);
+  adc(carry, carry2, zr, t0);
+  cad(tmp4, tmp4, t1, carry2);
+  adc(carry, carry, zr, carry2);
+
+  ror(tmp3, tmp3, 32); // convert little-endian to big-endian
+  ror(tmp4, tmp4, 32);
+  sd(tmp4, Address(tmp6, 0));
+  sd(tmp3, Address(tmp6, wordSize));
+
+  j(L_third_loop);
+
+  bind(L_third_loop_exit);
+
+  andi(idx, idx, 0x3);
+  beqz(idx, L_post_third_loop_done);
+
+  Label L_check_1;
+  subw(idx, idx, 2);
+  bltz(idx, L_check_1);
+
+  slli(t0, idx, LogBytesPerInt);
+  add(t0, y, t0);
+  ld(yz_idx1, Address(t0, 0));
+  ror(yz_idx1, yz_idx1, 32);
+
+  mul(tmp3, product_hi, yz_idx1); //  yz_idx1 * product_hi -> tmp4:tmp3
+  mulhu(tmp4, product_hi, yz_idx1);
+
+  slli(t0, idx, LogBytesPerInt);
+  add(t0, z, t0);
+  ld(yz_idx2, Address(t0, 0));
+  ror(yz_idx2, yz_idx2, 32, tmp);
+
+  add2_with_carry(carry, tmp4, tmp3, carry, yz_idx2, tmp);
+
+  ror(tmp3, tmp3, 32, tmp);
+  sd(tmp3, Address(t0, 0));
+
+  bind(L_check_1);
+
+  andi(idx, idx, 0x1);
+  subw(idx, idx, 1);
+  bltz(idx, L_post_third_loop_done);
+  slli(t0, idx, LogBytesPerInt);
+  add(t0, y, t0);
+  lwu(tmp4, Address(t0, 0));
+  mul(tmp3, tmp4, product_hi); //  tmp4 * product_hi -> carry2:tmp3
+  mulhu(carry2, tmp4, product_hi);
+
+  slli(t0, idx, LogBytesPerInt);
+  add(t0, z, t0);
+  lwu(tmp4, Address(t0, 0));
+
+  add2_with_carry(carry2, carry2, tmp3, tmp4, carry, t0);
+
+  slli(t0, idx, LogBytesPerInt);
+  add(t0, z, t0);
+  sw(tmp3, Address(t0, 0));
+
+  slli(t0, carry2, 32);
+  srli(carry, tmp3, 32);
+  orr(carry, carry, t0);
+
+  bind(L_post_third_loop_done);
+}
+
+/**
+ * Code for BigInteger::multiplyToLen() intrinsic.
+ *
+ * x10: x
+ * x11: xlen
+ * x12: y
+ * x13: ylen
+ * x14: z
+ * x15: zlen
+ * x16: tmp1
+ * x17: tmp2
+ * x7:  tmp3
+ * x28: tmp4
+ * x29: tmp5
+ * x30: tmp6
+ * x31: tmp7
+ */
+void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Register ylen,
+                                     Register z, Register zlen,
+                                     Register tmp1, Register tmp2, Register tmp3, Register tmp4,
+                                     Register tmp5, Register tmp6, Register product_hi)
+{
+  assert_different_registers(x, xlen, y, ylen, z, zlen, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6);
+
+  const Register idx = tmp1;
+  const Register kdx = tmp2;
+  const Register xstart = tmp3;
+
+  const Register y_idx = tmp4;
+  const Register carry = tmp5;
+  const Register product = xlen;
+  const Register x_xstart = zlen; // reuse register
+
+  sign_extend(idx, ylen, 32); // idx = ylen;
+  sign_extend(kdx, zlen, 32); // kdx = xlen+ylen;
+  mv(carry, zr); // carry = 0;
+
+  Label L_multiply_64_x_64_loop, L_done;
+
+  subw(xstart, xlen, 1);
+  bltz(xstart, L_done);
+
+  const Register jdx = tmp1;
+
+  if (AvoidUnalignedAccesses) {
+    // Check if x and y are both 8-byte aligned.
+    orr(t0, xlen, ylen);
+    andi(t0, t0, 0x1);
+    beqz(t0, L_multiply_64_x_64_loop);
+
+    multiply_32_x_32_loop(x, xstart, x_xstart, y, y_idx, z, carry, product, idx, kdx);
+    slli(t0, xstart, LogBytesPerInt);
+    add(t0, z, t0);
+    sw(carry, Address(t0, 0));
+
+    Label L_second_loop_unaligned;
+    bind(L_second_loop_unaligned);
+    mv(carry, zr);
+    sign_extend(jdx, ylen, 32);
+    subw(xstart, xstart, 1);
+    bltz(xstart, L_done);
+    sub(sp, sp, 2 * wordSize);
+    sd(z, Address(sp, 0));
+    sd(zr, Address(sp, wordSize));
+    slli(t0, xstart, LogBytesPerInt);
+    add(t0, z, t0);
+    addi(z, t0, 4);
+    slli(t0, xstart, LogBytesPerInt);
+    add(t0, x, t0);
+    lwu(product, Address(t0, 0));
+    Label L_third_loop, L_third_loop_exit;
+
+    blez(jdx, L_third_loop_exit);
+
+    bind(L_third_loop);
+    subw(jdx, jdx, 1);
+    slli(t0, jdx, LogBytesPerInt);
+    add(t0, y, t0);
+    lwu(t0, Address(t0, 0));
+    mul(t1, t0, product);
+    add(t0, t1, carry);
+    slli(t1, jdx, LogBytesPerInt);
+    add(tmp6, z, t1);
+    lwu(t1, Address(tmp6, 0));
+    add(t0, t0, t1);
+    sw(t0, Address(tmp6, 0));
+    srli(carry, t0, 32);
+    bgtz(jdx, L_third_loop);
+
+    bind(L_third_loop_exit);
+    ld(z, Address(sp, 0));
+    addi(sp, sp, 2 * wordSize);
+    slli(t0, xstart, LogBytesPerInt);
+    add(t0, z, t0);
+    sw(carry, Address(t0, 0));
+
+    j(L_second_loop_unaligned);
+  }
+
+  bind(L_multiply_64_x_64_loop);
+  multiply_64_x_64_loop(x, xstart, x_xstart, y, y_idx, z, carry, product, idx, kdx);
+
+  Label L_second_loop_aligned;
+  beqz(kdx, L_second_loop_aligned);
+
+  Label L_carry;
+  subw(kdx, kdx, 1);
+  beqz(kdx, L_carry);
+
+  slli(t0, kdx, LogBytesPerInt);
+  add(t0, z, t0);
+  sw(carry, Address(t0, 0));
+  srli(carry, carry, 32);
+  subw(kdx, kdx, 1);
+
+  bind(L_carry);
+  slli(t0, kdx, LogBytesPerInt);
+  add(t0, z, t0);
+  sw(carry, Address(t0, 0));
+
+  // Second and third (nested) loops.
+  //
+  // for (int i = xstart-1; i >= 0; i--) { // Second loop
+  //   carry = 0;
+  //   for (int jdx=ystart, k=ystart+1+i; jdx >= 0; jdx--, k--) { // Third loop
+  //     long product = (y[jdx] & LONG_MASK) * (x[i] & LONG_MASK) +
+  //                    (z[k] & LONG_MASK) + carry;
+  //     z[k] = (int)product;
+  //     carry = product >>> 32;
+  //   }
+  //   z[i] = (int)carry;
+  // }
+  //
+  // i = xlen, j = tmp1, k = tmp2, carry = tmp5, x[i] = product_hi
+
+  bind(L_second_loop_aligned);
+  mv(carry, zr); // carry = 0;
+  sign_extend(jdx, ylen, 32); // j = ystart+1
+
+  subw(xstart, xstart, 1); // i = xstart-1;
+  bltz(xstart, L_done);
+
+  sub(sp, sp, 4 * wordSize);
+  sd(z, Address(sp, 0));
+
+  Label L_last_x;
+  slli(t0, xstart, LogBytesPerInt);
+  add(t0, z, t0);
+  addi(z, t0, 4);
+  subw(xstart, xstart, 1); // i = xstart-1;
+  bltz(xstart, L_last_x);
+
+  slli(t0, xstart, LogBytesPerInt);
+  add(t0, x, t0);
+  ld(product_hi, Address(t0, 0));
+  ror(product_hi, product_hi, 32); // convert big-endian to little-endian
+
+  Label L_third_loop_prologue;
+  bind(L_third_loop_prologue);
+
+  sd(ylen, Address(sp, wordSize));
+  sd(x, Address(sp, 2 * wordSize));
+  sd(xstart, Address(sp, 3 * wordSize));
+  multiply_128_x_128_loop(y, z, carry, x, jdx, ylen, product,
+                          tmp2, x_xstart, tmp3, tmp4, tmp6, product_hi);
+  ld(z, Address(sp, 0));
+  ld(ylen, Address(sp, wordSize));
+  ld(x, Address(sp, 2 * wordSize));
+  ld(xlen, Address(sp, 3 * wordSize)); // copy old xstart -> xlen
+  addi(sp, sp, 4 * wordSize);
+
+  addiw(tmp3, xlen, 1);
+  slli(t0, tmp3, LogBytesPerInt);
+  add(t0, z, t0);
+  sw(carry, Address(t0, 0));
+
+  subw(tmp3, tmp3, 1);
+  bltz(tmp3, L_done);
+
+  srli(carry, carry, 32);
+  slli(t0, tmp3, LogBytesPerInt);
+  add(t0, z, t0);
+  sw(carry, Address(t0, 0));
+  j(L_second_loop_aligned);
+
+  // Next infrequent code is moved outside loops.
+  bind(L_last_x);
+  lwu(product_hi, Address(x, 0));
+  j(L_third_loop_prologue);
+
+  bind(L_done);
 }
 #endif
 
