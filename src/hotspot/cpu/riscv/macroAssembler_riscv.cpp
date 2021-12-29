@@ -3053,11 +3053,12 @@ void MacroAssembler::mul_add(Register out, Register in, Register offset,
   Label L_tail_loop, L_unroll, L_end;
   mv(tmp, out);
   mv(out, zr);
-  beqz(len, L_end);
+  sign_extend(len, len, 32);
+  blez(len, L_end);
   zero_extend(k, k, 32);
-  slli(t0, offset, LogBytesPerInt);
+  slliw(t0, offset, LogBytesPerInt);
   add(offset, tmp, t0);
-  slli(t0, len, LogBytesPerInt);
+  slliw(t0, len, LogBytesPerInt);
   add(in, in, t0);
 
   const int unroll = 8;
@@ -3075,11 +3076,11 @@ void MacroAssembler::mul_add(Register out, Register in, Register offset,
     sw(t0, Address(offset, 0));
     srli(out, t0, 32);
   }
-  sub(len, len, tmp);
+  subw(len, len, tmp);
   bge(len, tmp, L_unroll);
 
   bind(L_tail_loop);
-  beqz(len, L_end);
+  blez(len, L_end);
   sub(in, in, BytesPerInt);
   lwu(t0, Address(in, 0));
   mul(t1, t0, k);
@@ -3089,7 +3090,7 @@ void MacroAssembler::mul_add(Register out, Register in, Register offset,
   add(t0, t0, t1);
   sw(t0, Address(offset, 0));
   srli(out, t0, 32);
-  sub(len, len, 1);
+  subw(len, len, 1);
   j(L_tail_loop);
 
   bind(L_end);
@@ -3164,14 +3165,14 @@ void MacroAssembler::multiply_32_x_32_loop(Register x, Register xstart, Register
   lwu(x_xstart, Address(t0, 0));
 
   bind(L_first_loop);
-  sub(idx, idx, 1);
+  subw(idx, idx, 1);
   slli(t0, idx, LogBytesPerInt);
   add(t0, y, t0);
   lwu(y_idx, Address(t0, 0));
   mul(product, x_xstart, y_idx);
   add(product, product, carry);
   srli(carry, product, 32);
-  sub(kdx, kdx, 1);
+  subw(kdx, kdx, 1);
   slli(t0, kdx, LogBytesPerInt);
   add(t0, z, t0);
   sw(product, Address(t0, 0));
@@ -3201,7 +3202,7 @@ void MacroAssembler::multiply_64_x_64_loop(Register x, Register xstart, Register
   Label L_first_loop, L_first_loop_exit;
   Label L_one_x, L_one_y, L_multiply;
 
-  sub(xstart, xstart, 1);
+  subw(xstart, xstart, 1);
   bltz(xstart, L_one_x);
 
   slli(t0, xstart, LogBytesPerInt);
@@ -3210,9 +3211,9 @@ void MacroAssembler::multiply_64_x_64_loop(Register x, Register xstart, Register
   ror(x_xstart, x_xstart, 32); // convert big-endian to little-endian
 
   bind(L_first_loop);
-  sub(idx, idx, 1);
+  subw(idx, idx, 1);
   bltz(idx, L_first_loop_exit);
-  sub(idx, idx, 1);
+  subw(idx, idx, 1);
   bltz(idx, L_one_y);
 
   slli(t0, idx, LogBytesPerInt);
@@ -3226,7 +3227,7 @@ void MacroAssembler::multiply_64_x_64_loop(Register x, Register xstart, Register
   cad(product, product, carry, t1);
   adc(carry, t0, zr, t1);
 
-  sub(kdx, kdx, 2);
+  subw(kdx, kdx, 2);
   ror(product, product, 32); // back to big-endian
   slli(t0, kdx, LogBytesPerInt);
   add(t0, z, t0);
@@ -3276,13 +3277,13 @@ void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
 
   Label L_third_loop, L_third_loop_exit, L_post_third_loop_done;
 
-  srli(jdx, idx, 2);
+  srliw(jdx, idx, 2);
 
   bind(L_third_loop);
 
-  sub(jdx, jdx, 1);
+  subw(jdx, jdx, 1);
   bltz(jdx, L_third_loop_exit);
-  sub(idx, idx, 4);
+  subw(idx, idx, 4);
 
   slli(t0, idx, LogBytesPerInt);
   add(t0, y, t0);
@@ -3328,7 +3329,7 @@ void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
   beqz(idx, L_post_third_loop_done);
 
   Label L_check_1;
-  sub(idx, idx, 2);
+  subw(idx, idx, 2);
   bltz(idx, L_check_1);
 
   slli(t0, idx, LogBytesPerInt);
@@ -3352,7 +3353,7 @@ void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
   bind(L_check_1);
 
   andi(idx, idx, 0x1);
-  sub(idx, idx, 1);
+  subw(idx, idx, 1);
   bltz(idx, L_post_third_loop_done);
   slli(t0, idx, LogBytesPerInt);
   add(t0, y, t0);
@@ -3410,13 +3411,13 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   const Register product = xlen;
   const Register x_xstart = zlen; // reuse register
 
-  mv(idx, ylen); // idx = ylen;
-  mv(kdx, zlen); // kdx = xlen+ylen;
+  sign_extend(idx, ylen, 32); // idx = ylen;
+  sign_extend(kdx, zlen, 32); // kdx = xlen+ylen;
   mv(carry, zr); // carry = 0;
 
   Label L_multiply_64_x_64_loop, L_done;
 
-  sub(xstart, xlen, 1);
+  subw(xstart, xlen, 1);
   bltz(xstart, L_done);
 
   const Register jdx = tmp1;
@@ -3435,8 +3436,8 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
     Label L_second_loop_unaligned;
     bind(L_second_loop_unaligned);
     mv(carry, zr);
-    mv(jdx, ylen);
-    sub(xstart, xstart, 1);
+    sign_extend(jdx, ylen, 32);
+    subw(xstart, xstart, 1);
     bltz(xstart, L_done);
     sub(sp, sp, 2 * wordSize);
     sd(z, Address(sp, 0));
@@ -3452,7 +3453,7 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
     blez(jdx, L_third_loop_exit);
 
     bind(L_third_loop);
-    sub(jdx, jdx, 1);
+    subw(jdx, jdx, 1);
     slli(t0, jdx, LogBytesPerInt);
     add(t0, y, t0);
     lwu(t0, Address(t0, 0));
@@ -3483,14 +3484,14 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   beqz(kdx, L_second_loop_aligned);
 
   Label L_carry;
-  sub(kdx, kdx, 1);
+  subw(kdx, kdx, 1);
   beqz(kdx, L_carry);
 
   slli(t0, kdx, LogBytesPerInt);
   add(t0, z, t0);
   sw(carry, Address(t0, 0));
   srli(carry, carry, 32);
-  sub(kdx, kdx, 1);
+  subw(kdx, kdx, 1);
 
   bind(L_carry);
   slli(t0, kdx, LogBytesPerInt);
@@ -3514,9 +3515,9 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
 
   bind(L_second_loop_aligned);
   mv(carry, zr); // carry = 0;
-  mv(jdx, ylen); // j = ystart+1
+  sign_extend(jdx, ylen, 32); // j = ystart+1
 
-  sub(xstart, xstart, 1); // i = xstart-1;
+  subw(xstart, xstart, 1); // i = xstart-1;
   bltz(xstart, L_done);
 
   sub(sp, sp, 4 * wordSize);
@@ -3526,7 +3527,7 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   slli(t0, xstart, LogBytesPerInt);
   add(t0, z, t0);
   addi(z, t0, 4);
-  sub(xstart, xstart, 1); // i = xstart-1;
+  subw(xstart, xstart, 1); // i = xstart-1;
   bltz(xstart, L_last_x);
 
   slli(t0, xstart, LogBytesPerInt);
@@ -3548,12 +3549,12 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   ld(xlen, Address(sp, 3 * wordSize)); // copy old xstart -> xlen
   addi(sp, sp, 4 * wordSize);
 
-  addi(tmp3, xlen, 1);
+  addiw(tmp3, xlen, 1);
   slli(t0, tmp3, LogBytesPerInt);
   add(t0, z, t0);
   sw(carry, Address(t0, 0));
 
-  sub(tmp3, tmp3, 1);
+  subw(tmp3, tmp3, 1);
   bltz(tmp3, L_done);
 
   srli(carry, carry, 32);
