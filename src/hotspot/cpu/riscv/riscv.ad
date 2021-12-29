@@ -2722,11 +2722,47 @@ operand immI_le_4()
   interface(CONST_INTER);
 %}
 
+operand immI_16()
+%{
+  predicate(n->get_int() == 16);
+  match(ConI);
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
+operand immI_24()
+%{
+  predicate(n->get_int() == 24);
+  match(ConI);
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
 operand immI_31()
 %{
   predicate(n->get_int() == 31);
   match(ConI);
 
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
+operand immI_48()
+%{
+  predicate(n->get_int() == 48);
+  match(ConI);
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
+operand immI_56()
+%{
+  predicate(n->get_int() == 56);
+  match(ConI);
   op_cost(0);
   format %{ %}
   interface(CONST_INTER);
@@ -2849,6 +2885,26 @@ operand immByteMapBase()
              ((CardTableBarrierSet*)(BarrierSet::barrier_set()))->card_table()->byte_map_base());
   match(ConP);
 
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
+// Int Immediate: low 16-bit mask
+operand immI_16bits()
+%{
+  predicate(n->get_int() == 0xFFFFL);
+  match(ConI);
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
+// Long Immediate: low 16-bit mask
+operand immL_16bits()
+%{
+  predicate(n->get_long() == 0xFFFFL);
+  match(ConL);
   op_cost(0);
   format %{ %}
   interface(CONST_INTER);

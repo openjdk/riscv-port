@@ -1,0 +1,296 @@
+//
+// Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+// Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License version 2 only, as
+// published by the Free Software Foundation.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// You should have received a copy of the GNU General Public License version
+// 2 along with this work; if not, write to the Free Software Foundation,
+// Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+//
+// Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+// or visit www.oracle.com if you need additional information or have any
+// questions.
+//
+//
+
+// RISCV Bit-Manipulation Extension Architecture Description File
+
+instruct rorI_imm_rvb(iRegINoSp dst, iRegI src, immI shift) %{
+  predicate(UseRVB);
+  match(Set dst (RotateRight src shift));
+
+  format %{ "roriw    $dst, $src, ($shift & 0x1f)\t#@rorI_imm_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ roriw(as_Register($dst$$reg), as_Register($src$$reg), $shift$$constant & 0x1f);
+  %}
+
+  ins_pipe(ialu_reg_shift);
+%}
+
+instruct rorL_imm_rvb(iRegLNoSp dst, iRegL src, immI shift) %{
+  predicate(UseRVB);
+  match(Set dst (RotateRight src shift));
+
+  format %{ "rori    $dst, $src, ($shift & 0x3f)\t#@rorL_imm_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ rori(as_Register($dst$$reg), as_Register($src$$reg), $shift$$constant & 0x3f);
+  %}
+
+  ins_pipe(ialu_reg_shift);
+%}
+
+instruct rorI_reg_rvb(iRegINoSp dst, iRegI src, iRegI shift) %{
+  predicate(UseRVB);
+  match(Set dst (RotateRight src shift));
+
+  format %{ "rorw    $dst, $src, $shift\t#@rorI_reg_rvb" %}
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ rorw(as_Register($dst$$reg), as_Register($src$$reg), as_Register($shift$$reg));
+  %}
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct rorL_reg_rvb(iRegLNoSp dst, iRegL src, iRegI shift) %{
+  predicate(UseRVB);
+  match(Set dst (RotateRight src shift));
+
+  format %{ "ror    $dst, $src, $shift\t#@rorL_reg_rvb" %}
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ ror(as_Register($dst$$reg), as_Register($src$$reg), as_Register($shift$$reg));
+  %}
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct rolI_reg_rvb(iRegINoSp dst, iRegI src, iRegI shift) %{
+  predicate(UseRVB);
+  match(Set dst (RotateLeft src shift));
+
+  format %{ "rolw    $dst, $src, $shift\t#@rolI_reg_rvb" %}
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ rolw(as_Register($dst$$reg), as_Register($src$$reg), as_Register($shift$$reg));
+  %}
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct rolL_reg_rvb(iRegLNoSp dst, iRegL src, iRegI shift) %{
+  predicate(UseRVB);
+  match(Set dst (RotateLeft src shift));
+
+  format %{ "rol    $dst, $src, $shift\t#@rolL_reg_rvb" %}
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ rol(as_Register($dst$$reg), as_Register($src$$reg), as_Register($shift$$reg));
+  %}
+  ins_pipe(ialu_reg_reg);
+%}
+
+// unsigned int to long (zero extend)
+// this pattern occurs in bigmath arithmetic
+instruct convUI2L_reg_reg_rvb(iRegLNoSp dst, iRegIorL2I src, immL_32bits mask) %{
+  predicate(UseRVB);
+  match(Set dst (AndL (ConvI2L src) mask));
+
+  format %{ "zext.w    $dst, $src\t# ui2l, #@convUI2L_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ zext_w(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg_shift);
+%}
+
+// Convert oop into int for vectors alignment masking
+instruct convP2I_rvb(iRegINoSp dst, iRegP src) %{
+  predicate(UseRVB);
+  match(Set dst (ConvL2I (CastP2X src)));
+
+  format %{ "zext.w    $dst, $src\t# ptr -> int @convP2I_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ zext_w(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// sign extend byte, used by type conversion between byte and short/int
+instruct sextByte_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_24 lshift, immI_24 rshift) %{
+  predicate(UseRVB);
+  match(Set dst (RShiftI (LShiftI src lshift) rshift));
+
+  format %{ "sext.b    $dst, $src\t# sextByte, #@sextByte_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ sext_b(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// long to byte
+instruct convL2Byte_reg_reg_rvb(iRegINoSp dst, iRegILNPNoSp src, immI_56 lshift, immI_56 rshift) %{
+  predicate(UseRVB);
+  match(Set dst (RShiftL (LShiftL src lshift) rshift));
+
+  format %{ "sext.b    $dst, $src\t# l2byte, #@convL2Byte_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ sext_b(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// int to short
+instruct convI2S_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16 lshift, immI_16 rshift) %{
+  predicate(UseRVB);
+  match(Set dst (RShiftI (LShiftI src lshift) rshift));
+
+  format %{ "sext.h    $dst, $src\t# i2s, #@convI2S_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ sext_h(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// long to short
+instruct convL2S_reg_reg_rvb(iRegINoSp dst, iRegILNPNoSp src, immI_48 lshift, immI_48 rshift) %{
+  predicate(UseRVB);
+  match(Set dst (RShiftL (LShiftL src lshift) rshift));
+
+  format %{ "sext.h    $dst, $src\t# l2s, #@convL2S_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ sext_h(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// unsigned int to short
+instruct convUI2S_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16bits mask) %{
+  predicate(UseRVB);
+  match(Set dst (AndI src mask));
+
+  format %{ "zext.h    $dst, $src\t# ui2s, #@convUI2S_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ zext_h(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// unsigned long to short
+instruct convUL2S_reg_reg_rvb(iRegINoSp dst, iRegLNoSp src, immL_16bits mask) %{
+  predicate(UseRVB);
+  match(Set dst (AndL (ConvI2L src) mask));
+
+  format %{ "zext.h    $dst, $src\t# ul2s, #@convUL2S_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ zext_h(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// byte to long
+instruct convByte2L_reg_reg_rvb(iRegLNoSp dst, iRegILNPNoSp src, immI_56 lshift, immI_56 rshift) %{
+  predicate(UseRVB);
+  match(Set dst (RShiftL (LShiftL src lshift) rshift));
+
+  format %{ "sext.b    $dst, $src\t# byte2l, #@convByte2L_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ sext_b(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// short to int
+instruct convS2I_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16 lshift, immI_16 rshift) %{
+  predicate(UseRVB);
+  match(Set dst (RShiftI (LShiftI src lshift) rshift));
+
+  format %{ "sext.h    $dst, $src\t# s2i, #@convS2I_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ sext_h(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// short to long
+instruct convS2L_reg_reg_rvb(iRegLNoSp dst, iRegIorL2I src, immI_48 lshift, immI_48 rshift) %{
+  predicate(UseRVB);
+  match(Set dst (RShiftL (LShiftL src lshift) rshift));
+
+  format %{ "sext.h    $dst, $src\t# s2l, #@convS2L_reg_reg_rvb" %}
+
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ sext_h(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// unsigned short to int
+instruct convUS2I_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16bits mask) %{
+  predicate(UseRVB);
+  match(Set dst (AndI src mask));
+
+  format %{ "zext.h    $dst, $src\t# us2i, #@convUS2I_reg_reg_rvb" %}
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ zext_h(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// unsigned short to long
+instruct convUS2L_reg_reg_rvb(iRegLNoSp dst, iRegILNPNoSp src, immL_16bits mask) %{
+  predicate(UseRVB);
+  match(Set dst (AndL (ConvI2L src) mask));
+
+  format %{ "zext.h    $dst, $src\t# us2l, #@convUS2L_reg_reg_rvb" %}
+  ins_cost(ALU_COST);
+  ins_encode %{
+    __ zext_h(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}

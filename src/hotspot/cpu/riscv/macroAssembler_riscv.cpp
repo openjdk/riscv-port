@@ -3121,11 +3121,16 @@ void MacroAssembler::cadc(Register dst, Register src1, Register src2, Register c
 }
 
 // rotate right with shift bits
-void MacroAssembler::ror(Register dst, Register src, uint32_t shift, Register tmp)
+void MacroAssembler::ror_imm(Register dst, Register src, uint32_t shift, Register tmp)
 {
+  if (UseRVB) {
+    rori(dst, src, shift);
+    return;
+  }
+
   assert_different_registers(dst, tmp);
   assert_different_registers(src, tmp);
-  assert(shift <= 64, "shift amount must be <= 64");
+  assert(shift < 64, "shift amount must be < 64");
   slli(tmp, src, 64 - shift);
   srli(dst, src, shift);
   orr(dst, dst, tmp);
@@ -3207,7 +3212,7 @@ void MacroAssembler::multiply_64_x_64_loop(Register x, Register xstart, Register
   slli(t0, xstart, LogBytesPerInt);
   add(t0, x, t0);
   ld(x_xstart, Address(t0, 0));
-  ror(x_xstart, x_xstart, 32); // convert big-endian to little-endian
+  ror_imm(x_xstart, x_xstart, 32); // convert big-endian to little-endian
 
   bind(L_first_loop);
   subw(idx, idx, 1);
@@ -3218,7 +3223,7 @@ void MacroAssembler::multiply_64_x_64_loop(Register x, Register xstart, Register
   slli(t0, idx, LogBytesPerInt);
   add(t0, y, t0);
   ld(y_idx, Address(t0, 0));
-  ror(y_idx, y_idx, 32); // convert big-endian to little-endian
+  ror_imm(y_idx, y_idx, 32); // convert big-endian to little-endian
   bind(L_multiply);
 
   mulhu(t0, x_xstart, y_idx);
@@ -3227,7 +3232,7 @@ void MacroAssembler::multiply_64_x_64_loop(Register x, Register xstart, Register
   adc(carry, t0, zr, t1);
 
   subw(kdx, kdx, 2);
-  ror(product, product, 32); // back to big-endian
+  ror_imm(product, product, 32); // back to big-endian
   slli(t0, kdx, LogBytesPerInt);
   add(t0, z, t0);
   sd(product, Address(t0, 0));
@@ -3292,8 +3297,8 @@ void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
   slli(t0, idx, LogBytesPerInt);
   add(tmp6, z, t0);
 
-  ror(yz_idx1, yz_idx1, 32); // convert big-endian to little-endian
-  ror(yz_idx2, yz_idx2, 32);
+  ror_imm(yz_idx1, yz_idx1, 32); // convert big-endian to little-endian
+  ror_imm(yz_idx2, yz_idx2, 32);
 
   ld(t1, Address(tmp6, 0));
   ld(t0, Address(tmp6, wordSize));
@@ -3301,8 +3306,8 @@ void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
   mul(tmp3, product_hi, yz_idx1); //  yz_idx1 * product_hi -> tmp4:tmp3
   mulhu(tmp4, product_hi, yz_idx1);
 
-  ror(t0, t0, 32, tmp); // convert big-endian to little-endian
-  ror(t1, t1, 32, tmp);
+  ror_imm(t0, t0, 32, tmp); // convert big-endian to little-endian
+  ror_imm(t1, t1, 32, tmp);
 
   mul(tmp, product_hi, yz_idx2); //  yz_idx2 * product_hi -> carry2:tmp
   mulhu(carry2, product_hi, yz_idx2);
@@ -3315,8 +3320,8 @@ void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
   cad(tmp4, tmp4, t1, carry2);
   adc(carry, carry, zr, carry2);
 
-  ror(tmp3, tmp3, 32); // convert little-endian to big-endian
-  ror(tmp4, tmp4, 32);
+  ror_imm(tmp3, tmp3, 32); // convert little-endian to big-endian
+  ror_imm(tmp4, tmp4, 32);
   sd(tmp4, Address(tmp6, 0));
   sd(tmp3, Address(tmp6, wordSize));
 
@@ -3334,7 +3339,7 @@ void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
   slli(t0, idx, LogBytesPerInt);
   add(t0, y, t0);
   ld(yz_idx1, Address(t0, 0));
-  ror(yz_idx1, yz_idx1, 32);
+  ror_imm(yz_idx1, yz_idx1, 32);
 
   mul(tmp3, product_hi, yz_idx1); //  yz_idx1 * product_hi -> tmp4:tmp3
   mulhu(tmp4, product_hi, yz_idx1);
@@ -3342,11 +3347,11 @@ void MacroAssembler::multiply_128_x_128_loop(Register y, Register z,
   slli(t0, idx, LogBytesPerInt);
   add(t0, z, t0);
   ld(yz_idx2, Address(t0, 0));
-  ror(yz_idx2, yz_idx2, 32, tmp);
+  ror_imm(yz_idx2, yz_idx2, 32, tmp);
 
   add2_with_carry(carry, tmp4, tmp3, carry, yz_idx2, tmp);
 
-  ror(tmp3, tmp3, 32, tmp);
+  ror_imm(tmp3, tmp3, 32, tmp);
   sd(tmp3, Address(t0, 0));
 
   bind(L_check_1);
@@ -3532,7 +3537,7 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   slli(t0, xstart, LogBytesPerInt);
   add(t0, x, t0);
   ld(product_hi, Address(t0, 0));
-  ror(product_hi, product_hi, 32); // convert big-endian to little-endian
+  ror_imm(product_hi, product_hi, 32); // convert big-endian to little-endian
 
   Label L_third_loop_prologue;
   bind(L_third_loop_prologue);

@@ -39,6 +39,10 @@
   }
 
   INSN(add_uw, 0b0111011, 0b000, 0b0000100);
+  INSN(rol,    0b0110011, 0b001, 0b0110000);
+  INSN(rolw,   0b0111011, 0b001, 0b0110000);
+  INSN(ror,    0b0110011, 0b101, 0b0110000);
+  INSN(rorw,   0b0111011, 0b101, 0b0110000);
 
 #undef INSN
 
@@ -56,6 +60,40 @@
   INSN(sext_b, 0b0010011, 0b001, 0b011000000100);
   INSN(sext_h, 0b0010011, 0b001, 0b011000000101);
   INSN(zext_h, 0b0111011, 0b100, 0b000010000000);
+
+#undef INSN
+
+#define INSN(NAME, op, funct3, funct6)                  \
+  void NAME(Register Rd, Register Rs1, unsigned shamt) {\
+    guarantee(shamt <= 0x3f, "Shamt is invalid");       \
+    unsigned insn = 0;                                  \
+    patch((address)&insn, 6, 0, op);                    \
+    patch((address)&insn, 14, 12, funct3);              \
+    patch((address)&insn, 25, 20, shamt);               \
+    patch((address)&insn, 31, 26, funct6);              \
+    patch_reg((address)&insn, 7, Rd);                   \
+    patch_reg((address)&insn, 15, Rs1);                 \
+    emit(insn);                                         \
+  }
+
+  INSN(rori, 0b0010011, 0b101, 0b011000);
+
+#undef INSN
+
+#define INSN(NAME, op, funct3, funct7)                  \
+  void NAME(Register Rd, Register Rs1, unsigned shamt){ \
+    guarantee(shamt <= 0x1f, "Shamt is invalid");       \
+    unsigned insn = 0;                                  \
+    patch((address)&insn, 6, 0, op);                    \
+    patch((address)&insn, 14, 12, funct3);              \
+    patch((address)&insn, 24, 20, shamt);               \
+    patch((address)&insn, 31, 25, funct7);              \
+    patch_reg((address)&insn, 7, Rd);                   \
+    patch_reg((address)&insn, 15, Rs1);                 \
+    emit(insn);                                         \
+  }
+
+  INSN(roriw, 0b0011011, 0b101, 0b0110000);
 
 #undef INSN
 
