@@ -147,42 +147,12 @@ instruct sextByte_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_24 lshift, imm
   ins_pipe(ialu_reg);
 %}
 
-// long to byte
-instruct convL2Byte_reg_reg_rvb(iRegINoSp dst, iRegILNPNoSp src, immI_56 lshift, immI_56 rshift) %{
-  predicate(UseRVB);
-  match(Set dst (RShiftL (LShiftL src lshift) rshift));
-
-  format %{ "sext.b    $dst, $src\t# l2byte, #@convL2Byte_reg_reg_rvb" %}
-
-  ins_cost(ALU_COST);
-  ins_encode %{
-    __ sext_b(as_Register($dst$$reg), as_Register($src$$reg));
-  %}
-
-  ins_pipe(ialu_reg);
-%}
-
 // int to short
 instruct convI2S_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16 lshift, immI_16 rshift) %{
   predicate(UseRVB);
   match(Set dst (RShiftI (LShiftI src lshift) rshift));
 
   format %{ "sext.h    $dst, $src\t# i2s, #@convI2S_reg_reg_rvb" %}
-
-  ins_cost(ALU_COST);
-  ins_encode %{
-    __ sext_h(as_Register($dst$$reg), as_Register($src$$reg));
-  %}
-
-  ins_pipe(ialu_reg);
-%}
-
-// long to short
-instruct convL2S_reg_reg_rvb(iRegINoSp dst, iRegILNPNoSp src, immI_48 lshift, immI_48 rshift) %{
-  predicate(UseRVB);
-  match(Set dst (RShiftL (LShiftL src lshift) rshift));
-
-  format %{ "sext.h    $dst, $src\t# l2s, #@convL2S_reg_reg_rvb" %}
 
   ins_cost(ALU_COST);
   ins_encode %{
@@ -199,94 +169,6 @@ instruct convUI2S_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16bits mask) %
 
   format %{ "zext.h    $dst, $src\t# ui2s, #@convUI2S_reg_reg_rvb" %}
 
-  ins_cost(ALU_COST);
-  ins_encode %{
-    __ zext_h(as_Register($dst$$reg), as_Register($src$$reg));
-  %}
-
-  ins_pipe(ialu_reg);
-%}
-
-// unsigned long to short
-instruct convUL2S_reg_reg_rvb(iRegINoSp dst, iRegLNoSp src, immL_16bits mask) %{
-  predicate(UseRVB);
-  match(Set dst (AndL (ConvI2L src) mask));
-
-  format %{ "zext.h    $dst, $src\t# ul2s, #@convUL2S_reg_reg_rvb" %}
-
-  ins_cost(ALU_COST);
-  ins_encode %{
-    __ zext_h(as_Register($dst$$reg), as_Register($src$$reg));
-  %}
-
-  ins_pipe(ialu_reg);
-%}
-
-// byte to long
-instruct convByte2L_reg_reg_rvb(iRegLNoSp dst, iRegILNPNoSp src, immI_56 lshift, immI_56 rshift) %{
-  predicate(UseRVB);
-  match(Set dst (RShiftL (LShiftL src lshift) rshift));
-
-  format %{ "sext.b    $dst, $src\t# byte2l, #@convByte2L_reg_reg_rvb" %}
-
-  ins_cost(ALU_COST);
-  ins_encode %{
-    __ sext_b(as_Register($dst$$reg), as_Register($src$$reg));
-  %}
-
-  ins_pipe(ialu_reg);
-%}
-
-// short to int
-instruct convS2I_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16 lshift, immI_16 rshift) %{
-  predicate(UseRVB);
-  match(Set dst (RShiftI (LShiftI src lshift) rshift));
-
-  format %{ "sext.h    $dst, $src\t# s2i, #@convS2I_reg_reg_rvb" %}
-
-  ins_cost(ALU_COST);
-  ins_encode %{
-    __ sext_h(as_Register($dst$$reg), as_Register($src$$reg));
-  %}
-
-  ins_pipe(ialu_reg);
-%}
-
-// short to long
-instruct convS2L_reg_reg_rvb(iRegLNoSp dst, iRegIorL2I src, immI_48 lshift, immI_48 rshift) %{
-  predicate(UseRVB);
-  match(Set dst (RShiftL (LShiftL src lshift) rshift));
-
-  format %{ "sext.h    $dst, $src\t# s2l, #@convS2L_reg_reg_rvb" %}
-
-  ins_cost(ALU_COST);
-  ins_encode %{
-    __ sext_h(as_Register($dst$$reg), as_Register($src$$reg));
-  %}
-
-  ins_pipe(ialu_reg);
-%}
-
-// unsigned short to int
-instruct convUS2I_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16bits mask) %{
-  predicate(UseRVB);
-  match(Set dst (AndI src mask));
-
-  format %{ "zext.h    $dst, $src\t# us2i, #@convUS2I_reg_reg_rvb" %}
-  ins_cost(ALU_COST);
-  ins_encode %{
-    __ zext_h(as_Register($dst$$reg), as_Register($src$$reg));
-  %}
-
-  ins_pipe(ialu_reg);
-%}
-
-// unsigned short to long
-instruct convUS2L_reg_reg_rvb(iRegLNoSp dst, iRegILNPNoSp src, immL_16bits mask) %{
-  predicate(UseRVB);
-  match(Set dst (AndL (ConvI2L src) mask));
-
-  format %{ "zext.h    $dst, $src\t# us2l, #@convUS2L_reg_reg_rvb" %}
   ins_cost(ALU_COST);
   ins_encode %{
     __ zext_h(as_Register($dst$$reg), as_Register($src$$reg));
