@@ -3053,7 +3053,6 @@ void MacroAssembler::mul_add(Register out, Register in, Register offset,
   Label L_tail_loop, L_unroll, L_end;
   mv(tmp, out);
   mv(out, zr);
-  sign_extend(len, len, 32);
   blez(len, L_end);
   zero_extend(k, k, 32);
   slliw(t0, offset, LogBytesPerInt);
@@ -3411,8 +3410,8 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
   const Register product = xlen;
   const Register x_xstart = zlen; // reuse register
 
-  sign_extend(idx, ylen, 32); // idx = ylen;
-  sign_extend(kdx, zlen, 32); // kdx = xlen+ylen;
+  mv(idx, ylen); // idx = ylen;
+  mv(kdx, zlen); // kdx = xlen+ylen;
   mv(carry, zr); // carry = 0;
 
   Label L_multiply_64_x_64_loop, L_done;
@@ -3436,7 +3435,7 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
     Label L_second_loop_unaligned;
     bind(L_second_loop_unaligned);
     mv(carry, zr);
-    sign_extend(jdx, ylen, 32);
+    mv(jdx, ylen);
     subw(xstart, xstart, 1);
     bltz(xstart, L_done);
     sub(sp, sp, 2 * wordSize);
@@ -3515,7 +3514,7 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
 
   bind(L_second_loop_aligned);
   mv(carry, zr); // carry = 0;
-  sign_extend(jdx, ylen, 32); // j = ystart+1
+  mv(jdx, ylen); // j = ystart+1
 
   subw(xstart, xstart, 1); // i = xstart-1;
   bltz(xstart, L_done);

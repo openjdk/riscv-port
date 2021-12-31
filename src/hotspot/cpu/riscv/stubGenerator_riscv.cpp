@@ -839,8 +839,7 @@ class StubGenerator: public StubCodeGenerator {
 
     const Register src = x30, dst = x31, vl = x14, cnt = x15, tmp1 = x16, tmp2 = x17;
     assert_different_registers(s, d, cnt, vl, tmp, tmp1, tmp2);
-    Assembler::SEW sew = Assembler::elemBytes_to_sew(granularity);
-    assert(sew >= Assembler::e8 && sew <= Assembler::e64, "illegal SEW");
+    Assembler::SEW sew = Assembler::elembytes_to_sew(granularity);
     Label loop_forward, loop_backward, done;
 
     __ mv(dst, d);
