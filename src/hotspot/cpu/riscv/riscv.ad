@@ -2750,24 +2750,6 @@ operand immI_31()
   interface(CONST_INTER);
 %}
 
-operand immI_48()
-%{
-  predicate(n->get_int() == 48);
-  match(ConI);
-  op_cost(0);
-  format %{ %}
-  interface(CONST_INTER);
-%}
-
-operand immI_56()
-%{
-  predicate(n->get_int() == 56);
-  match(ConI);
-  op_cost(0);
-  format %{ %}
-  interface(CONST_INTER);
-%}
-
 operand immI_63()
 %{
   predicate(n->get_int() == 63);
@@ -2893,18 +2875,8 @@ operand immByteMapBase()
 // Int Immediate: low 16-bit mask
 operand immI_16bits()
 %{
-  predicate(n->get_int() == 0xFFFFL);
+  predicate(n->get_int() == 0xFFFF);
   match(ConI);
-  op_cost(0);
-  format %{ %}
-  interface(CONST_INTER);
-%}
-
-// Long Immediate: low 16-bit mask
-operand immL_16bits()
-%{
-  predicate(n->get_long() == 0xFFFFL);
-  match(ConL);
   op_cost(0);
   format %{ %}
   interface(CONST_INTER);
