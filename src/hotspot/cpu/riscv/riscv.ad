@@ -7885,14 +7885,13 @@ instruct convL2I_reg(iRegINoSp dst, iRegL src) %{
   ins_pipe(ialu_reg);
 %}
 
-// unsigned int to long (Zero-extend)
-// this pattern occurs in bigmath arithmetic
-instruct convUI2L_reg_reg(iRegLNoSp dst, iRegIorL2I src, immL_32bits mask)
+// int to unsigned long (Zero-extend)
+instruct convI2UL_reg_reg(iRegLNoSp dst, iRegIorL2I src, immL_32bits mask)
 %{
   match(Set dst (AndL (ConvI2L src) mask));
 
   ins_cost(ALU_COST * 2);
-  format %{ "zero_extend $dst, $src, 32\t# ui2l, #@convUI2L_reg_reg" %}
+  format %{ "zero_extend $dst, $src, 32\t# i2ul, #@convI2UL_reg_reg" %}
 
   ins_encode %{
     __ zero_extend(as_Register($dst$$reg), as_Register($src$$reg), 32);
