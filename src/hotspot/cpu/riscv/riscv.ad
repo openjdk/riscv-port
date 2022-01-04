@@ -1,7 +1,7 @@
 //
 // Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
 // Copyright (c) 2014, 2020, Red Hat Inc. All rights reserved.
-// Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+// Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This code is free software; you can redistribute it and/or modify it
@@ -2722,6 +2722,24 @@ operand immI_le_4()
   interface(CONST_INTER);
 %}
 
+operand immI_16()
+%{
+  predicate(n->get_int() == 16);
+  match(ConI);
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
+operand immI_24()
+%{
+  predicate(n->get_int() == 24);
+  match(ConI);
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
 operand immI_31()
 %{
   predicate(n->get_int() == 31);
@@ -2849,6 +2867,16 @@ operand immByteMapBase()
              ((CardTableBarrierSet*)(BarrierSet::barrier_set()))->card_table()->byte_map_base());
   match(ConP);
 
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
+// Int Immediate: low 16-bit mask
+operand immI_16bits()
+%{
+  predicate(n->get_int() == 0xFFFF);
+  match(ConI);
   op_cost(0);
   format %{ %}
   interface(CONST_INTER);
@@ -7857,14 +7885,13 @@ instruct convL2I_reg(iRegINoSp dst, iRegL src) %{
   ins_pipe(ialu_reg);
 %}
 
-// unsigned int to long (Zero-extend)
-// this pattern occurs in bigmath arithmetic
-instruct convUI2L_reg_reg(iRegLNoSp dst, iRegIorL2I src, immL_32bits mask)
+// int to unsigned long (Zero-extend)
+instruct convI2UL_reg_reg(iRegLNoSp dst, iRegIorL2I src, immL_32bits mask)
 %{
   match(Set dst (AndL (ConvI2L src) mask));
 
   ins_cost(ALU_COST * 2);
-  format %{ "zero_extend $dst, $src, 32\t# ui2l, #@convUI2L_reg_reg" %}
+  format %{ "zero_extend $dst, $src, 32\t# i2ul, #@convI2UL_reg_reg" %}
 
   ins_encode %{
     __ zero_extend(as_Register($dst$$reg), as_Register($src$$reg), 32);

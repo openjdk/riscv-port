@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2020, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -654,7 +654,7 @@ class MacroAssembler: public Assembler {
   void adc(Register dst, Register src1, Register src2, Register carry);
   void add2_with_carry(Register final_dest_hi, Register dest_hi, Register dest_lo,
                        Register src1, Register src2, Register carry);
-  void ror(Register dst, Register src, uint32_t imm, Register tmp = t0);
+  void ror_imm(Register dst, Register src, uint32_t shift, Register tmp = t0);
   void multiply_32_x_32_loop(Register x, Register xstart, Register x_xstart,
                              Register y, Register y_idx, Register z,
                              Register carry, Register product,
