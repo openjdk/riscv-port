@@ -33,13 +33,10 @@ source_hpp %{
 %}
 
 source %{
-  static Assembler::SEW elemType_to_sew(BasicType bt) {
-    return Assembler::elemBytes_to_sew(type2aelembytes(bt));
-  }
 
   static void loadStore(C2_MacroAssembler masm, bool is_store,
                         VectorRegister reg, BasicType bt, Register base) {
-    Assembler::SEW sew = elemType_to_sew(bt);
+    Assembler::SEW sew = Assembler::elemtype_to_sew(bt);
     masm.vsetvli(t0, x0, sew);
     if (is_store) {
       masm.vsex_v(reg, base, sew);
@@ -51,19 +48,19 @@ source %{
   bool op_vec_supported(int opcode) {
     switch (opcode) {
       // No multiply reduction instructions
-      case Op_MulReductionVD: // fall through
-      case Op_MulReductionVF: // fall through
-      case Op_MulReductionVI: // fall through
-      case Op_MulReductionVL: // fall through
+      case Op_MulReductionVD:
+      case Op_MulReductionVF:
+      case Op_MulReductionVI:
+      case Op_MulReductionVL:
       // Others
-      case Op_Extract:        // fall through
-      case Op_ExtractB:       // fall through
-      case Op_ExtractC:       // fall through
-      case Op_ExtractD:       // fall through
-      case Op_ExtractF:       // fall through
-      case Op_ExtractI:       // fall through
-      case Op_ExtractL:       // fall through
-      case Op_ExtractS:       // fall through
+      case Op_Extract:
+      case Op_ExtractB:
+      case Op_ExtractC:
+      case Op_ExtractD:
+      case Op_ExtractF:
+      case Op_ExtractI:
+      case Op_ExtractL:
+      case Op_ExtractS:
       case Op_ExtractUB:
       // Vector API specific
       case Op_AndReductionV:
@@ -370,7 +367,7 @@ instruct vmax(vReg dst, vReg src1, vReg src2) %{
   format %{ "vmax.vv $dst, $src1, $src2\t#@vmax" %}
   ins_encode %{
     BasicType bt = Matcher::vector_element_basic_type(this);
-    Assembler::SEW sew = elemType_to_sew(bt);
+    Assembler::SEW sew = Assembler::elemtype_to_sew(bt);
     __ vsetvli(t0, x0, sew);
     __ vmax_vv(as_VectorRegister($dst$$reg),
                as_VectorRegister($src1$$reg), as_VectorRegister($src2$$reg));
@@ -386,7 +383,7 @@ instruct vmin(vReg dst, vReg src1, vReg src2) %{
   format %{ "vmin.vv $dst, $src1, $src2\t#@vmin" %}
   ins_encode %{
     BasicType bt = Matcher::vector_element_basic_type(this);
-    Assembler::SEW sew = elemType_to_sew(bt);
+    Assembler::SEW sew = Assembler::elemtype_to_sew(bt);
     __ vsetvli(t0, x0, sew);
     __ vmin_vv(as_VectorRegister($dst$$reg),
                as_VectorRegister($src1$$reg), as_VectorRegister($src2$$reg));

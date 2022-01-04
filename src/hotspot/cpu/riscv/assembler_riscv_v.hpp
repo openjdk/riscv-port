@@ -27,14 +27,11 @@
 #define CPU_RISCV_ASSEMBLER_RISCV_V_HPP
 
 enum SEW {
-  e8    = 0b000,
-  e16   = 0b001,
-  e32   = 0b010,
-  e64   = 0b011,
-  e128  = 0b100,
-  e256  = 0b101,
-  e512  = 0b110,
-  e1024 = 0b111,
+  e8,
+  e16,
+  e32,
+  e64,
+  RESERVED,
 };
 
 enum LMUL {
@@ -57,14 +54,18 @@ enum VTA {
   ta, // agnostic
 };
 
-static Assembler::SEW elemBytes_to_sew(int esize) {
-  assert(esize > 0 && esize <= 64 && is_power_of_2(esize), "unsupported element size");
-  return (Assembler::SEW) log2i_exact(esize);
+static Assembler::SEW elembytes_to_sew(int ebytes) {
+  assert(ebytes > 0 && ebytes <= 8, "unsupported element size");
+  return (Assembler::SEW) exact_log2(ebytes);
+}
+
+static Assembler::SEW elemtype_to_sew(BasicType etype) {
+  return Assembler::elembytes_to_sew(type2aelembytes(etype));
 }
 
 #define patch_vtype(hsb, lsb, vlmul, vsew, vta, vma, vill)   \
     if (vill == 1) {                                         \
-      guarantee((vlmul | vsew | vsew | vta | vma == 0),      \
+      guarantee((vlmul | vsew | vta | vma == 0),             \
                 "the other bits in vtype shall be zero");    \
     }                                                        \
     patch((address)&insn, lsb + 2, lsb, vlmul);              \
