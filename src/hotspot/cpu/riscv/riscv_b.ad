@@ -175,3 +175,60 @@ instruct convI2UL_reg_reg_rvb(iRegLNoSp dst, iRegIorL2I src, immL_32bits mask) %
 
   ins_pipe(ialu_reg_shift);
 %}
+
+// BSWAP instructions
+instruct bytes_reverse_int_rvb(iRegINoSp dst, iRegIorL2I src) %{
+  predicate(UseRVB);
+  match(Set dst (ReverseBytesI src));
+
+  ins_cost(ALU_COST * 2);
+  format %{ "revb_w_w  $dst, $src\t#@bytes_reverse_int_rvb" %}
+
+  ins_encode %{
+    __ revb_w_w(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+instruct bytes_reverse_long_rvb(iRegLNoSp dst, iRegL src) %{
+  predicate(UseRVB);
+  match(Set dst (ReverseBytesL src));
+
+  ins_cost(ALU_COST);
+  format %{ "rev8  $dst, $src\t#@bytes_reverse_long_rvb" %}
+
+  ins_encode %{
+    __ rev8(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+instruct bytes_reverse_unsigned_short_rvb(iRegINoSp dst, iRegIorL2I src) %{
+  predicate(UseRVB);
+  match(Set dst (ReverseBytesUS src));
+
+  ins_cost(ALU_COST * 2);
+  format %{ "revb_h_h_u  $dst, $src\t#@bytes_reverse_unsigned_short_rvb" %}
+
+  ins_encode %{
+    __ revb_h_h_u(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+instruct bytes_reverse_short_rvb(iRegINoSp dst, iRegIorL2I src) %{
+  predicate(UseRVB);
+  match(Set dst (ReverseBytesS src));
+
+  ins_cost(ALU_COST * 2);
+  format %{ "revb_h_h  $dst, $src\t#@bytes_reverse_short_rvb" %}
+
+  ins_encode %{
+    __ revb_h_h(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
