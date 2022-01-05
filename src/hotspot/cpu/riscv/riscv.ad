@@ -1772,6 +1772,9 @@ const bool Matcher::match_rule_supported(int opcode) {
       return UseRVV;
     case Op_EncodeISOArray:
       return UseRVV && SpecialEncodeISOArray;
+    case Op_RotateRight:
+    case Op_RotateLeft:
+      return UseRVB;
   }
 
   return true; // Per default match rules are supported.
