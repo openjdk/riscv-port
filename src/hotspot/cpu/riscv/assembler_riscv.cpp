@@ -84,7 +84,7 @@ void Assembler::zext_w(Register Rd, Register Rs) {
 }
 
 void Assembler::li(Register Rd, int64_t imm) {
-  CHECK_CEXT_AND_COMPRESSIBLE(is_imm_in_range(imm, 6, 0) && Rd != x0) {
+  CHECK_RVC_AND_COMPRESSIBLE(is_imm_in_range(imm, 6, 0) && Rd != x0) {
     c_li(Rd, imm);
     return;
   }

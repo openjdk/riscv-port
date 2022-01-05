@@ -380,7 +380,7 @@ public:
   }
 
   void halt() {
-    CHECK_CEXT() {
+    CHECK_RVC() {
       emit_int16(0);
     } else {
       emit_int32(0);

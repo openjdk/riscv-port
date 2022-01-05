@@ -550,13 +550,13 @@ public:
 #define EMIT_MAY_COMPRESS_false(NAME, ...)
 
 #define IS_COMPRESSIBLE(...)                          if (__VA_ARGS__)
-#define CHECK_CEXT_AND_COMPRESSIBLE(...)              IS_COMPRESSIBLE(UseRVC && in_compressible_region() && __VA_ARGS__)
-#define CHECK_CEXT()                                  if (UseRVC && in_compressible_region())
+#define CHECK_RVC_AND_COMPRESSIBLE(...)               IS_COMPRESSIBLE(UseRVC && in_compressible_region() && __VA_ARGS__)
+#define CHECK_RVC()                                   if (UseRVC && in_compressible_region())
 
 // RVC transformation macros
 #define EMIT_RVC_cond(PREFIX, COND, EMIT) {                                            \
     PREFIX                                                                             \
-    CHECK_CEXT_AND_COMPRESSIBLE(COND) {                                                \
+    CHECK_RVC_AND_COMPRESSIBLE(COND) {                                                 \
       EMIT;                                                                            \
       return;                                                                          \
     }                                                                                  \
@@ -564,7 +564,7 @@ public:
 
 #define EMIT_RVC_cond2(PREFIX, COND1, EMIT1, COND2, EMIT2) {                           \
     PREFIX                                                                             \
-    CHECK_CEXT() {                                                                     \
+    CHECK_RVC() {                                                                      \
       IS_COMPRESSIBLE(COND1) {                                                         \
         EMIT1;                                                                         \
         return;                                                                        \
@@ -577,7 +577,7 @@ public:
 
 #define EMIT_RVC_cond4(PREFIX, COND1, EMIT1, COND2, EMIT2, COND3, EMIT3, COND4, EMIT4) {  \
     PREFIX                                                                             \
-    CHECK_CEXT() {                                                                     \
+    CHECK_RVC() {                                                                      \
       IS_COMPRESSIBLE(COND1) {                                                         \
         EMIT1;                                                                         \
         return;                                                                        \
