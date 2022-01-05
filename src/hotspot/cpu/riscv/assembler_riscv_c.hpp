@@ -540,14 +540,7 @@ public:
 
 // --------------  RVC Transformation Macros  --------------
 
-// two RVC macros
-#define COMPRESSIBLE          true
-#define NOT_COMPRESSIBLE      false
-
-// a pivotal dispatcher for RVC
-#define EMIT_MAY_COMPRESS(C, NAME, ...)               EMIT_MAY_COMPRESS_##C(NAME, __VA_ARGS__)
-#define EMIT_MAY_COMPRESS_true(NAME, ...)             EMIT_MAY_COMPRESS_##NAME(__VA_ARGS__)
-#define EMIT_MAY_COMPRESS_false(NAME, ...)
+#define EMIT_MAY_COMPRESS(NAME, ...)                  EMIT_MAY_COMPRESS_##NAME(__VA_ARGS__)
 
 #define IS_COMPRESSIBLE(...)                          if (__VA_ARGS__)
 #define CHECK_RVC_AND_COMPRESSIBLE(...)               IS_COMPRESSIBLE(UseRVC && in_compressible_region() && __VA_ARGS__)
