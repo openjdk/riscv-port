@@ -2593,23 +2593,20 @@ public:
 
 // --------------  RVC Transformation Functions  --------------
 
-#define CHECK_COND(...)                    if (__VA_ARGS__) {
-#define CHECK_RVC()                        CHECK_COND(UseRVC && in_compressible_region())
-#define CHECK_RETURN                       return; }
-
 // --------------------------
 // Register instructions
 // --------------------------
 // add -> c.add
 #define INSN(NAME)                                                                             \
   void NAME(Register Rd, Register Rs1, Register Rs2) {                                         \
-    CHECK_RVC()                                                                                \
+    if (check_rvc()) {                                                                         \
       Register src = noreg;                                                                    \
-      CHECK_COND(Rs1 != x0 && Rs2 != x0 && ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd))) \
+      if (Rs1 != x0 && Rs2 != x0 && ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd))) {      \
         c_add(Rd, src);                                                                        \
-      CHECK_RETURN                                                                             \
+        return;                                                                                \
+      }                                                                                        \
     }                                                                                          \
-    _##NAME(Rd, Rs1, Rs2);                                                                     \
+    _add(Rd, Rs1, Rs2);                                                                        \
   }
 
   INSN(add);
@@ -2618,44 +2615,49 @@ public:
 
 // --------------------------
 // sub/subw -> c.sub/c.subw
-#define INSN(NAME, C_NAME)                                                                   \
+#define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
   void NAME(Register Rd, Register Rs1, Register Rs2) {                                       \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(Rd == Rs1 && Rd->is_compressed_valid() && Rs2->is_compressed_valid())       \
-        C_NAME(Rd, Rs2);                                                                     \
-      CHECK_RETURN                                                                           \
+    if (check_rvc() &&                                                                       \
+        (Rd == Rs1 && Rd->is_compressed_valid() && Rs2->is_compressed_valid())) {            \
+      C_NAME(Rd, Rs2);                                                                       \
+      return;                                                                                \
     }                                                                                        \
-    _##NAME(Rd, Rs1, Rs2);                                                                   \
+    NORMAL_NAME(Rd, Rs1, Rs2);                                                               \
   }
 
-  INSN(sub,  c_sub);
-  INSN(subw, c_subw);
+  INSN(sub,  c_sub,  _sub);
+  INSN(subw, c_subw, _subw);
 
 #undef INSN
 
 // --------------------------
 // xor/or/and/addw -> c.xor/c.or/c.and/c.addw
-#define INSN(NAME, C_NAME)                                                                   \
+#define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
   void NAME(Register Rd, Register Rs1, Register Rs2) {                                       \
-    CHECK_RVC()                                                                              \
+    if (check_rvc()) {                                                                       \
       Register src = noreg;                                                                  \
-      CHECK_COND(Rs1->is_compressed_valid() && Rs2->is_compressed_valid() &&                 \
-        ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd)))                                  \
+      if (Rs1->is_compressed_valid() && Rs2->is_compressed_valid() &&                        \
+        ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd))) {                                \
         C_NAME(Rd, src);                                                                     \
-      CHECK_RETURN                                                                           \
+        return;                                                                              \
+      }                                                                                      \
     }                                                                                        \
-    _##NAME(Rd, Rs1, Rs2);                                                                   \
+    NORMAL_NAME(Rd, Rs1, Rs2);                                                               \
   }
 
-  INSN(andr, c_and);
-  INSN(orr,  c_or);
-  INSN(xorr, c_xor);
-  INSN(addw, c_addw);
+  INSN(andr, c_and,  _andr);
+  INSN(orr,  c_or,   _orr);
+  INSN(xorr, c_xor,  _xorr);
+  INSN(addw, c_addw, _addw);
 
 #undef INSN
 
 private:
 // some helper functions
+  bool check_rvc() const {
+    return UseRVC && in_compressible_region();
+  }
+
 #define FUNC(NAME, funct3, bits)                                                             \
   bool NAME(Register rs1, Register rd_rs2, int32_t imm12, bool ld) {                         \
     return rs1 == sp &&                                                                      \
@@ -2701,15 +2703,16 @@ public:
 // lw -> c.lwsp/c.lw
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(is_c_lwswsp(Rs, Rd, offset, true))                                          \
+    if (check_rvc()) {                                                                       \
+      if (is_c_lwswsp(Rs, Rd, offset, true)) {                                               \
         c_lwsp(Rd, offset);                                                                  \
-      CHECK_RETURN                                                                           \
-      else CHECK_COND(is_c_lwsw(Rs, Rd, offset))                                             \
+        return;                                                                              \
+      } else if (is_c_lwsw(Rs, Rd, offset)) {                                                \
         c_lw(Rd, Rs, offset);                                                                \
-      CHECK_RETURN                                                                           \
+        return;                                                                              \
+      }                                                                                      \
     }                                                                                        \
-    _##NAME(Rd, Rs, offset);                                                                 \
+    _lw(Rd, Rs, offset);                                                                     \
   }
 
   INSN(lw);
@@ -2720,15 +2723,16 @@ public:
 // ld -> c.ldsp/c.ld
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(is_c_ldsdsp(Rs, Rd, offset, true))                                          \
+    if (check_rvc()) {                                                                       \
+      if (is_c_ldsdsp(Rs, Rd, offset, true)) {                                               \
         c_ldsp(Rd, offset);                                                                  \
-      CHECK_RETURN                                                                           \
-      else CHECK_COND(is_c_ldsd(Rs, Rd, offset))                                             \
+        return;                                                                              \
+      } else if (is_c_ldsd(Rs, Rd, offset)) {                                                \
         c_ld(Rd, Rs, offset);                                                                \
-      CHECK_RETURN                                                                           \
+        return;                                                                              \
+      }                                                                                      \
     }                                                                                        \
-    _##NAME(Rd, Rs, offset);                                                                 \
+    _ld(Rd, Rs, offset);                                                                     \
   }
 
   INSN(ld);
@@ -2739,15 +2743,16 @@ public:
 // fld -> c.fldsp/c.fld
 #define INSN(NAME)                                                                           \
   void NAME(FloatRegister Rd, Register Rs, const int32_t offset) {                           \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(is_c_fldsdsp(Rs, offset))                                                   \
+    if (check_rvc()) {                                                                       \
+      if (is_c_fldsdsp(Rs, offset)) {                                                        \
         c_fldsp(Rd, offset);                                                                 \
-      CHECK_RETURN                                                                           \
-      else CHECK_COND(is_c_fldsd(Rs, Rd, offset))                                            \
+        return;                                                                              \
+      } else if (is_c_fldsd(Rs, Rd, offset)) {                                               \
         c_fld(Rd, Rs, offset);                                                               \
-      CHECK_RETURN                                                                           \
+        return;                                                                              \
+      }                                                                                      \
     }                                                                                        \
-    _##NAME(Rd, Rs, offset);                                                                 \
+    _fld(Rd, Rs, offset);                                                                    \
   }
 
   INSN(fld);
@@ -2758,15 +2763,16 @@ public:
 // sd -> c.sdsp/c.sd
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(is_c_ldsdsp(Rs, Rd, offset, false))                                         \
+    if (check_rvc()) {                                                                       \
+      if (is_c_ldsdsp(Rs, Rd, offset, false)) {                                              \
         c_sdsp(Rd, offset);                                                                  \
-      CHECK_RETURN                                                                           \
-      else CHECK_COND(is_c_ldsd(Rs, Rd, offset))                                             \
+        return;                                                                              \
+      } else if (is_c_ldsd(Rs, Rd, offset)) {                                                \
         c_sd(Rd, Rs, offset);                                                                \
-      CHECK_RETURN                                                                           \
+        return;                                                                              \
+      }                                                                                      \
     }                                                                                        \
-    _##NAME(Rd, Rs, offset);                                                                 \
+    _sd(Rd, Rs, offset);                                                                     \
   }
 
   INSN(sd);
@@ -2777,15 +2783,16 @@ public:
 // sw -> c.swsp/c.sw
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(is_c_lwswsp(Rs, Rd, offset, false))                                         \
+    if (check_rvc()) {                                                                       \
+      if (is_c_lwswsp(Rs, Rd, offset, false)) {                                              \
         c_swsp(Rd, offset);                                                                  \
-      CHECK_RETURN                                                                           \
-      else CHECK_COND(is_c_lwsw(Rs, Rd, offset))                                             \
+        return;                                                                              \
+      } else if (is_c_lwsw(Rs, Rd, offset)) {                                                \
         c_sw(Rd, Rs, offset);                                                                \
-      CHECK_RETURN                                                                           \
+        return;                                                                              \
+      }                                                                                      \
     }                                                                                        \
-    _##NAME(Rd, Rs, offset);                                                                 \
+    _sw(Rd, Rs, offset);                                                                     \
   }
 
   INSN(sw);
@@ -2796,15 +2803,16 @@ public:
 // fsd -> c.fsdsp/c.fsd
 #define INSN(NAME)                                                                           \
   void NAME(FloatRegister Rd, Register Rs, const int32_t offset) {                           \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(is_c_fldsdsp(Rs, offset))                                                   \
+    if (check_rvc()) {                                                                       \
+      if (is_c_fldsdsp(Rs, offset)) {                                                        \
         c_fsdsp(Rd, offset);                                                                 \
-      CHECK_RETURN                                                                           \
-      else CHECK_COND(is_c_fldsd(Rs, Rd, offset))                                            \
+        return;                                                                              \
+      } else if (is_c_fldsd(Rs, Rd, offset)) {                                               \
         c_fsd(Rd, Rs, offset);                                                               \
-      CHECK_RETURN                                                                           \
+        return;                                                                              \
+      }                                                                                      \
     }                                                                                        \
-    _##NAME(Rd, Rs, offset);                                                                 \
+    _fsd(Rd, Rs, offset);                                                                    \
   }
 
   INSN(fsd);
@@ -2816,19 +2824,19 @@ public:
 // --------------------------
 // beq/bne -> c.beqz/c.bnez
 
-#define INSN(NAME, C_NAME)                                                                   \
+#define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
   void NAME(Register Rs1, Register Rs2, const int64_t offset) {                              \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(offset != 0 && Rs2 == x0 && Rs1->is_compressed_valid() &&                   \
-        is_imm_in_range(offset, 8, 1))                                                       \
-        C_NAME(Rs1, offset);                                                                 \
-      CHECK_RETURN                                                                           \
+    if (check_rvc() &&                                                                       \
+        (offset != 0 && Rs2 == x0 && Rs1->is_compressed_valid() &&                           \
+        is_imm_in_range(offset, 8, 1))) {                                                    \
+      C_NAME(Rs1, offset);                                                                   \
+      return;                                                                                \
     }                                                                                        \
-    _##NAME(Rs1, Rs2, offset);                                                               \
+    NORMAL_NAME(Rs1, Rs2, offset);                                                           \
   }
 
-  INSN(beq, c_beqz);
-  INSN(bne, c_beqz);
+  INSN(beq, c_beqz, _beq);
+  INSN(bne, c_beqz, _bne);
 
 #undef INSN
 
@@ -2838,12 +2846,11 @@ public:
 // jal -> c.j
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, const int32_t offset) {                                             \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(offset != 0 && Rd == x0 && is_imm_in_range(offset, 11, 1))                  \
-        c_j(offset);                                                                         \
-      CHECK_RETURN                                                                           \
+    if (check_rvc() && offset != 0 && Rd == x0 && is_imm_in_range(offset, 11, 1)) {          \
+      c_j(offset);                                                                           \
+      return;                                                                                \
     }                                                                                        \
-    _##NAME(Rd, offset);                                                                     \
+    _jal(Rd, offset);                                                                        \
   }
 
   INSN(jal);
@@ -2854,17 +2861,16 @@ public:
 // jalr -> c.jr/c.jalr
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(offset == 0 && Rs != x0)                                                    \
-        CHECK_COND(Rd == x1)                                                                 \
-          c_jalr(Rs);                                                                        \
-        CHECK_RETURN                                                                         \
-        else CHECK_COND(Rd == x0)                                                            \
-          c_jr(Rs);                                                                          \
-        CHECK_RETURN                                                                         \
+    if (check_rvc() && (offset == 0 && Rs != x0)) {                                          \
+      if (Rd == x1) {                                                                        \
+        c_jalr(Rs);                                                                          \
+        return;                                                                              \
+      } else if (Rd == x0) {                                                                 \
+        c_jr(Rs);                                                                            \
+        return;                                                                              \
       }                                                                                      \
     }                                                                                        \
-    _##NAME(Rd, Rs, offset);                                                                 \
+    _jalr(Rd, Rs, offset);                                                                   \
   }
 
   INSN(jalr);
@@ -2877,10 +2883,11 @@ public:
 // ebreak -> c.ebreak
 #define INSN(NAME)                                                     \
   void NAME() {                                                        \
-    CHECK_RVC()                                                        \
+    if (check_rvc()) {                                                 \
       c_ebreak();                                                      \
-    CHECK_RETURN                                                       \
-    _##NAME();                                                         \
+      return;                                                          \
+    }                                                                  \
+    _ebreak();                                                         \
   }
 
   INSN(ebreak);
@@ -2893,12 +2900,11 @@ public:
 // li -> c.li
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, int64_t imm) {                                                      \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(is_imm_in_range(imm, 6, 0) && Rd != x0)                                     \
-        c_li(Rd, imm);                                                                       \
-      CHECK_RETURN                                                                           \
+    if (check_rvc() && (is_imm_in_range(imm, 6, 0) && Rd != x0)) {                           \
+      c_li(Rd, imm);                                                                         \
+      return;                                                                                \
     }                                                                                        \
-    _##NAME(Rd, imm);                                                                        \
+    _li(Rd, imm);                                                                            \
   }
 
   INSN(li);
@@ -2908,23 +2914,24 @@ public:
 // addi -> c.addi/c.nop/c.mv/c.addi16sp/c.addi4spn.
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs1, int32_t imm) {                                        \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(Rd == Rs1 && is_imm_in_range(imm, 6, 0))                                    \
+    if (check_rvc()) {                                                                       \
+      if (Rd == Rs1 && is_imm_in_range(imm, 6, 0)) {                                         \
         c_addi(Rd, imm);                                                                     \
-      CHECK_RETURN                                                                           \
-      else CHECK_COND(imm == 0 && Rd != x0 && Rs1 != x0)                                     \
+        return;                                                                              \
+      } else if (imm == 0 && Rd != x0 && Rs1 != x0) {                                        \
         c_mv(Rd, Rs1);                                                                       \
-      CHECK_RETURN                                                                           \
-      else CHECK_COND(Rs1 == sp && imm != 0)                                                 \
-        CHECK_COND(Rd == Rs1 && (imm & 0b1111) == 0x0 && is_imm_in_range(imm, 10, 0))        \
+        return;                                                                              \
+      } else if (Rs1 == sp && imm != 0) {                                                    \
+        if (Rd == Rs1 && (imm & 0b1111) == 0x0 && is_imm_in_range(imm, 10, 0)) {             \
           c_addi16sp(imm);                                                                   \
-        CHECK_RETURN                                                                         \
-        else CHECK_COND(Rd->is_compressed_valid() && (imm & 0b11) == 0x0 && is_unsigned_imm_in_range(imm, 10, 0))                                      \
+          return;                                                                            \
+        } else if (Rd->is_compressed_valid() && (imm & 0b11) == 0x0 && is_unsigned_imm_in_range(imm, 10, 0)) { \
           c_addi4spn(Rd, imm);                                                               \
-        CHECK_RETURN                                                                         \
+          return;                                                                            \
+        }                                                                                    \
       }                                                                                      \
     }                                                                                        \
-    _##NAME(Rd, Rs1, imm);                                                                   \
+    _addi(Rd, Rs1, imm);                                                                     \
   }
 
   INSN(addi);
@@ -2935,12 +2942,11 @@ public:
 // addiw -> c.addiw
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs1, int32_t imm) {                                        \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(Rd == Rs1 && Rd != x0 && is_imm_in_range(imm, 6, 0))                        \
-        c_addiw(Rd, imm);                                                                    \
-      CHECK_RETURN                                                                           \
+    if (check_rvc() && (Rd == Rs1 && Rd != x0 && is_imm_in_range(imm, 6, 0))) {              \
+      c_addiw(Rd, imm);                                                                      \
+      return;                                                                                \
     }                                                                                        \
-    _##NAME(Rd, Rs1, imm);                                                                   \
+    _addiw(Rd, Rs1, imm);                                                                    \
   }
 
   INSN(addiw);
@@ -2951,12 +2957,12 @@ public:
 // and_imm12 -> c.andi
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs1, int32_t imm) {                                        \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(Rd == Rs1 && Rd->is_compressed_valid() && is_imm_in_range(imm, 6, 0))       \
-        c_andi(Rd, imm);                                                                     \
-      CHECK_RETURN                                                                           \
+    if (check_rvc() &&                                                                       \
+        (Rd == Rs1 && Rd->is_compressed_valid() && is_imm_in_range(imm, 6, 0))) {            \
+      c_andi(Rd, imm);                                                                       \
+      return;                                                                                \
     }                                                                                        \
-    _##NAME(Rd, Rs1, imm);                                                                   \
+    _and_imm12(Rd, Rs1, imm);                                                                \
   }
 
   INSN(and_imm12);
@@ -2969,12 +2975,11 @@ public:
 // slli -> c.slli
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs1, unsigned shamt) {                                     \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(Rd == Rs1 && Rd != x0 && shamt != 0)                                        \
-        c_slli(Rd, shamt);                                                                   \
-      CHECK_RETURN                                                                           \
+    if (check_rvc() && (Rd == Rs1 && Rd != x0 && shamt != 0)) {                              \
+      c_slli(Rd, shamt);                                                                     \
+      return;                                                                                \
     }                                                                                        \
-    _##NAME(Rd, Rs1, shamt);                                                                 \
+    _slli(Rd, Rs1, shamt);                                                                   \
   }
 
   INSN(slli);
@@ -2983,18 +2988,17 @@ public:
 
 // --------------------------
 // srai/srli -> c.srai/c.srli
-#define INSN(NAME, C_NAME)                                                                   \
+#define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
   void NAME(Register Rd, Register Rs1, unsigned shamt) {                                     \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(Rd == Rs1 && Rd->is_compressed_valid() && shamt != 0)                       \
-        C_NAME(Rd, shamt);                                                                   \
-      CHECK_RETURN                                                                           \
+    if (check_rvc() && (Rd == Rs1 && Rd->is_compressed_valid() && shamt != 0)) {             \
+      C_NAME(Rd, shamt);                                                                     \
+      return;                                                                                \
     }                                                                                        \
-    _##NAME(Rd, Rs1, shamt);                                                                 \
+    NORMAL_NAME(Rd, Rs1, shamt);                                                             \
   }
 
-  INSN(srai, c_srai);
-  INSN(srli, c_srli);
+  INSN(srai, c_srai, _srai);
+  INSN(srli, c_srli, _srli);
 
 #undef INSN
 
@@ -3004,12 +3008,11 @@ public:
 // lui -> c.lui
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, int32_t imm) {                                                      \
-    CHECK_RVC()                                                                              \
-      CHECK_COND(Rd != x0 && Rd != x2 && imm != 0 && is_imm_in_range(imm, 18, 0))            \
-        c_lui(Rd, imm);                                                                      \
-      CHECK_RETURN                                                                           \
+    if (check_rvc() && (Rd != x0 && Rd != x2 && imm != 0 && is_imm_in_range(imm, 18, 0))) {  \
+      c_lui(Rd, imm);                                                                        \
+      return;                                                                                \
     }                                                                                        \
-    _##NAME(Rd, imm);                                                                        \
+    _lui(Rd, imm);                                                                           \
   }
 
   INSN(lui);
@@ -3018,19 +3021,16 @@ public:
 
 #define INSN(NAME)                                                      \
   void NAME() {                                                         \
-    CHECK_RVC()                                                         \
+    if (check_rvc()) {                                                  \
       emit_int16(0);                                                    \
-    CHECK_RETURN                                                        \
-    _##NAME();                                                          \
+      return;                                                           \
+    }                                                                   \
+    _halt();                                                            \
   }
 
   INSN(halt);
 
 #undef INSN
-
-#undef CHECK_RETURN
-#undef CHECK_RVC
-#undef CHECK_COND
 
 // ---------------------------------------------------------------------------------------
 
