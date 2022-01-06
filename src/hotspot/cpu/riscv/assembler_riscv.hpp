@@ -2101,15 +2101,15 @@ public:
   class CompressibleRegion : public StackObj {
   protected:
     Assembler *_masm;
-    bool _prev_in_compressible_region;
+    bool _saved_in_compressible_region;
   public:
     CompressibleRegion(Assembler *_masm)
     : _masm(_masm)
-    , _prev_in_compressible_region(_masm->in_compressible_region()) {
+    , _saved_in_compressible_region(_masm->in_compressible_region()) {
       _masm->set_in_compressible_region(true);
     }
     ~CompressibleRegion() {
-      _masm->set_in_compressible_region(_prev_in_compressible_region);
+      _masm->set_in_compressible_region(_saved_in_compressible_region);
     }
   };
 
@@ -2596,10 +2596,10 @@ public:
 // --------------------------
 // Register instructions
 // --------------------------
-// add -> c.add
 #define INSN(NAME)                                                                             \
   void NAME(Register Rd, Register Rs1, Register Rs2) {                                         \
-    if (check_rvc()) {                                                                         \
+    /* add -> c.add */                                                                         \
+    if (do_compress()) {                                                                       \
       Register src = noreg;                                                                    \
       if (Rs1 != x0 && Rs2 != x0 && ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd))) {      \
         c_add(Rd, src);                                                                        \
@@ -2614,10 +2614,10 @@ public:
 #undef INSN
 
 // --------------------------
-// sub/subw -> c.sub/c.subw
 #define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
   void NAME(Register Rd, Register Rs1, Register Rs2) {                                       \
-    if (check_rvc() &&                                                                       \
+    /* sub/subw -> c.sub/c.subw */                                                           \
+    if (do_compress() &&                                                                     \
         (Rd == Rs1 && Rd->is_compressed_valid() && Rs2->is_compressed_valid())) {            \
       C_NAME(Rd, Rs2);                                                                       \
       return;                                                                                \
@@ -2631,10 +2631,10 @@ public:
 #undef INSN
 
 // --------------------------
-// xor/or/and/addw -> c.xor/c.or/c.and/c.addw
 #define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
   void NAME(Register Rd, Register Rs1, Register Rs2) {                                       \
-    if (check_rvc()) {                                                                       \
+    /* and/or/xor/addw -> c.and/c.or/c.xor/c.addw */                                         \
+    if (do_compress()) {                                                                     \
       Register src = noreg;                                                                  \
       if (Rs1->is_compressed_valid() && Rs2->is_compressed_valid() &&                        \
         ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd))) {                                \
@@ -2654,7 +2654,7 @@ public:
 
 private:
 // some helper functions
-  bool check_rvc() const {
+  bool do_compress() const {
     return UseRVC && in_compressible_region();
   }
 
@@ -2700,10 +2700,10 @@ public:
 // --------------------------
 // Load/store register
 // --------------------------
-// lw -> c.lwsp/c.lw
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    if (check_rvc()) {                                                                       \
+    /* lw -> c.lwsp/c.lw */                                                                  \
+    if (do_compress()) {                                                                     \
       if (is_c_lwswsp(Rs, Rd, offset, true)) {                                               \
         c_lwsp(Rd, offset);                                                                  \
         return;                                                                              \
@@ -2720,10 +2720,10 @@ public:
 #undef INSN
 
 // --------------------------
-// ld -> c.ldsp/c.ld
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    if (check_rvc()) {                                                                       \
+    /* ld -> c.ldsp/c.ld */                                                                  \
+    if (do_compress()) {                                                                     \
       if (is_c_ldsdsp(Rs, Rd, offset, true)) {                                               \
         c_ldsp(Rd, offset);                                                                  \
         return;                                                                              \
@@ -2740,10 +2740,10 @@ public:
 #undef INSN
 
 // --------------------------
-// fld -> c.fldsp/c.fld
 #define INSN(NAME)                                                                           \
   void NAME(FloatRegister Rd, Register Rs, const int32_t offset) {                           \
-    if (check_rvc()) {                                                                       \
+    /* fld -> c.fldsp/c.fld */                                                               \
+    if (do_compress()) {                                                                     \
       if (is_c_fldsdsp(Rs, offset)) {                                                        \
         c_fldsp(Rd, offset);                                                                 \
         return;                                                                              \
@@ -2760,10 +2760,10 @@ public:
 #undef INSN
 
 // --------------------------
-// sd -> c.sdsp/c.sd
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    if (check_rvc()) {                                                                       \
+    /* sd -> c.sdsp/c.sd */                                                                  \
+    if (do_compress()) {                                                                     \
       if (is_c_ldsdsp(Rs, Rd, offset, false)) {                                              \
         c_sdsp(Rd, offset);                                                                  \
         return;                                                                              \
@@ -2780,10 +2780,10 @@ public:
 #undef INSN
 
 // --------------------------
-// sw -> c.swsp/c.sw
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    if (check_rvc()) {                                                                       \
+    /* sw -> c.swsp/c.sw */                                                                  \
+    if (do_compress()) {                                                                     \
       if (is_c_lwswsp(Rs, Rd, offset, false)) {                                              \
         c_swsp(Rd, offset);                                                                  \
         return;                                                                              \
@@ -2800,10 +2800,10 @@ public:
 #undef INSN
 
 // --------------------------
-// fsd -> c.fsdsp/c.fsd
 #define INSN(NAME)                                                                           \
   void NAME(FloatRegister Rd, Register Rs, const int32_t offset) {                           \
-    if (check_rvc()) {                                                                       \
+    /* fsd -> c.fsdsp/c.fsd */                                                               \
+    if (do_compress()) {                                                                     \
       if (is_c_fldsdsp(Rs, offset)) {                                                        \
         c_fsdsp(Rd, offset);                                                                 \
         return;                                                                              \
@@ -2822,11 +2822,10 @@ public:
 // --------------------------
 // Conditional branch instructions
 // --------------------------
-// beq/bne -> c.beqz/c.bnez
-
 #define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
   void NAME(Register Rs1, Register Rs2, const int64_t offset) {                              \
-    if (check_rvc() &&                                                                       \
+    /* beq/bne -> c.beqz/c.bnez */                                                           \
+    if (do_compress() &&                                                                     \
         (offset != 0 && Rs2 == x0 && Rs1->is_compressed_valid() &&                           \
         is_imm_in_range(offset, 8, 1))) {                                                    \
       C_NAME(Rs1, offset);                                                                   \
@@ -2843,10 +2842,10 @@ public:
 // --------------------------
 // Unconditional branch instructions
 // --------------------------
-// jal -> c.j
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, const int32_t offset) {                                             \
-    if (check_rvc() && offset != 0 && Rd == x0 && is_imm_in_range(offset, 11, 1)) {          \
+    /* jal -> c.j */                                                                         \
+    if (do_compress() && offset != 0 && Rd == x0 && is_imm_in_range(offset, 11, 1)) {        \
       c_j(offset);                                                                           \
       return;                                                                                \
     }                                                                                        \
@@ -2858,10 +2857,10 @@ public:
 #undef INSN
 
 // --------------------------
-// jalr -> c.jr/c.jalr
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
-    if (check_rvc() && (offset == 0 && Rs != x0)) {                                          \
+    /* jalr -> c.jr/c.jalr */                                                                \
+    if (do_compress() && (offset == 0 && Rs != x0)) {                                        \
       if (Rd == x1) {                                                                        \
         c_jalr(Rs);                                                                          \
         return;                                                                              \
@@ -2880,10 +2879,10 @@ public:
 // --------------------------
 // Miscellaneous Instructions
 // --------------------------
-// ebreak -> c.ebreak
 #define INSN(NAME)                                                     \
   void NAME() {                                                        \
-    if (check_rvc()) {                                                 \
+    /* ebreak -> c.ebreak */                                           \
+    if (do_compress()) {                                               \
       c_ebreak();                                                      \
       return;                                                          \
     }                                                                  \
@@ -2897,10 +2896,10 @@ public:
 // --------------------------
 // Immediate Instructions
 // --------------------------
-// li -> c.li
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, int64_t imm) {                                                      \
-    if (check_rvc() && (is_imm_in_range(imm, 6, 0) && Rd != x0)) {                           \
+    /* li -> c.li */                                                                         \
+    if (do_compress() && (is_imm_in_range(imm, 6, 0) && Rd != x0)) {                         \
       c_li(Rd, imm);                                                                         \
       return;                                                                                \
     }                                                                                        \
@@ -2911,10 +2910,11 @@ public:
 
 #undef INSN
 
-// addi -> c.addi/c.nop/c.mv/c.addi16sp/c.addi4spn.
+// --------------------------
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs1, int32_t imm) {                                        \
-    if (check_rvc()) {                                                                       \
+    /* addi -> c.addi/c.nop/c.mv/c.addi16sp/c.addi4spn */                                    \
+    if (do_compress()) {                                                                     \
       if (Rd == Rs1 && is_imm_in_range(imm, 6, 0)) {                                         \
         c_addi(Rd, imm);                                                                     \
         return;                                                                              \
@@ -2939,10 +2939,10 @@ public:
 #undef INSN
 
 // --------------------------
-// addiw -> c.addiw
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs1, int32_t imm) {                                        \
-    if (check_rvc() && (Rd == Rs1 && Rd != x0 && is_imm_in_range(imm, 6, 0))) {              \
+    /* addiw -> c.addiw */                                                                   \
+    if (do_compress() && (Rd == Rs1 && Rd != x0 && is_imm_in_range(imm, 6, 0))) {            \
       c_addiw(Rd, imm);                                                                      \
       return;                                                                                \
     }                                                                                        \
@@ -2954,10 +2954,10 @@ public:
 #undef INSN
 
 // --------------------------
-// and_imm12 -> c.andi
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs1, int32_t imm) {                                        \
-    if (check_rvc() &&                                                                       \
+    /* and_imm12 -> c.andi */                                                                \
+    if (do_compress() &&                                                                     \
         (Rd == Rs1 && Rd->is_compressed_valid() && is_imm_in_range(imm, 6, 0))) {            \
       c_andi(Rd, imm);                                                                       \
       return;                                                                                \
@@ -2972,10 +2972,10 @@ public:
 // --------------------------
 // Shift Immediate Instructions
 // --------------------------
-// slli -> c.slli
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, Register Rs1, unsigned shamt) {                                     \
-    if (check_rvc() && (Rd == Rs1 && Rd != x0 && shamt != 0)) {                              \
+    /* slli -> c.slli */                                                                     \
+    if (do_compress() && (Rd == Rs1 && Rd != x0 && shamt != 0)) {                            \
       c_slli(Rd, shamt);                                                                     \
       return;                                                                                \
     }                                                                                        \
@@ -2987,10 +2987,10 @@ public:
 #undef INSN
 
 // --------------------------
-// srai/srli -> c.srai/c.srli
 #define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
   void NAME(Register Rd, Register Rs1, unsigned shamt) {                                     \
-    if (check_rvc() && (Rd == Rs1 && Rd->is_compressed_valid() && shamt != 0)) {             \
+    /* srai/srli -> c.srai/c.srli */                                                         \
+    if (do_compress() && (Rd == Rs1 && Rd->is_compressed_valid() && shamt != 0)) {           \
       C_NAME(Rd, shamt);                                                                     \
       return;                                                                                \
     }                                                                                        \
@@ -3005,10 +3005,10 @@ public:
 // --------------------------
 // Upper Immediate Instruction
 // --------------------------
-// lui -> c.lui
 #define INSN(NAME)                                                                           \
   void NAME(Register Rd, int32_t imm) {                                                      \
-    if (check_rvc() && (Rd != x0 && Rd != x2 && imm != 0 && is_imm_in_range(imm, 18, 0))) {  \
+    /* lui -> c.lui */                                                                       \
+    if (do_compress() && (Rd != x0 && Rd != x2 && imm != 0 && is_imm_in_range(imm, 18, 0))) { \
       c_lui(Rd, imm);                                                                        \
       return;                                                                                \
     }                                                                                        \
@@ -3021,7 +3021,8 @@ public:
 
 #define INSN(NAME)                                                      \
   void NAME() {                                                         \
-    if (check_rvc()) {                                                  \
+    /* The illegal instruction in RVC is presented by a 16-bit 0. */    \
+    if (do_compress()) {                                                \
       emit_int16(0);                                                    \
       return;                                                           \
     }                                                                   \
