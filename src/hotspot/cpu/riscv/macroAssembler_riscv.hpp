@@ -527,19 +527,15 @@ class MacroAssembler: public Assembler {
   void orrw(Register Rd, Register Rs1, Register Rs2);
   void xorrw(Register Rd, Register Rs1, Register Rs2);
 
-  // grev
-  void reverseb16(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2= t1);  // reverse bytes in 16-bit and move to lower
-  void reverseh32(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2= t1);  // reverse half-words in 32-bit and move to lower
-  void grevh(Register Rd, Register Rs, Register Rtmp = t0);                            // basic reverse bytes in 16-bit halfwords, sign-extend
-  void grev16w(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2 = t1);    // reverse bytes in 16-bit halfwords(32), sign-extend
-  void grevw(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2 = t1);      // reverse bytes(32), sign-extend
-  void grev16(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2= t1);      // reverse bytes in 16-bit halfwords
-  void grev32(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2= t1);      // reverse bytes in 32-bit words
-  void grev(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2 = t1);       // reverse bytes in 64-bit double-words
-  void grevhu(Register Rd, Register Rs, Register Rtmp = t0);                           // basic reverse bytes in 16-bit halfwords, zero-extend
-  void grev16wu(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2 = t1);   // reverse bytes in 16-bit halfwords(32), zero-extend
-  void grevwu(Register Rd, Register Rs, Register Rtmp1 = t0, Register Rtmp2 = t1);     // reverse bytes(32), zero-extend
-
+  // revb
+  void revb_h_h(Register Rd, Register Rs, Register tmp = t0);                           // reverse bytes in halfword in lower 16 bits, sign-extend
+  void revb_w_w(Register Rd, Register Rs, Register tmp1 = t0, Register tmp2 = t1);      // reverse bytes in lower word, sign-extend
+  void revb_h_h_u(Register Rd, Register Rs, Register tmp = t0);                         // reverse bytes in halfword in lower 16 bits, zero-extend
+  void revb_h_w_u(Register Rd, Register Rs, Register tmp1 = t0, Register tmp2 = t1);    // reverse bytes in halfwords in lower 32 bits, zero-extend
+  void revb_h_helper(Register Rd, Register Rs, Register tmp1 = t0, Register tmp2= t1);  // reverse bytes in upper 16 bits (48:63) and move to lower
+  void revb_h(Register Rd, Register Rs, Register tmp1 = t0, Register tmp2= t1);         // reverse bytes in each halfword
+  void revb_w(Register Rd, Register Rs, Register tmp1 = t0, Register tmp2= t1);         // reverse bytes in each word
+  void revb(Register Rd, Register Rs, Register tmp1 = t0, Register tmp2 = t1);          // reverse bytes in doubleword
 
   void andi(Register Rd, Register Rn, int64_t increment, Register temp = t0);
   void orptr(Address adr, RegisterOrConstant src, Register tmp1 = t0, Register tmp2 = t1);
