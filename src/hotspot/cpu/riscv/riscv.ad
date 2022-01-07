@@ -1191,7 +1191,7 @@ int MachCallNativeNode::ret_addr_offset() {
 }
 
 // RVC: With RVC a call may get 2-byte aligned.
-//   The offset encoding in jal ranges bits [12, 31], which could span the cache line.
+//   The offset encoding in jal ranges bits [12, 31] could span the cache line.
 //   Patching this unaligned address will make the write operation not atomic.
 //   Other threads may be running the same piece of code at full speed, causing concurrency issues.
 //   So we must ensure that it does not span a cache line so that it can be patched.
@@ -1201,11 +1201,7 @@ int CallStaticJavaDirectNode::compute_padding(int current_offset) const
   return align_up(current_offset, alignment_required()) - current_offset;
 }
 
-// RVC: With RVC a call may get 2-byte aligned.
-//   The offset encoding in jal ranges bits [12, 31], which could span the cache line.
-//   Patching this unaligned address will make the write operation not atomic.
-//   Other threads may be running the same piece of code at full speed, causing concurrency issues.
-//   So we must ensure that it does not span a cache line so that it can be patched.
+// RVC: See CallStaticJavaDirectNode::compute_padding() for more info.
 int CallDynamicJavaDirectNode::compute_padding(int current_offset) const
 {
   // skip the movptr in MacroAssembler::ic_call():

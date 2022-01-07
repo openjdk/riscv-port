@@ -2023,19 +2023,19 @@ enum Nf {
 // RISC-V Compressed Instructions Extension
 // ========================================
 // Note:
-//   1. When UseRVC is enabled, 32-bit instructions under 'CompressibleRegion's will be
-//      transformed to 16-bit instructions if compressible.
-//   2. RVC instructions in Assembler always begin with 'c_' prefix, as 'c_li',
-//      but most of time we have no need to explicitly use these instructions.
-//   3. We introduce 'CompressibleRegion' to hint instructions in this Region's RTTI range
-//      are qualified to change to their 2-byte versions.
-//      An example:
+// 1. When UseRVC is enabled, 32-bit instructions under 'CompressibleRegion's will be
+//    transformed to 16-bit instructions if compressible.
+// 2. RVC instructions in Assembler always begin with 'c_' prefix, as 'c_li',
+//    but most of time we have no need to explicitly use these instructions.
+// 3. We introduce 'CompressibleRegion' to hint instructions in this Region's RTTI range
+//    are qualified to change to their 2-byte versions.
+//    An example:
 //
-//        CompressibleRegion cr(_masm);
-//        __ andr(...);      // this instruction could change to c.and if able to
+//      CompressibleRegion cr(_masm);
+//      __ andr(...);      // this instruction could change to c.and if able to
 //
-//   4. Using -XX:PrintAssemblyOptions=no-aliases could print RVC instructions instead of
-//      normal ones.
+// 4. Using -XX:PrintAssemblyOptions=no-aliases could print RVC instructions instead of
+//    normal ones.
 //
 
 private:
@@ -2060,23 +2060,6 @@ public:
       _masm->set_in_compressible_region(_saved_in_compressible_region);
     }
   };
-
-  // RVC: extract a 16-bit instruction.
-  static inline uint16_t c_extract(uint16_t val, unsigned msb, unsigned lsb) {
-    assert_cond(msb >= lsb && msb <= 15);
-    unsigned nbits = msb - lsb + 1;
-    uint16_t mask = (1U << nbits) - 1;
-    uint16_t result = val >> lsb;
-    result &= mask;
-    return result;
-  }
-
-  static inline int16_t c_sextract(uint16_t val, unsigned msb, unsigned lsb) {
-    assert_cond(msb >= lsb && msb <= 15);
-    int16_t result = val << (15 - msb);
-    result >>= (15 - msb + lsb);
-    return result;
-  }
 
   // RVC: patch a 16-bit instruction.
   static void c_patch(address a, unsigned msb, unsigned lsb, uint16_t val) {

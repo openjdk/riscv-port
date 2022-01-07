@@ -1325,7 +1325,7 @@ void LIR_Assembler::comp_fl2i(LIR_Code code, LIR_Opr left, LIR_Opr right, LIR_Op
 void LIR_Assembler::align_call(LIR_Code code) {
   // RVC: With RVC a call may get 2-byte aligned.
   //   the address of jal itself (which will be patched later) should not span the cache line.
-  //   See CallDynamicJavaDirectNode::compute_padding() for more info.
+  //   See CallStaticJavaDirectNode::compute_padding() for more info.
   __ align(4);
 }
 
