@@ -2019,76 +2019,24 @@ enum Nf {
 
 #undef INSN
 
-  void bgt(Register Rs, Register Rt, const address &dest);
-  void ble(Register Rs, Register Rt, const address &dest);
-  void bgtu(Register Rs, Register Rt, const address &dest);
-  void bleu(Register Rs, Register Rt, const address &dest);
-  void bgt(Register Rs, Register Rt, Label &l, bool is_far = false);
-  void ble(Register Rs, Register Rt, Label &l, bool is_far = false);
-  void bgtu(Register Rs, Register Rt, Label &l, bool is_far = false);
-  void bleu(Register Rs, Register Rt, Label &l, bool is_far = false);
-
-  typedef void (Assembler::* jal_jalr_insn)(Register Rt, address dest);
-  typedef void (Assembler::* load_insn_by_temp)(Register Rt, address dest, Register temp);
-  typedef void (Assembler::* compare_and_branch_insn)(Register Rs1, Register Rs2, const address dest);
-  typedef void (Assembler::* compare_and_branch_label_insn)(Register Rs1, Register Rs2, Label &L, bool is_far);
-
-  void wrap_label(Register r1, Register r2, Label &L, compare_and_branch_insn insn,
-                  compare_and_branch_label_insn neg_insn, bool is_far);
-  void wrap_label(Register r, Label &L, Register t, load_insn_by_temp insn);
-  void wrap_label(Register r, Label &L, jal_jalr_insn insn);
-
-  // calculate pseudoinstruction
-  void add(Register Rd, Register Rn, int64_t increment, Register temp = t0);
-  void addw(Register Rd, Register Rn, int64_t increment, Register temp = t0);
-  void sub(Register Rd, Register Rn, int64_t decrement, Register temp = t0);
-  void subw(Register Rd, Register Rn, int64_t decrement, Register temp = t0);
-
-  // RVB pseudo instructions
-  // zero extend word
-  void zext_w(Register Rd, Register Rs);
-
-  Assembler(CodeBuffer* code) : AbstractAssembler(code), _in_compressible_region(false) {
-  }
-
-  // Stack overflow checking
-  virtual void bang_stack_with_offset(int offset) { Unimplemented(); }
-
-  static bool operand_valid_for_add_immediate(long imm) {
-    return is_imm_in_range(imm, 12, 0);
-  }
-
-  // The maximum range of a branch is fixed for the riscv64
-  // architecture.
-  static const unsigned long branch_range = 1 * M;
-
-  static bool reachable_from_branch_at(address branch, address target) {
-    return uabs(target - branch) < branch_range;
-  }
-
-  // ---------------------------------------------------------------------------------
-  // RVC: If an instruction is compressible, then
-  //   we will implicitly emit a 16-bit compressed instruction instead of the 32-bit
-  //   instruction in Assembler. All below logic follows Chapter -
-  //   "C" Standard Extension for Compressed Instructions, Version 2.0.
-  //   We can get code size reduction and performance improvement with this extension,
-  //   considering the reduction of instruction size and the code density increment.
-
-  // Note:
-  //   1. When UseRVC is enabled, 32-bit instructions under 'CompressibleRegion's will be
-  //      transformed to 16-bit instructions if compressible.
-  //   2. RVC instructions in Assembler always begin with 'c_' prefix, as 'c_li',
-  //      but most of time we have no need to explicitly use these instructions.
-  //   3. We introduce 'CompressibleRegion' to hint instructions in this Region's RTTI range
-  //      are qualified to change to their 2-byte versions.
-  //      An example:
-  //
-  //        CompressibleRegion cr(_masm);
-  //        __ andr(...);      // this instruction could change to c.and if able to
-  //
-  //   4. Using -XX:PrintAssemblyOptions=no-aliases could print RVC instructions instead of
-  //      normal ones.
-  //
+// ========================================
+// RISC-V Compressed Instructions Extension
+// ========================================
+// Note:
+//   1. When UseRVC is enabled, 32-bit instructions under 'CompressibleRegion's will be
+//      transformed to 16-bit instructions if compressible.
+//   2. RVC instructions in Assembler always begin with 'c_' prefix, as 'c_li',
+//      but most of time we have no need to explicitly use these instructions.
+//   3. We introduce 'CompressibleRegion' to hint instructions in this Region's RTTI range
+//      are qualified to change to their 2-byte versions.
+//      An example:
+//
+//        CompressibleRegion cr(_masm);
+//        __ andr(...);      // this instruction could change to c.and if able to
+//
+//   4. Using -XX:PrintAssemblyOptions=no-aliases could print RVC instructions instead of
+//      normal ones.
+//
 
 private:
   bool _in_compressible_region;
@@ -2893,6 +2841,20 @@ public:
 
 #undef INSN
 
+#define INSN(NAME)                                                      \
+  void NAME() {                                                         \
+    /* The illegal instruction in RVC is presented by a 16-bit 0. */    \
+    if (do_compress()) {                                                \
+      emit_int16(0);                                                    \
+      return;                                                           \
+    }                                                                   \
+    _halt();                                                            \
+  }
+
+  INSN(halt);
+
+#undef INSN
+
 // --------------------------
 // Immediate Instructions
 // --------------------------
@@ -3019,21 +2981,54 @@ public:
 
 #undef INSN
 
-#define INSN(NAME)                                                      \
-  void NAME() {                                                         \
-    /* The illegal instruction in RVC is presented by a 16-bit 0. */    \
-    if (do_compress()) {                                                \
-      emit_int16(0);                                                    \
-      return;                                                           \
-    }                                                                   \
-    _halt();                                                            \
+// ---------------------------------------------------------------------------------------
+
+  void bgt(Register Rs, Register Rt, const address &dest);
+  void ble(Register Rs, Register Rt, const address &dest);
+  void bgtu(Register Rs, Register Rt, const address &dest);
+  void bleu(Register Rs, Register Rt, const address &dest);
+  void bgt(Register Rs, Register Rt, Label &l, bool is_far = false);
+  void ble(Register Rs, Register Rt, Label &l, bool is_far = false);
+  void bgtu(Register Rs, Register Rt, Label &l, bool is_far = false);
+  void bleu(Register Rs, Register Rt, Label &l, bool is_far = false);
+
+  typedef void (Assembler::* jal_jalr_insn)(Register Rt, address dest);
+  typedef void (Assembler::* load_insn_by_temp)(Register Rt, address dest, Register temp);
+  typedef void (Assembler::* compare_and_branch_insn)(Register Rs1, Register Rs2, const address dest);
+  typedef void (Assembler::* compare_and_branch_label_insn)(Register Rs1, Register Rs2, Label &L, bool is_far);
+
+  void wrap_label(Register r1, Register r2, Label &L, compare_and_branch_insn insn,
+                  compare_and_branch_label_insn neg_insn, bool is_far);
+  void wrap_label(Register r, Label &L, Register t, load_insn_by_temp insn);
+  void wrap_label(Register r, Label &L, jal_jalr_insn insn);
+
+  // calculate pseudoinstruction
+  void add(Register Rd, Register Rn, int64_t increment, Register temp = t0);
+  void addw(Register Rd, Register Rn, int64_t increment, Register temp = t0);
+  void sub(Register Rd, Register Rn, int64_t decrement, Register temp = t0);
+  void subw(Register Rd, Register Rn, int64_t decrement, Register temp = t0);
+
+  // RVB pseudo instructions
+  // zero extend word
+  void zext_w(Register Rd, Register Rs);
+
+  Assembler(CodeBuffer* code) : AbstractAssembler(code), _in_compressible_region(false) {
   }
 
-  INSN(halt);
+  // Stack overflow checking
+  virtual void bang_stack_with_offset(int offset) { Unimplemented(); }
 
-#undef INSN
+  static bool operand_valid_for_add_immediate(long imm) {
+    return is_imm_in_range(imm, 12, 0);
+  }
 
-// ---------------------------------------------------------------------------------------
+  // The maximum range of a branch is fixed for the riscv64
+  // architecture.
+  static const unsigned long branch_range = 1 * M;
+
+  static bool reachable_from_branch_at(address branch, address target) {
+    return uabs(target - branch) < branch_range;
+  }
 
   virtual ~Assembler() {}
 
