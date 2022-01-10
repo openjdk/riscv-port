@@ -36,18 +36,11 @@
 #include "utilities/debug.hpp"
 
 class NativeNMethodBarrier: public NativeInstruction {
-public:
-  enum {
-    guard_offset   = 12 * instruction_size,
-    barrier_size   = guard_offset + 4,  // guard_offset + an int32 nmethod guard value
-  };
-
-private:
   address instruction_address() const { return addr_at(0); }
 
   int *guard_addr() {
     /* auipc + lwu + fence + lwu + beq + lui + addi + slli + addi + slli + jalr + j */
-    return reinterpret_cast<int*>(instruction_address() + guard_offset);
+    return reinterpret_cast<int*>(instruction_address() + 12 * 4);
   }
 
 public:
@@ -61,10 +54,6 @@ public:
 
   void verify() const;
 };
-
-int nmethod_barrier_guard_offset() {
-  return NativeNMethodBarrier::guard_offset;
-}
 
 // Store the instruction bitmask, bits and name for checking the barrier.
 struct CheckInsn {
@@ -152,7 +141,7 @@ void BarrierSetNMethod::deoptimize(nmethod* nm, address* return_address_ptr) {
 
 // see BarrierSetAssembler::nmethod_entry_barrier
 // auipc + lwu + fence + lwu + beq + movptr_with_offset(5 instructions) + jalr + j + int32
-static const int entry_barrier_offset = - NativeNMethodBarrier::barrier_size;
+static const int entry_barrier_offset = -4 * 13;
 
 static NativeNMethodBarrier* native_nmethod_barrier(nmethod* nm) {
   address barrier_address = nm->code_begin() + nm->frame_complete_offset() + entry_barrier_offset;
