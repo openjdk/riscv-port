@@ -238,8 +238,7 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
     return;
   }
 
-  // RVC: RISCV's amoswap instructions need an alignment for the memory address it swaps
-  //   when we reach here we may get a 2-byte alignment so need to align it
+  // RISCV's amoswap instructions need a 4-byte alignment for the 4-byte word it swaps in memory
   __ align(4);
 
   Label skip, guard;
@@ -260,7 +259,7 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
 
   __ bind(guard);
 
-  assert(__ offset() % 4 == 0, "RISCV CAS needs an alignment for memory");
+  assert(__ offset() % 4 == 0, "RISCV CAS needs a 4-byte alignment for the 4-byte word it swaps in memory");
   __ emit_int32(0); // nmethod guard value. Skipped over in common case.
 
   __ bind(skip);
