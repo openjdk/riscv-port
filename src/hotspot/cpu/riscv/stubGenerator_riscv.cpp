@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2020, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1803,20 +1803,16 @@ class StubGenerator: public StubCodeGenerator {
     __ j(RuntimeAddress(byte_copy_entry));
 
   __ BIND(L_copy_shorts);
-    __ slli(t0, src_pos, 1);
-    __ add(from, src, t0); // src_addr
-    __ slli(t0, dst_pos, 1);
-    __ add(to, dst, t0); // dst_addr
+    __ shadd(from, src_pos, src, t0, 1); // src_addr
+    __ shadd(to, dst_pos, dst, t0, 1); // dst_addr
     __ addw(count, scratch_length, zr); // length
     __ j(RuntimeAddress(short_copy_entry));
 
   __ BIND(L_copy_ints);
     __ andi(t0, x22_elsize, 1);
     __ bnez(t0, L_copy_longs);
-    __ slli(t0, src_pos, 2);
-    __ add(from, src, t0); // src_addr
-    __ slli(t0, dst_pos, 2);
-    __ add(to, dst, t0); // dst_addr
+    __ shadd(from, src_pos, src, t0, 2); // src_addr
+    __ shadd(to, dst_pos, dst, t0, 2); // dst_addr
     __ addw(count, scratch_length, zr); // length
     __ j(RuntimeAddress(int_copy_entry));
 
@@ -1834,10 +1830,8 @@ class StubGenerator: public StubCodeGenerator {
       BLOCK_COMMENT("} assert long copy done");
     }
 #endif
-    __ slli(t0, src_pos, 3);
-    __ add(from, src, t0); // src_addr
-    __ slli(t0, dst_pos, 3);
-    __ add(to, dst, t0); // dst_addr
+    __ shadd(from, src_pos, src, t0, 3); // src_addr
+    __ shadd(to, dst_pos, dst, t0, 3); // dst_addr
     __ addw(count, scratch_length, zr); // length
     __ j(RuntimeAddress(long_copy_entry));
 
@@ -1854,11 +1848,9 @@ class StubGenerator: public StubCodeGenerator {
     arraycopy_range_checks(src, src_pos, dst, dst_pos, scratch_length,
                            t1, L_failed);
 
-    __ slli(t0, src_pos, LogBytesPerHeapOop);
-    __ add(from, t0, src);
+    __ shadd(from, src_pos, src, t0, LogBytesPerHeapOop);
     __ add(from, from, arrayOopDesc::base_offset_in_bytes(T_OBJECT));
-    __ slli(t0, dst_pos, LogBytesPerHeapOop);
-    __ add(to, t0, dst);
+    __ shadd(to, dst_pos, dst, t0, LogBytesPerHeapOop);
     __ add(to, to, arrayOopDesc::base_offset_in_bytes(T_OBJECT));
     __ addw(count, scratch_length, zr); // length
   __ BIND(L_plain_copy);
@@ -1879,11 +1871,9 @@ class StubGenerator: public StubCodeGenerator {
       __ load_klass(dst_klass, dst); // reload
 
       // Marshal the base address arguments now, freeing registers.
-      __ slli(t0, src_pos, LogBytesPerHeapOop);
-      __ add(from, t0, src);
+      __ shadd(from, src_pos, src, t0, LogBytesPerHeapOop);
       __ add(from, from, arrayOopDesc::base_offset_in_bytes(T_OBJECT));
-      __ slli(t0, dst_pos, LogBytesPerHeapOop);
-      __ add(to, t0, dst);
+      __ shadd(to, dst_pos, dst, t0, LogBytesPerHeapOop);
       __ add(to, to, arrayOopDesc::base_offset_in_bytes(T_OBJECT));
       __ addw(count, length, zr);           // length (reloaded)
       const Register sco_temp = c_rarg3;      // this register is free now
@@ -2044,8 +2034,7 @@ class StubGenerator: public StubCodeGenerator {
     // Note that the total length is no less than 8 bytes.
     if (t == T_BYTE || t == T_SHORT) {
       __ beqz(count, L_exit1);
-      __ slli(tmp_reg, count, shift);
-      __ add(to, to, tmp_reg); // points to the end
+      __ shadd(to, count, to, tmp_reg, shift); // points to the end
       __ sd(value, Address(to, -8)); // overwrite some elements
       __ bind(L_exit1);
       __ leave();
@@ -2314,11 +2303,9 @@ class StubGenerator: public StubCodeGenerator {
 
     if (isLU) {
       __ add(str1, str1, cnt2);
-      __ slli(t0, cnt2, 1);
-      __ add(str2, str2, t0);
+      __ shadd(str2, cnt2, str2, t0, 1);
     } else {
-      __ slli(t0, cnt2, 1);
-      __ add(str1, str1, t0);
+      __ shadd(str1, cnt2, str1, t0, 1);
       __ add(str2, str2, cnt2);
     }
     __ xorr(tmp3, tmp1, tmp2);
@@ -2347,9 +2334,10 @@ class StubGenerator: public StubCodeGenerator {
       __ addi(t0, cnt2, 16);
       __ beqz(t0, LOAD_LAST);
     __ bind(TAIL); // 1..15 characters left until last load (last 4 characters)
-      __ slli(t0, cnt2, 1);
-      __ add(cnt1, cnt1, t0); // Address of 8 bytes before last 4 characters in UTF-16 string
-      __ add(tmp2, tmp2, cnt2); // Address of 16 bytes before last 4 characters in Latin1 string
+      // Address of 8 bytes before last 4 characters in UTF-16 string
+      __ shadd(cnt1, cnt2, cnt1, t0, 1);
+      // Address of 16 bytes before last 4 characters in Latin1 string
+      __ add(tmp2, tmp2, cnt2);
       __ ld(tmp4, Address(cnt1, -8));
       // last 16 characters before last load
       compare_string_8_x_LU(tmpL, tmpU, DIFF1, DIFF2);
@@ -2653,10 +2641,8 @@ class StubGenerator: public StubCodeGenerator {
     __ bne(ch1, ch2, L_SMALL_CMP_LOOP_NOMATCH);
 
     __ bind(L_SMALL_CMP_LOOP);
-    __ slli(first, trailing_zeros, needle_chr_shift);
-    __ add(first, needle, first);
-    __ slli(ch2, trailing_zeros, haystack_chr_shift);
-    __ add(ch2, haystack, ch2);
+    __ shadd(first, trailing_zeros, needle, first, needle_chr_shift);
+    __ shadd(ch2, trailing_zeros, haystack, ch2, haystack_chr_shift);
     needle_isL ? __ lbu(first, Address(first)) : __ lhu(first, Address(first));
     haystack_isL ? __ lbu(ch2, Address(ch2)) : __ lhu(ch2, Address(ch2));
     __ add(trailing_zeros, trailing_zeros, 1);
@@ -2702,11 +2688,9 @@ class StubGenerator: public StubCodeGenerator {
 
     // compare one char
     __ bind(L_CMP_LOOP);
-    __ slli(needle_len, trailing_zeros, needle_chr_shift);
-    __ add(needle_len, needle, needle_len);
+    __ shadd(needle_len, trailing_zeros, needle, needle_len, needle_chr_shift);
     needle_isL ? __ lbu(needle_len, Address(needle_len)) : __ lhu(needle_len, Address(needle_len));
-    __ slli(ch2, trailing_zeros, haystack_chr_shift);
-    __ add(ch2, haystack, ch2);
+    __ shadd(ch2, trailing_zeros, haystack, ch2, haystack_chr_shift);
     haystack_isL ? __ lbu(ch2, Address(ch2)) : __ lhu(ch2, Address(ch2));
     __ add(trailing_zeros, trailing_zeros, 1); // next char index
     __ srli(tmp, haystack_len, BitsPerByte * wordSize / 2);

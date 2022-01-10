@@ -681,6 +681,9 @@ class MacroAssembler: public Assembler {
   void fill_words(Register base, Register cnt, Register value);
   void zero_memory(Register addr, Register len, Register tmp1);
 
+  // shift left by shamt and add
+  void shadd(Register Rd, Register Rs1, Register Rs2, Register tmp, int shamt);
+
   // Here the float instructions with safe deal with some exceptions.
   // e.g. convert from NaN, +Inf, -Inf to int, float, double
   // will trigger exception, we need to deal with these situations

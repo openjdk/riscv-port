@@ -29,7 +29,7 @@ instruct rorI_imm_rvb(iRegINoSp dst, iRegI src, immI shift) %{
   predicate(UseRVB);
   match(Set dst (RotateRight src shift));
 
-  format %{ "roriw    $dst, $src, ($shift & 0x1f)\t#@rorI_imm_rvb" %}
+  format %{ "roriw  $dst, $src, ($shift & 0x1f)\t#@rorI_imm_rvb" %}
 
   ins_cost(ALU_COST);
   ins_encode %{
@@ -43,7 +43,7 @@ instruct rorL_imm_rvb(iRegLNoSp dst, iRegL src, immI shift) %{
   predicate(UseRVB);
   match(Set dst (RotateRight src shift));
 
-  format %{ "rori    $dst, $src, ($shift & 0x3f)\t#@rorL_imm_rvb" %}
+  format %{ "rori  $dst, $src, ($shift & 0x3f)\t#@rorL_imm_rvb" %}
 
   ins_cost(ALU_COST);
   ins_encode %{
@@ -57,7 +57,7 @@ instruct rorI_reg_rvb(iRegINoSp dst, iRegI src, iRegI shift) %{
   predicate(UseRVB);
   match(Set dst (RotateRight src shift));
 
-  format %{ "rorw    $dst, $src, $shift\t#@rorI_reg_rvb" %}
+  format %{ "rorw  $dst, $src, $shift\t#@rorI_reg_rvb" %}
   ins_cost(ALU_COST);
   ins_encode %{
     __ rorw(as_Register($dst$$reg), as_Register($src$$reg), as_Register($shift$$reg));
@@ -69,7 +69,7 @@ instruct rorL_reg_rvb(iRegLNoSp dst, iRegL src, iRegI shift) %{
   predicate(UseRVB);
   match(Set dst (RotateRight src shift));
 
-  format %{ "ror    $dst, $src, $shift\t#@rorL_reg_rvb" %}
+  format %{ "ror  $dst, $src, $shift\t#@rorL_reg_rvb" %}
   ins_cost(ALU_COST);
   ins_encode %{
     __ ror(as_Register($dst$$reg), as_Register($src$$reg), as_Register($shift$$reg));
@@ -81,7 +81,7 @@ instruct rolI_reg_rvb(iRegINoSp dst, iRegI src, iRegI shift) %{
   predicate(UseRVB);
   match(Set dst (RotateLeft src shift));
 
-  format %{ "rolw    $dst, $src, $shift\t#@rolI_reg_rvb" %}
+  format %{ "rolw  $dst, $src, $shift\t#@rolI_reg_rvb" %}
   ins_cost(ALU_COST);
   ins_encode %{
     __ rolw(as_Register($dst$$reg), as_Register($src$$reg), as_Register($shift$$reg));
@@ -93,7 +93,7 @@ instruct rolL_reg_rvb(iRegLNoSp dst, iRegL src, iRegI shift) %{
   predicate(UseRVB);
   match(Set dst (RotateLeft src shift));
 
-  format %{ "rol    $dst, $src, $shift\t#@rolL_reg_rvb" %}
+  format %{ "rol  $dst, $src, $shift\t#@rolL_reg_rvb" %}
   ins_cost(ALU_COST);
   ins_encode %{
     __ rol(as_Register($dst$$reg), as_Register($src$$reg), as_Register($shift$$reg));
@@ -106,7 +106,7 @@ instruct convP2I_rvb(iRegINoSp dst, iRegP src) %{
   predicate(UseRVB);
   match(Set dst (ConvL2I (CastP2X src)));
 
-  format %{ "zext.w    $dst, $src\t# ptr -> int @convP2I_rvb" %}
+  format %{ "zext.w  $dst, $src\t# ptr -> int @convP2I_rvb" %}
 
   ins_cost(ALU_COST);
   ins_encode %{
@@ -121,7 +121,7 @@ instruct convB2I_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_24 lshift, immI
   predicate(UseRVB);
   match(Set dst (RShiftI (LShiftI src lshift) rshift));
 
-  format %{ "sext.b    $dst, $src\t# b2i, #@convB2I_reg_reg_rvb" %}
+  format %{ "sext.b  $dst, $src\t# b2i, #@convB2I_reg_reg_rvb" %}
 
   ins_cost(ALU_COST);
   ins_encode %{
@@ -136,7 +136,7 @@ instruct convI2S_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16 lshift, immI
   predicate(UseRVB);
   match(Set dst (RShiftI (LShiftI src lshift) rshift));
 
-  format %{ "sext.h    $dst, $src\t# i2s, #@convI2S_reg_reg_rvb" %}
+  format %{ "sext.h  $dst, $src\t# i2s, #@convI2S_reg_reg_rvb" %}
 
   ins_cost(ALU_COST);
   ins_encode %{
@@ -151,7 +151,7 @@ instruct convS2UI_reg_reg_rvb(iRegINoSp dst, iRegIorL2I src, immI_16bits mask) %
   predicate(UseRVB);
   match(Set dst (AndI src mask));
 
-  format %{ "zext.h    $dst, $src\t# s2ui, #@convS2UI_reg_reg_rvb" %}
+  format %{ "zext.h  $dst, $src\t# s2ui, #@convS2UI_reg_reg_rvb" %}
 
   ins_cost(ALU_COST);
   ins_encode %{
@@ -166,7 +166,7 @@ instruct convI2UL_reg_reg_rvb(iRegLNoSp dst, iRegIorL2I src, immL_32bits mask) %
   predicate(UseRVB);
   match(Set dst (AndL (ConvI2L src) mask));
 
-  format %{ "zext.w    $dst, $src\t# i2ul, #@convI2UL_reg_reg_rvb" %}
+  format %{ "zext.w  $dst, $src\t# i2ul, #@convI2UL_reg_reg_rvb" %}
 
   ins_cost(ALU_COST);
   ins_encode %{
@@ -231,4 +231,198 @@ instruct bytes_reverse_short_rvb(iRegINoSp dst, iRegIorL2I src) %{
   %}
 
   ins_pipe(ialu_reg);
+%}
+
+// Shift Add Pointer
+instruct sh1addP_reg_reg_rvb(iRegPNoSp dst, iRegP src1, iRegL src2, immIScale1 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddP src1 (LShiftL src2 imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh1add  $dst, $src2, src1\t# ptr, #@sh1addP_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ sh1add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh2addP_reg_reg_rvb(iRegPNoSp dst, iRegP src1, iRegL src2, immIScale2 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddP src1 (LShiftL src2 imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh2add  $dst, $src2, src1\t# ptr, #@sh2addP_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ sh2add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh3addP_reg_reg_rvb(iRegPNoSp dst, iRegP src1, iRegL src2, immIScale3 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddP src1 (LShiftL src2 imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh3add  $dst, $src2, $src1\t# ptr, #@sh3addP_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ sh3add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh1addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegIorL2I src2, immIScale1 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddP src1 (LShiftL (ConvI2L src2) imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh1add  $dst, $src2, src1\t# ptr, #@sh1addP_reg_reg_ext_rvb" %}
+
+  ins_encode %{
+    __ sh1add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh2addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegIorL2I src2, immIScale2 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddP src1 (LShiftL (ConvI2L src2) imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh2add  $dst, $src2, src1\t# ptr, #@sh2addP_reg_reg_ext_rvb" %}
+
+  ins_encode %{
+    __ sh2add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh3addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegIorL2I src2, immIScale3 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddP src1 (LShiftL (ConvI2L src2) imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh3add  $dst, $src2, src1\t# ptr, #@sh3addP_reg_reg_ext_rvb" %}
+
+  ins_encode %{
+    __ sh3add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+// Shift Add Long
+instruct sh1addL_reg_reg_rvb(iRegLNoSp dst, iRegL src1, iRegL src2, immIScale1 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddL src1 (LShiftL src2 imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh1add  $dst, $src2, $src1\t#@sh1addL_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ sh1add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh2addL_reg_reg_rvb(iRegLNoSp dst, iRegL src1, iRegL src2, immIScale2 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddL src1 (LShiftL src2 imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh2add  $dst, $src2, $src1\t#@sh2addL_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ sh2add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh3addL_reg_reg_rvb(iRegLNoSp dst, iRegL src1, iRegL src2, immIScale3 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddL src1 (LShiftL src2 imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh3add  $dst, $src2, $src1\t#@sh3addL_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ sh3add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh1addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegIorL2I src2, immIScale1 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddL src1 (LShiftL (ConvI2L src2) imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh1add  $dst, $src2, $src1\t#@sh1addL_reg_reg_ext_rvb" %}
+
+  ins_encode %{
+    __ sh1add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh2addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegIorL2I src2, immIScale2 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddL src1 (LShiftL (ConvI2L src2) imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh2add  $dst, $src2, $src1\t#@sh2addL_reg_reg_ext_rvb" %}
+
+  ins_encode %{
+    __ sh2add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct sh3addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegIorL2I src2, immIScale3 imm) %{
+  predicate(UseRVB);
+  match(Set dst (AddL src1 (LShiftL (ConvI2L src2) imm)));
+
+  ins_cost(ALU_COST);
+  format %{ "sh3add  $dst, $src2, $src1\t#@sh3addL_reg_reg_ext_rvb" %}
+
+  ins_encode %{
+    __ sh3add(as_Register($dst$$reg),
+              as_Register($src2$$reg),
+              as_Register($src1$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
 %}
