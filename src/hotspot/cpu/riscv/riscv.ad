@@ -1483,9 +1483,7 @@ uint MachSpillCopyNode::implementation(CodeBuffer *cbuf, PhaseRegAlloc *ra_, boo
   int src_offset = ra_->reg2offset(src_lo);
   int dst_offset = ra_->reg2offset(dst_lo);
 
-  if (bottom_type() == NULL) {
-    ShouldNotReachHere();
-  } else if (bottom_type()->isa_vect() != NULL) {
+  if (bottom_type()->isa_vect() != NULL) {
     uint ireg = ideal_reg();
     if (ireg == Op_VecA && cbuf) {
       C2_MacroAssembler _masm(cbuf);
