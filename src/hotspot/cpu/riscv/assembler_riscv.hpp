@@ -2386,11 +2386,11 @@ public:
 
 #undef INSN
 
-#define INSN(NAME, funct3, op, REGISTER_TYPE, CHECK)                                         \
-  void NAME(REGISTER_TYPE Rd, uint32_t uimm) {                                               \
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rd, uint32_t uimm) {                                                    \
     assert_cond(is_unsigned_imm_in_range(uimm, 9, 0));                                       \
     assert_cond((uimm & 0b111) == 0);                                                        \
-    IF(CHECK, assert_cond(Rd != x0);)                                                        \
+    assert_cond(Rd != x0);                                                                   \
     uint16_t insn = 0;                                                                       \
     c_patch((address)&insn, 1, 0, op);                                                       \
     c_patch((address)&insn, 4, 2, (uimm & right_n_bits(9)) >> 6);                            \
@@ -2401,16 +2401,26 @@ public:
     emit_int16(insn);                                                                        \
   }
 
-#define IF(BOOL, ...)       IF_##BOOL(__VA_ARGS__)
-#define IF_true(code)       code
-#define IF_false(code)
+  INSN(c_ldsp,  0b011, 0b10);
 
-  INSN(c_ldsp,  0b011, 0b10, Register,      true);
-  INSN(c_fldsp, 0b001, 0b10, FloatRegister, false);
+#undef INSN
 
-#undef IF_false
-#undef IF_true
-#undef IF
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(FloatRegister Rd, uint32_t uimm) {                                               \
+    assert_cond(is_unsigned_imm_in_range(uimm, 9, 0));                                       \
+    assert_cond((uimm & 0b111) == 0);                                                        \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 4, 2, (uimm & right_n_bits(9)) >> 6);                            \
+    c_patch((address)&insn, 6, 5, (uimm & right_n_bits(5)) >> 3);                            \
+    c_patch_reg((address)&insn, 7, Rd);                                                      \
+    c_patch((address)&insn, 12, 12, (uimm & nth_bit(5)) >> 5);                               \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_fldsp, 0b001, 0b10);
+
 #undef INSN
 
 #define INSN(NAME, funct3, op, REGISTER_TYPE)                                                \
