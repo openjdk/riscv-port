@@ -282,7 +282,7 @@ instruct sh3addP_reg_reg_rvb(iRegPNoSp dst, iRegP src1, iRegL src2, immIScale3 i
   ins_pipe(ialu_reg_reg);
 %}
 
-instruct sh1addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegIorL2I src2, immIScale1 imm) %{
+instruct sh1addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegI src2, immIScale1 imm) %{
   predicate(UseRVB);
   match(Set dst (AddP src1 (LShiftL (ConvI2L src2) imm)));
 
@@ -298,7 +298,7 @@ instruct sh1addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegIorL2I src2, imm
   ins_pipe(ialu_reg_reg);
 %}
 
-instruct sh2addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegIorL2I src2, immIScale2 imm) %{
+instruct sh2addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegI src2, immIScale2 imm) %{
   predicate(UseRVB);
   match(Set dst (AddP src1 (LShiftL (ConvI2L src2) imm)));
 
@@ -314,7 +314,7 @@ instruct sh2addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegIorL2I src2, imm
   ins_pipe(ialu_reg_reg);
 %}
 
-instruct sh3addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegIorL2I src2, immIScale3 imm) %{
+instruct sh3addP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegI src2, immIScale3 imm) %{
   predicate(UseRVB);
   match(Set dst (AddP src1 (LShiftL (ConvI2L src2) imm)));
 
@@ -379,7 +379,7 @@ instruct sh3addL_reg_reg_rvb(iRegLNoSp dst, iRegL src1, iRegL src2, immIScale3 i
   ins_pipe(ialu_reg_reg);
 %}
 
-instruct sh1addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegIorL2I src2, immIScale1 imm) %{
+instruct sh1addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegI src2, immIScale1 imm) %{
   predicate(UseRVB);
   match(Set dst (AddL src1 (LShiftL (ConvI2L src2) imm)));
 
@@ -395,7 +395,7 @@ instruct sh1addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegIorL2I src2, imm
   ins_pipe(ialu_reg_reg);
 %}
 
-instruct sh2addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegIorL2I src2, immIScale2 imm) %{
+instruct sh2addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegI src2, immIScale2 imm) %{
   predicate(UseRVB);
   match(Set dst (AddL src1 (LShiftL (ConvI2L src2) imm)));
 
@@ -411,7 +411,7 @@ instruct sh2addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegIorL2I src2, imm
   ins_pipe(ialu_reg_reg);
 %}
 
-instruct sh3addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegIorL2I src2, immIScale3 imm) %{
+instruct sh3addL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegI src2, immIScale3 imm) %{
   predicate(UseRVB);
   match(Set dst (AddL src1 (LShiftL (ConvI2L src2) imm)));
 
