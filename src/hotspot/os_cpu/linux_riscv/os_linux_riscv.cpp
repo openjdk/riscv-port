@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1999, 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -156,7 +156,7 @@ frame os::get_sender_for_C_frame(frame* fr) {
 
 NOINLINE frame os::current_frame() {
   intptr_t **sender_sp = (intptr_t **)__builtin_frame_address(0);
-  if(sender_sp != NULL) {
+  if (sender_sp != NULL) {
     frame myframe((intptr_t*)os::current_stack_pointer(),
                   sender_sp[frame::link_offset],
                   CAST_FROM_FN_PTR(address, os::current_frame));

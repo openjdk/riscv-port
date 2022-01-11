@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -830,7 +830,7 @@ void C2_MacroAssembler::string_compare(Register str1, Register str2,
       sub(cnt2, cnt2, minCharsInWord);
       beqz(cnt2, TAIL_CHECK);
       // convert cnt2 from characters to bytes
-      if(!str1_isL) {
+      if (!str1_isL) {
         slli(cnt2, cnt2, 1);
       }
       add(str2, str2, cnt2);

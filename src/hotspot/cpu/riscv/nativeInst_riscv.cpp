@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2020, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -209,24 +209,20 @@ void NativeMovConstReg::set_data(intptr_t x) {
   // Find and replace the oop/metadata corresponding to this
   // instruction in oops section.
   CodeBlob* cb = CodeCache::find_blob(instruction_address());
-  if(cb != NULL) {
-    nmethod* nm = cb->as_nmethod_or_null();
-    if (nm != NULL) {
-      RelocIterator iter(nm, instruction_address(), next_instruction_address());
-      while (iter.next()) {
-        if (iter.type() == relocInfo::oop_type) {
-          oop* oop_addr = iter.oop_reloc()->oop_addr();
-          *oop_addr = cast_to_oop(x);
-          break;
-        } else if (iter.type() == relocInfo::metadata_type) {
-          Metadata** metadata_addr = iter.metadata_reloc()->metadata_addr();
-          *metadata_addr = (Metadata*)x;
-          break;
-        }
+  nmethod* nm = cb->as_nmethod_or_null();
+  if (nm != NULL) {
+    RelocIterator iter(nm, instruction_address(), next_instruction_address());
+    while (iter.next()) {
+      if (iter.type() == relocInfo::oop_type) {
+        oop* oop_addr = iter.oop_reloc()->oop_addr();
+        *oop_addr = cast_to_oop(x);
+        break;
+      } else if (iter.type() == relocInfo::metadata_type) {
+        Metadata** metadata_addr = iter.metadata_reloc()->metadata_addr();
+        *metadata_addr = (Metadata*)x;
+        break;
       }
     }
-  } else {
-    ShouldNotReachHere();
   }
 }
 

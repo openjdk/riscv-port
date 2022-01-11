@@ -1083,7 +1083,7 @@ int MachNode::compute_padding(int current_offset) const {
 // values otherwise false.
 bool is_CAS(int opcode, bool maybe_volatile)
 {
-  switch(opcode) {
+  switch (opcode) {
     // We handle these
     case Op_CompareAndSwapI:
     case Op_CompareAndSwapL:
@@ -2157,7 +2157,7 @@ encode %{
   enc_class riscv64_enc_far_cmpULtGe_imm0_branch(cmpOpULtGe cmp, iRegIorL op1, label lbl) %{
     C2_MacroAssembler _masm(&cbuf);
     Label* L = $lbl$$label;
-    switch($cmp$$cmpcode) {
+    switch ($cmp$$cmpcode) {
       case(BoolTest::ge):
         __ j(*L);
         break;

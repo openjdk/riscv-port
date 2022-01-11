@@ -462,13 +462,13 @@ public:
     NAME(Rd, dest);                                                                                \
   }                                                                                                \
   void NAME(Register Rd, const Address &adr, Register temp = t0) {                                 \
-    switch(adr.getMode()) {                                                                        \
+    switch (adr.getMode()) {                                                                       \
       case Address::literal: {                                                                     \
         code_section()->relocate(pc(), adr.rspec());                                               \
         NAME(Rd, adr.target());                                                                    \
         break;                                                                                     \
       }                                                                                            \
-      case Address::base_plus_offset:{                                                             \
+      case Address::base_plus_offset: {                                                            \
         if (is_offset_in_range(adr.offset(), 12)) {                                                \
           NAME(Rd, adr.base(), adr.offset());                                                      \
         } else {                                                                                   \
@@ -529,13 +529,13 @@ public:
     NAME(Rd, dest, temp);                                                                          \
   }                                                                                                \
   void NAME(FloatRegister Rd, const Address &adr, Register temp = t0) {                            \
-    switch(adr.getMode()) {                                                                        \
+    switch (adr.getMode()) {                                                                       \
       case Address::literal: {                                                                     \
         code_section()->relocate(pc(), adr.rspec());                                               \
         NAME(Rd, adr.target(), temp);                                                              \
         break;                                                                                     \
       }                                                                                            \
-      case Address::base_plus_offset:{                                                             \
+      case Address::base_plus_offset: {                                                            \
         if (is_offset_in_range(adr.offset(), 12)) {                                                \
           NAME(Rd, adr.base(), adr.offset());                                                      \
         } else {                                                                                   \
@@ -649,14 +649,14 @@ public:
     }                                                                                              \
   }                                                                                                \
   void NAME(Register Rs, const Address &adr, Register temp = t0) {                                 \
-    switch(adr.getMode()) {                                                                        \
+    switch (adr.getMode()) {                                                                       \
       case Address::literal: {                                                                     \
         assert_different_registers(Rs, temp);                                                      \
         code_section()->relocate(pc(), adr.rspec());                                               \
         NAME(Rs, adr.target(), temp);                                                              \
         break;                                                                                     \
       }                                                                                            \
-      case Address::base_plus_offset:{                                                             \
+      case Address::base_plus_offset: {                                                            \
         if (is_offset_in_range(adr.offset(), 12)) {                                                \
           NAME(Rs, adr.base(), adr.offset());                                                      \
         } else {                                                                                   \
@@ -693,13 +693,13 @@ public:
     }                                                                                              \
   }                                                                                                \
   void NAME(FloatRegister Rs, const Address &adr, Register temp = t0) {                            \
-    switch(adr.getMode()) {                                                                        \
+    switch (adr.getMode()) {                                                                       \
       case Address::literal: {                                                                     \
         code_section()->relocate(pc(), adr.rspec());                                               \
         NAME(Rs, adr.target(), temp);                                                              \
         break;                                                                                     \
       }                                                                                            \
-      case Address::base_plus_offset:{                                                             \
+      case Address::base_plus_offset: {                                                            \
         if (is_offset_in_range(adr.offset(), 12)) {                                                \
           NAME(Rs, adr.base(), adr.offset());                                                      \
         } else {                                                                                   \
@@ -1943,7 +1943,7 @@ enum Nf {
 #undef INSN
 
 #define INSN(NAME, op, funct3, funct7)                  \
-  void NAME(Register Rd, Register Rs1, unsigned shamt){ \
+  void NAME(Register Rd, Register Rs1, unsigned shamt) {\
     guarantee(shamt <= 0x1f, "Shamt is invalid");       \
     unsigned insn = 0;                                  \
     patch((address)&insn, 6, 0, op);                    \

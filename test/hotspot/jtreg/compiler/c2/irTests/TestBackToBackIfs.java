@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006, 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2022, Red Hat, Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,27 +19,47 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
 
-#ifndef CPU_RISCV_VM_VMREG_RISCV_INLINE_HPP
-#define CPU_RISCV_VM_VMREG_RISCV_INLINE_HPP
+package compiler.c2.irTests;
 
-inline VMReg RegisterImpl::as_VMReg() {
-  if (this == noreg) {
-    return VMRegImpl::Bad();
-  }
-  return VMRegImpl::as_VMReg(encoding() * RegisterImpl::max_slots_per_register);
+import compiler.lib.ir_framework.*;
+import jdk.test.lib.Utils;
+import java.util.Random;
+
+/*
+ * @test
+ * @bug 8278228
+ * @summary C2: Improve identical back-to-back if elimination
+ * @library /test/lib /
+ * @run driver compiler.c2.irTests.TestBackToBackIfs
+ */
+
+public class TestBackToBackIfs {
+    public static void main(String[] args) {
+        TestFramework.run();
+    }
+
+    static private int int_field;
+
+    @Test
+    @IR(counts = { IRNode.IF, "1" })
+    public static void test(int a, int b) {
+        if (a == b) {
+            int_field = 0x42;
+        } else {
+            int_field = 42;
+        }
+        if (a == b) {
+            int_field = 0x42;
+        } else {
+            int_field = 42;
+        }
+    }
+
+    @Run(test = "test")
+    public static void test_runner() {
+        test(42, 0x42);
+        test(0x42, 0x42);
+    }
 }
-
-inline VMReg FloatRegisterImpl::as_VMReg() {
-  return VMRegImpl::as_VMReg((encoding() * FloatRegisterImpl::max_slots_per_register) +
-                             ConcreteRegisterImpl::max_gpr);
-}
-
-inline VMReg VectorRegisterImpl::as_VMReg() {
-  return VMRegImpl::as_VMReg((encoding() * VectorRegisterImpl::max_slots_per_register) +
-                             ConcreteRegisterImpl::max_fpr);
-}
-
-#endif // CPU_RISCV_VM_VMREG_RISCV_INLINE_HPP

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -225,23 +225,19 @@ inline JavaCallWrapper** frame::entry_frame_call_wrapper_addr() const {
 
 
 // Compiled frames
+PRAGMA_DIAG_PUSH
+PRAGMA_NONNULL_IGNORED
 inline oop frame::saved_oop_result(RegisterMap* map) const {
   oop* result_adr = (oop *)map->location(x10->as_VMReg());
-  if(result_adr != NULL) {
-    return (*result_adr);
-  } else {
-    ShouldNotReachHere();
-    return NULL;
-  }
+  guarantee(result_adr != NULL, "bad register save location");
+  return (*result_adr);
 }
 
 inline void frame::set_saved_oop_result(RegisterMap* map, oop obj) {
   oop* result_adr = (oop *)map->location(x10->as_VMReg());
-  if(result_adr != NULL) {
-    *result_adr = obj;
-  } else {
-    ShouldNotReachHere();
-  }
+  guarantee(result_adr != NULL, "bad register save location");
+  *result_adr = obj;
 }
+PRAGMA_DIAG_POP
 
 #endif // CPU_RISCV_FRAME_RISCV_INLINE_HPP

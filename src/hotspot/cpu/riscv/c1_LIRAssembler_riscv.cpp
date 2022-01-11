@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2020, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1779,21 +1779,21 @@ void LIR_Assembler::leal(LIR_Opr addr, LIR_Opr dest, LIR_PatchCode patch_code, C
   Register dst = dest->as_register_lo();
 
   assert_different_registers(dst, t0);
-  if(adr->base()->is_valid() && dst == adr->base()->as_pointer_register() && (!adr->index()->is_cpu_register())) {
-
+  if (adr->base()->is_valid() && dst == adr->base()->as_pointer_register() && (!adr->index()->is_cpu_register())) {
+    int scale = adr->scale();
     intptr_t offset = adr->disp();
     LIR_Opr index_op = adr->index();
-    int scale = adr->scale();
-    if(index_op->is_constant()) {
+    if (index_op->is_constant()) {
       offset += ((intptr_t)index_op->as_constant_ptr()->as_jint()) << scale;
     }
 
-    if(!is_imm_in_range(offset, 12, 0)) {
+    if (!is_imm_in_range(offset, 12, 0)) {
       __ la(t0, as_Address(adr));
       __ mv(dst, t0);
       return;
     }
   }
+
   __ la(dst, as_Address(adr));
 }
 

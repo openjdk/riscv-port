@@ -212,13 +212,13 @@ void Assembler::ret() {
 
 #define INSN(NAME, REGISTER)                                   \
   void Assembler::NAME(const Address &adr, Register temp) {    \
-    switch(adr.getMode()) {                                    \
+    switch (adr.getMode()) {                                   \
       case Address::literal: {                                 \
         code_section()->relocate(pc(), adr.rspec());           \
         NAME(adr.target(), temp);                              \
         break;                                                 \
       }                                                        \
-      case Address::base_plus_offset:{                         \
+      case Address::base_plus_offset: {                        \
         int32_t offset = 0;                                    \
         baseOffset(temp, adr, offset);                         \
         jalr(REGISTER, temp, offset);                          \

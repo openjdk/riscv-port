@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2005, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -558,7 +558,7 @@ void LIRGenerator::do_LogicOp(LogicOp* x) {
   left.load_item();
   rlock_result(x);
   ValueTag tag = right.type()->tag();
-  if(right.is_constant() &&
+  if (right.is_constant() &&
      ((tag == longTag && Assembler::operand_valid_for_add_immediate(right.get_jlong_constant())) ||
       (tag == intTag && Assembler::operand_valid_for_add_immediate(right.get_jint_constant()))))  {
     right.dont_load_item();

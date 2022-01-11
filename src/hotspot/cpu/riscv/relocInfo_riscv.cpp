@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1998, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,7 +38,7 @@ void Relocation::pd_set_data_value(address x, intptr_t o, bool verify_only) {
 
   int bytes;
 
-  switch(type()) {
+  switch (type()) {
     case relocInfo::oop_type: {
       oop_Relocation *reloc = (oop_Relocation *)this;
       // in movoop when BarrierSet::barrier_set()->barrier_set_nmethod() != NULL || !immediate

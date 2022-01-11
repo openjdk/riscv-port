@@ -377,11 +377,7 @@ void MacroAssembler::verify_oop(Register reg, const char* s) {
   push_reg(RegSet::of(ra, t0, t1, c_rarg0), sp);
 
   mv(c_rarg0, reg); // c_rarg0 : x10
-  if(b != NULL) {
-    li(t0, (uintptr_t)(address)b);
-  } else {
-    ShouldNotReachHere();
-  }
+  li(t0, (uintptr_t)(address)b);
 
   // call indirectly to solve generation ordering problem
   int32_t offset = 0;
@@ -416,11 +412,8 @@ void MacroAssembler::verify_oop_addr(Address addr, const char* s) {
   } else {
     ld(x10, addr);
   }
-  if(b != NULL) {
-    li(t0, (uintptr_t)(address)b);
-  } else {
-    ShouldNotReachHere();
-  }
+
+  li(t0, (uintptr_t)(address)b);
 
   // call indirectly to solve generation ordering problem
   int32_t offset = 0;
@@ -538,12 +531,8 @@ void MacroAssembler::resolve_jobject(Register value, Register thread, Register t
 void MacroAssembler::stop(const char* msg) {
   address ip = pc();
   pusha();
-  if(msg != NULL && ip != NULL) {
-    li(c_rarg0, (uintptr_t)(address)msg);
-    li(c_rarg1, (uintptr_t)(address)ip);
-  } else {
-    ShouldNotReachHere();
-  }
+  li(c_rarg0, (uintptr_t)(address)msg);
+  li(c_rarg1, (uintptr_t)(address)ip);
   mv(c_rarg2, sp);
   mv(c_rarg3, CAST_FROM_FN_PTR(address, MacroAssembler::debug64));
   jalr(c_rarg3);
@@ -758,7 +747,7 @@ void MacroAssembler::la(Register Rd, const Address &adr) {
   code_section()->relocate(inst_mark(), adr.rspec());
   relocInfo::relocType rtype = adr.rspec().reloc()->type();
 
-  switch(adr.getMode()) {
+  switch (adr.getMode()) {
     case Address::literal: {
       if (rtype == relocInfo::none) {
         li(Rd, (intptr_t)(adr.target()));
@@ -767,7 +756,7 @@ void MacroAssembler::la(Register Rd, const Address &adr) {
       }
       break;
     }
-    case Address::base_plus_offset:{
+    case Address::base_plus_offset: {
       int32_t offset = 0;
       baseOffset(Rd, adr, offset);
       addi(Rd, Rd, offset);
@@ -819,7 +808,7 @@ void MacroAssembler::la(Register Rd, Label &label) {
 #define INSN(NAME, FLOATCMP1, FLOATCMP2)                                              \
   void MacroAssembler::float_##NAME(FloatRegister Rs1, FloatRegister Rs2, Label &l,   \
                                     bool is_far, bool is_unordered) {                 \
-    if(is_unordered) {                                                                \
+    if (is_unordered) {                                                               \
       /* jump if either source is NaN or condition is expected */                     \
       FLOATCMP2##_s(t0, Rs2, Rs1);                                                    \
       beqz(t0, l, is_far);                                                            \
@@ -831,7 +820,7 @@ void MacroAssembler::la(Register Rd, Label &label) {
   }                                                                                   \
   void MacroAssembler::double_##NAME(FloatRegister Rs1, FloatRegister Rs2, Label &l,  \
                                      bool is_far, bool is_unordered) {                \
-    if(is_unordered) {                                                                \
+    if (is_unordered) {                                                               \
       /* jump if either source is NaN or condition is expected */                     \
       FLOATCMP2##_d(t0, Rs2, Rs1);                                                    \
       beqz(t0, l, is_far);                                                            \
@@ -1632,7 +1621,7 @@ void MacroAssembler::orptr(Address adr, RegisterOrConstant src, Register tmp1, R
   if (src.is_register()) {
     orr(tmp1, tmp1, src.as_register());
   } else {
-    if(is_imm_in_range(src.as_constant(), 12, 0)) {
+    if (is_imm_in_range(src.as_constant(), 12, 0)) {
       ori(tmp1, tmp1, src.as_constant());
     } else {
       assert_different_registers(tmp1, tmp2);
