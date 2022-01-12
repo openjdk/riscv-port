@@ -904,7 +904,7 @@ instruct reduce_addD(fRegD src1_dst, vReg src2, vReg tmp) %{
 %}
 
 // vector integer max reduction
-instruct vreduce_maxB(iRegINoSp dst, iRegIorL2I src1, vReg src2, vReg tmp) %{
+instruct vreduce_maxB(iRegINoSp dst, iRegI src1, vReg src2, vReg tmp) %{
   predicate(n->in(2)->bottom_type()->is_vect()->element_basic_type() == T_BYTE);
   match(Set dst (MaxReductionV src1 src2));
   ins_cost(VEC_COST);
@@ -922,7 +922,7 @@ instruct vreduce_maxB(iRegINoSp dst, iRegIorL2I src1, vReg src2, vReg tmp) %{
   ins_pipe(pipe_slow);
 %}
 
-instruct vreduce_maxS(iRegINoSp dst, iRegIorL2I src1, vReg src2, vReg tmp) %{
+instruct vreduce_maxS(iRegINoSp dst, iRegI src1, vReg src2, vReg tmp) %{
   predicate(n->in(2)->bottom_type()->is_vect()->element_basic_type() == T_SHORT);
   match(Set dst (MaxReductionV src1 src2));
   ins_cost(VEC_COST);
@@ -971,7 +971,7 @@ instruct vreduce_maxL(iRegLNoSp dst, iRegL src1, vReg src2, vReg tmp) %{
 %}
 
 // vector integer min reduction
-instruct vreduce_minB(iRegINoSp dst, iRegIorL2I src1, vReg src2, vReg tmp) %{
+instruct vreduce_minB(iRegINoSp dst, iRegI src1, vReg src2, vReg tmp) %{
   predicate(n->in(2)->bottom_type()->is_vect()->element_basic_type() == T_BYTE);
   match(Set dst (MinReductionV src1 src2));
   ins_cost(VEC_COST);
@@ -989,7 +989,7 @@ instruct vreduce_minB(iRegINoSp dst, iRegIorL2I src1, vReg src2, vReg tmp) %{
   ins_pipe(pipe_slow);
 %}
 
-instruct vreduce_minS(iRegINoSp dst, iRegIorL2I src1, vReg src2, vReg tmp) %{
+instruct vreduce_minS(iRegINoSp dst, iRegI src1, vReg src2, vReg tmp) %{
   predicate(n->in(2)->bottom_type()->is_vect()->element_basic_type() == T_SHORT);
   match(Set dst (MinReductionV src1 src2));
   ins_cost(VEC_COST);
