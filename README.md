@@ -12,7 +12,6 @@ JVMCI_VERSION=$(git log --decorate | grep -E 'tag: jvmci-\d+\.\d+-b\d+' | sed 's
 
 # Configure and build
 sh configure --with-conf-name=labsjdk \
-    --enable-aot=no \
     --with-version-opt=$JVMCI_VERSION \
     --with-version-pre= \
     '--with-vendor-name=GraalVM Community' \
