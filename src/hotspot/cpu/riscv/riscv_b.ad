@@ -262,7 +262,7 @@ instruct shaddP_reg_reg_ext_rvb(iRegPNoSp dst, iRegP src1, iRegI src2, immIScale
   ins_encode %{
     __ shadd(as_Register($dst$$reg),
              as_Register($src2$$reg),
-             as_Register($src1$$reg)
+             as_Register($src1$$reg),
              t0,
              $imm$$constant);
   %}
