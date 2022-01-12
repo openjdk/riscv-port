@@ -3897,11 +3897,11 @@ void MacroAssembler::shadd(Register Rd, Register Rs1, Register Rs2, Register tmp
     }
   }
 
-  if (shamt == 0) {
-    add(Rd, Rs1, Rs2);
-  } else {
+  if (shamt != 0) {
     slli(tmp, Rs1, shamt);
     add(Rd, Rs2, tmp);
+  } else {
+    add(Rd, Rs1, Rs2);
   }
 }
 
