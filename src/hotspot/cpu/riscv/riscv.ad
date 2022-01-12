@@ -3029,29 +3029,9 @@ operand immLOffset()
 %}
 
 // Scale values
-operand immIScale1()
+operand immIScale()
 %{
-  predicate(n->get_int() == 1);
-  match(ConI);
-
-  op_cost(0);
-  format %{ %}
-  interface(CONST_INTER);
-%}
-
-operand immIScale2()
-%{
-  predicate(n->get_int() == 2);
-  match(ConI);
-
-  op_cost(0);
-  format %{ %}
-  interface(CONST_INTER);
-%}
-
-operand immIScale3()
-%{
-  predicate(n->get_int() == 3);
+  predicate(1 <= n->get_int() && (n->get_int() <= 3));
   match(ConI);
 
   op_cost(0);
