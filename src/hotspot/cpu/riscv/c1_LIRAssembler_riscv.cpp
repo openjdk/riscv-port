@@ -1965,8 +1965,7 @@ Address LIR_Assembler::as_Address(LIR_Address* addr, Register tmp) {
       index = index_op->as_register_lo();
     }
     if (scale != 0) {
-      __ slli(tmp, index, scale);
-      __ add(tmp, base, tmp);
+      __ shadd(tmp, index, base, tmp, scale);
     } else {
       __ add(tmp, base, index);
     }

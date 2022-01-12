@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1999, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -272,8 +272,7 @@ void C1_MacroAssembler::allocate_array(Register obj, Register len, Register tmp1
   const Register arr_size = tmp2; // okay to be the same
   // align object end
   mv(arr_size, (int32_t)header_size * BytesPerWord + MinObjAlignmentInBytesMask);
-  slli(t0, len, f);
-  add(arr_size, arr_size, t0);
+  shadd(arr_size, len, arr_size, t0, f);
   andi(arr_size, arr_size, ~(uint)MinObjAlignmentInBytesMask);
 
   try_allocate(obj, arr_size, 0, tmp1, tmp2, slow_case);

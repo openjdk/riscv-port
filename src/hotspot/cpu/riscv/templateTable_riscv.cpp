@@ -72,16 +72,14 @@ static inline Address aaddress(int n) {
 
 static inline Address iaddress(Register r,  Register temp, InterpreterMacroAssembler* _masm) {
   assert_cond(_masm != NULL);
-  _masm->slli(temp, r, 3);
-  _masm->add(temp, xlocals, temp);
+  _masm->shadd(temp, r, xlocals, temp, 3);
   return Address(temp, 0);
 }
 
 static inline Address laddress(Register r, Register temp,
                                InterpreterMacroAssembler* _masm) {
   assert_cond(_masm != NULL);
-  _masm->slli(temp, r, 3);
-  _masm->add(temp, xlocals, temp);
+  _masm->shadd(temp, r, xlocals, temp, 3);
   return Address(temp, Interpreter::local_offset_in_bytes(1));;
 }
 
@@ -348,8 +346,7 @@ void TemplateTable::ldc(bool wide)
   __ bne(x13, t1, notFloat);
 
   // ftos
-  __ slli(x11, x11, 3);
-  __ add(x11, x12, x11);
+  __ shadd(x11, x11, x12, x11, 3);
   __ flw(f10, Address(x11, base_offset));
   __ push_f(f10);
   __ j(Done);
@@ -360,8 +357,7 @@ void TemplateTable::ldc(bool wide)
   __ bne(x13, t1, notInt);
 
   // itos
-  __ slli(x11, x11, 3);
-  __ add(x11, x12, x11);
+  __ shadd(x11, x11, x12, x11, 3);
   __ lw(x10, Address(x11, base_offset));
   __ push_i(x10);
   __ j(Done);
@@ -438,8 +434,7 @@ void TemplateTable::ldc2_w()
     __ bne(x12, t1, notDouble);
 
     // dtos
-    __ slli(x12, x10, 3);
-    __ add(x12, x11, x12);
+    __ shadd(x12, x10, x11, x12, 3);
     __ fld(f10, Address(x12, base_offset));
     __ push_d(f10);
     __ j(Done);
@@ -449,8 +444,7 @@ void TemplateTable::ldc2_w()
     __ bne(x12, t1, notLong);
 
     // ltos
-    __ slli(x10, x10, 3);
-    __ add(x10, x11, x10);
+    __ shadd(x10, x10, x11, x10, 3);
     __ ld(x10, Address(x10, base_offset));
     __ push_l(x10);
     __ j(Done);
@@ -754,8 +748,7 @@ void TemplateTable::iaload()
   // x11: index
   index_check(x10, x11); // leaves index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_INT) >> 2);
-  __ slli(t0, x11, 2);
-  __ add(x10, t0, x10);
+  __ shadd(x10, x11, x10, t0, 2);
   __ access_load_at(T_INT, IN_HEAP | IS_ARRAY, x10, Address(x10), noreg, noreg);
   __ addw(x10, x10, zr); // signed extended
 }
@@ -769,8 +762,7 @@ void TemplateTable::laload()
   // x11: index
   index_check(x10, x11); // leaves index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_LONG) >> 3);
-  __ slli(t0, x11, 3);
-  __ add(x10, t0, x10);
+  __ shadd(x10, x11, x10, t0, 3);
   __ access_load_at(T_LONG, IN_HEAP | IS_ARRAY, x10, Address(x10), noreg, noreg);
 }
 
@@ -783,8 +775,7 @@ void TemplateTable::faload()
   // x11: index
   index_check(x10, x11); // leaves index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_FLOAT) >> 2);
-  __ slli(t0, x11, 2);
-  __ add(x10, t0, x10);
+  __ shadd(x10, x11, x10, t0, 2);
   __ access_load_at(T_FLOAT, IN_HEAP | IS_ARRAY, x10, Address(x10), noreg, noreg);
 }
 
@@ -797,8 +788,7 @@ void TemplateTable::daload()
   // x11: index
   index_check(x10, x11); // leaves index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_DOUBLE) >> 3);
-  __ slli(t0, x11, 3);
-  __ add(x10, t0, x10);
+  __ shadd(x10, x11, x10, t0, 3);
   __ access_load_at(T_DOUBLE, IN_HEAP | IS_ARRAY, x10, Address(x10), noreg, noreg);
 }
 
@@ -811,8 +801,7 @@ void TemplateTable::aaload()
   // x11: index
   index_check(x10, x11); // leaves index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_OBJECT) >> LogBytesPerHeapOop);
-  __ slli(t0, x11, LogBytesPerHeapOop);
-  __ add(x10, t0, x10);
+  __ shadd(x10, x11, x10, t0, LogBytesPerHeapOop);
   do_oop_load(_masm,
               Address(x10),
               x10,
@@ -828,8 +817,7 @@ void TemplateTable::baload()
   // x11: index
   index_check(x10, x11); // leaves index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_BYTE) >> 0);
-  __ slli(t0, x11, 0);
-  __ add(x10, t0, x10);
+  __ shadd(x10, x11, x10, t0, 0);
   __ access_load_at(T_BYTE, IN_HEAP | IS_ARRAY, x10, Address(x10), noreg, noreg);
 }
 
@@ -842,8 +830,7 @@ void TemplateTable::caload()
   // x11: index
   index_check(x10, x11); // leaves index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_CHAR) >> 1);
-  __ slli(t0, x11, 1);
-  __ add(x10, t0, x10);
+  __ shadd(x10, x11, x10, t0, 1);
   __ access_load_at(T_CHAR, IN_HEAP | IS_ARRAY, x10, Address(x10), noreg, noreg);
 }
 
@@ -860,8 +847,7 @@ void TemplateTable::fast_icaload()
   // x11: index
   index_check(x10, x11); // leaves index in x11, kills t0
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_CHAR) >> 1); // addi, max imm is 2^11
-  __ slli(t0, x11, 1);
-  __ add(x10, x10, t0);
+  __ shadd(x10, x11, x10, t0, 1);
   __ access_load_at(T_CHAR, IN_HEAP | IS_ARRAY, x10, Address(x10), noreg, noreg);
 }
 
@@ -874,8 +860,7 @@ void TemplateTable::saload()
   // x11: index
   index_check(x10, x11); // leaves index in x11, kills t0
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_SHORT) >> 1);
-  __ slli(t0, x11, 1);
-  __ add(x10, t0, x10);
+  __ shadd(x10, x11, x10, t0, 1);
   __ access_load_at(T_SHORT, IN_HEAP | IS_ARRAY, x10, Address(x10), noreg, noreg);
 }
 
@@ -1062,8 +1047,7 @@ void TemplateTable::iastore() {
   // x13: array
   index_check(x13, x11); // prefer index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_INT) >> 2);
-  __ slli(t0, x11, 2);
-  __ add(t0, x13, t0);
+  __ shadd(t0, x11, x13, t0, 2);
   __ access_store_at(T_INT, IN_HEAP | IS_ARRAY, Address(t0, 0), x10, noreg, noreg);
 }
 
@@ -1076,8 +1060,7 @@ void TemplateTable::lastore() {
   // x13: array
   index_check(x13, x11); // prefer index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_LONG) >> 3);
-  __ slli(t0, x11, 3);
-  __ add(t0, x13, t0);
+  __ shadd(t0, x11, x13, t0, 3);
   __ access_store_at(T_LONG, IN_HEAP | IS_ARRAY, Address(t0, 0), x10, noreg, noreg);
 }
 
@@ -1090,8 +1073,7 @@ void TemplateTable::fastore() {
   // x13:  array
   index_check(x13, x11); // prefer index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_FLOAT) >> 2);
-  __ slli(t0, x11, 2);
-  __ add(t0, x13, t0);
+  __ shadd(t0, x11, x13, t0, 2);
   __ access_store_at(T_FLOAT, IN_HEAP | IS_ARRAY, Address(t0, 0), noreg /* ftos */, noreg, noreg);
 }
 
@@ -1104,8 +1086,7 @@ void TemplateTable::dastore() {
   // x13:  array
   index_check(x13, x11); // prefer index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_DOUBLE) >> 3);
-  __ slli(t0, x11, 3);
-  __ add(t0, x13, t0);
+  __ shadd(t0, x11, x13, t0, 3);
   __ access_store_at(T_DOUBLE, IN_HEAP | IS_ARRAY, Address(t0, 0), noreg /* dtos */, noreg, noreg);
 }
 
@@ -1119,8 +1100,7 @@ void TemplateTable::aastore() {
 
   index_check(x13, x12);     // kills x11
   __ add(x14, x12, arrayOopDesc::base_offset_in_bytes(T_OBJECT) >> LogBytesPerHeapOop);
-  __ slli(x14, x14, LogBytesPerHeapOop);
-  __ add(x14, x13, x14);
+  __ shadd(x14, x14, x13, x14, LogBytesPerHeapOop);
 
   Address element_address(x14, 0);
 
@@ -1201,8 +1181,7 @@ void TemplateTable::castore()
   // x13: array
   index_check(x13, x11); // prefer index in x11
   __ add(x11, x11, arrayOopDesc::base_offset_in_bytes(T_CHAR) >> 1);
-  __ slli(t0, x11, 1);
-  __ add(t0, x13, t0);
+  __ shadd(t0, x11, x13, t0, 1);
   __ access_store_at(T_CHAR, IN_HEAP | IS_ARRAY, Address(t0, 0), x10, noreg, noreg);
 }
 
@@ -2015,8 +1994,7 @@ void TemplateTable::tableswitch() {
   __ bgt(x10, x13, default_case);
   // lookup dispatch offset
   __ subw(x10, x10, x12);
-  __ slli(t0, x10, 2);
-  __ add(x13, x11, t0);
+  __ shadd(x13, x10, x11, t0, 2);
   __ lwu(x13, Address(x13, 3 * BytesPerInt));
   __ profile_switch_case(x10, x11, x12);
   // continue execution
@@ -2053,8 +2031,7 @@ void TemplateTable::fast_linearswitch() {
   __ j(loop_entry);
   // table search
   __ bind(loop);
-  __ slli(t0, x11, 3);
-  __ add(t0, x9, t0);
+  __ shadd(t0, x11, x9, t0, 3);
   __ lw(t0, Address(t0, 2 * BytesPerInt));
   __ beq(x10, t0, found);
   __ bind(loop_entry);
@@ -2066,8 +2043,7 @@ void TemplateTable::fast_linearswitch() {
   __ j(continue_execution);
   // entry found -> get offset
   __ bind(found);
-  __ slli(t0, x11, 3);
-  __ add(t0, x9, t0);
+  __ shadd(t0, x11, x9, t0, 3);
   __ lwu(x13, Address(t0, 3 * BytesPerInt));
   __ profile_switch_case(x11, x10, x9);
   // continue execution
@@ -2141,8 +2117,7 @@ void TemplateTable::fast_binaryswitch() {
     // then [j = h]
     // else [i = h]
     // Convert array[h].match to native byte-ordering before compare
-    __ slli(temp, h, 3);
-    __ add(temp, array, temp);
+    __ shadd(temp, h, array, temp, 3);
     __ ld(temp, Address(temp, 0));
     __ revb_w_w(temp, temp); // reverse bytes in word (32bit) and sign-extend
 
@@ -2165,15 +2140,13 @@ void TemplateTable::fast_binaryswitch() {
   // end of binary search, result index is i (must check again!)
   Label default_case;
   // Convert array[i].match to native byte-ordering before compare
-  __ slli(temp, i, 3);
-  __ add(temp, array, temp);
+  __ shadd(temp, i, array, temp, 3);
   __ ld(temp, Address(temp, 0));
   __ revb_w_w(temp, temp); // reverse bytes in word (32bit) and sign-extend
   __ bne(key, temp, default_case);
 
   // entry found -> j = offset
-  __ slli(temp, i, 3);
-  __ add(temp, array, temp);
+  __ shadd(temp, i, array, temp, 3);
   __ lwu(j, Address(temp, BytesPerInt));
   __ profile_switch_case(i, key, array);
   __ revb_w_w(j, j); // reverse bytes in word (32bit) and sign-extend
@@ -3224,8 +3197,7 @@ void TemplateTable::prepare_invoke(int byte_no,
   // load receiver if needed (note: no return address pushed yet)
   if (load_receiver) {
     __ andi(recv, flags, ConstantPoolCacheEntry::parameter_size_mask); // parameter_size_mask = 1 << 8
-    __ slli(t0, recv, 3);
-    __ add(t0, esp, t0);
+    __ shadd(t0, recv, esp, t0, 3);
     __ ld(recv, Address(t0, -Interpreter::expr_offset_in_bytes(1)));
     __ verify_oop(recv);
   }
@@ -3238,8 +3210,7 @@ void TemplateTable::prepare_invoke(int byte_no,
   {
     const address table_addr = (address) Interpreter::invoke_return_entry_table_for(code);
     __ mv(t0, table_addr);
-    __ slli(t1, t1, 3);
-    __ add(t0, t0, t1);
+    __ shadd(t0, t1, t0, t1, 3);
     __ ld(ra, Address(t0, 0));
   }
 }
@@ -3960,8 +3931,7 @@ void TemplateTable::wide()
 {
   __ load_unsigned_byte(x9, at_bcp(1));
   __ mv(t0, (address)Interpreter::_wentry_point);
-  __ slli(t1, x9, 3);
-  __ add(t0, t1, t0);
+  __ shadd(t0, x9, t0, t1, 3);
   __ ld(t0, Address(t0));
   __ jr(t0);
 }
@@ -3972,13 +3942,11 @@ void TemplateTable::multianewarray() {
   __ load_unsigned_byte(x10, at_bcp(3)); // get number of dimensions
   // last dim is on top of stack; we want address of first one:
   // first_addr = last_addr + (ndims - 1) * wordSize
-  __ slli(c_rarg1, x10, 3);
-  __ add(c_rarg1, c_rarg1, esp);
+  __ shadd(c_rarg1, x10, esp, c_rarg1, 3);
   __ sub(c_rarg1, c_rarg1, wordSize);
   call_VM(x10,
           CAST_FROM_FN_PTR(address, InterpreterRuntime::multianewarray),
           c_rarg1);
   __ load_unsigned_byte(x11, at_bcp(3));
-  __ slli(t0, x11, 3);
-  __ add(esp, esp, t0);
+  __ shadd(esp, x11, esp, t0, 3);
 }

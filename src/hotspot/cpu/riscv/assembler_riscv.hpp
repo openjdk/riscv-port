@@ -1899,11 +1899,17 @@ enum Nf {
     emit(insn);                                         \
   }
 
-  INSN(add_uw, 0b0111011, 0b000, 0b0000100);
-  INSN(rol,    0b0110011, 0b001, 0b0110000);
-  INSN(rolw,   0b0111011, 0b001, 0b0110000);
-  INSN(ror,    0b0110011, 0b101, 0b0110000);
-  INSN(rorw,   0b0111011, 0b101, 0b0110000);
+  INSN(add_uw,    0b0111011, 0b000, 0b0000100);
+  INSN(rol,       0b0110011, 0b001, 0b0110000);
+  INSN(rolw,      0b0111011, 0b001, 0b0110000);
+  INSN(ror,       0b0110011, 0b101, 0b0110000);
+  INSN(rorw,      0b0111011, 0b101, 0b0110000);
+  INSN(sh1add,    0b0110011, 0b010, 0b0010000);
+  INSN(sh2add,    0b0110011, 0b100, 0b0010000);
+  INSN(sh3add,    0b0110011, 0b110, 0b0010000);
+  INSN(sh1add_uw, 0b0111011, 0b010, 0b0010000);
+  INSN(sh2add_uw, 0b0111011, 0b100, 0b0010000);
+  INSN(sh3add_uw, 0b0111011, 0b110, 0b0010000);
 
 #undef INSN
 

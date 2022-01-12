@@ -228,8 +228,7 @@ void InterpreterMacroAssembler::get_cache_and_index_at_bcp(Register cache,
   // install it in cache. Instead we pre-add the indexed offset to
   // xcpool and return it in cache. All clients of this method need to
   // be modified accordingly.
-  slli(cache, index, 5);
-  add(cache, xcpool, cache);
+  shadd(cache, index, xcpool, cache, 5);
 }
 
 
@@ -267,8 +266,8 @@ void InterpreterMacroAssembler::get_cache_entry_pointer_at_bcp(Register cache,
   ld(cache, Address(fp, frame::interpreter_frame_cache_offset * wordSize));
   // skip past the header
   add(cache, cache, in_bytes(ConstantPoolCache::base_offset()));
-  slli(tmp, tmp, 2 + LogBytesPerWord);
-  add(cache, cache, tmp);  // construct pointer to cache entry
+  // construct pointer to cache entry
+  shadd(cache, tmp, cache, tmp, 2 + LogBytesPerWord);
 }
 
 // Load object from cpool->resolved_references(index)
@@ -283,19 +282,16 @@ void InterpreterMacroAssembler::load_resolved_reference_at_index(
   resolve_oop_handle(result, tmp);
   // Add in the index
   addi(index, index, arrayOopDesc::base_offset_in_bytes(T_OBJECT) >> LogBytesPerHeapOop);
-  slli(index, index, LogBytesPerHeapOop);
-  add(result, result, index);
+  shadd(result, index, result, index, LogBytesPerHeapOop);
   load_heap_oop(result, Address(result, 0));
 }
 
 void InterpreterMacroAssembler::load_resolved_klass_at_offset(
                                 Register cpool, Register index, Register klass, Register temp) {
-  slli(temp, index, LogBytesPerWord);
-  add(temp, temp, cpool);
+  shadd(temp, index, cpool, temp, LogBytesPerWord);
   lhu(temp, Address(temp, sizeof(ConstantPool))); // temp = resolved_klass_index
   ld(klass, Address(cpool, ConstantPool::resolved_klasses_offset_in_bytes())); // klass = cpool->_resolved_klasses
-  slli(temp, temp, LogBytesPerWord);
-  add(klass, klass, temp);
+  shadd(klass, temp, klass, temp, LogBytesPerWord);
   ld(klass, Address(klass, Array<Klass*>::base_offset_in_bytes()));
 }
 
@@ -529,12 +525,10 @@ void InterpreterMacroAssembler::dispatch_base(TosState state,
   if (table == Interpreter::dispatch_table(state)) {
     li(t1, Interpreter::distance_from_dispatch_table(state));
     add(t1, Rs, t1);
-    slli(t1, t1, 3);
-    add(t1, xdispatch, t1);
+    shadd(t1, t1, xdispatch, t1, 3);
   } else {
     mv(t1, (address)table);
-    slli(Rs, Rs, 3);
-    add(t1, t1, Rs);
+    shadd(t1, Rs, t1, Rs, 3);
   }
   ld(t1, Address(t1));
   jr(t1);
@@ -542,8 +536,7 @@ void InterpreterMacroAssembler::dispatch_base(TosState state,
   if (needs_thread_local_poll) {
     bind(safepoint);
     la(t1, ExternalAddress((address)safepoint_table));
-    slli(Rs, Rs, 3);
-    add(t1, t1, Rs);
+    shadd(t1, Rs, t1, Rs, 3);
     ld(t1, Address(t1));
     jr(t1);
   }
@@ -1805,8 +1798,7 @@ void InterpreterMacroAssembler::profile_arguments_type(Register mdp, Register ca
         // CallTypeData/VirtualCallTypeData to reach its end. Non null
         // if there's a return to profile.
         assert(ReturnTypeEntry::static_cell_count() < TypeStackSlotEntries::per_arg_count(), "can't move past ret type");
-        slli(tmp, tmp, exact_log2(DataLayout::cell_size));
-        add(mdp, mdp, tmp);
+        shadd(mdp, tmp, mdp, tmp, exact_log2(DataLayout::cell_size));
       }
       sd(mdp, Address(fp, frame::interpreter_frame_mdp_offset * wordSize));
     } else {
@@ -1888,21 +1880,17 @@ void InterpreterMacroAssembler::profile_parameters_type(Register mdp, Register t
     add(t0, mdp, off_base);
     add(t1, mdp, type_base);
 
-
-    slli(tmp2, tmp1, per_arg_scale);
-    add(tmp2, tmp2, t0);
+    shadd(tmp2, tmp1, t0, tmp2, per_arg_scale);
     // load offset on the stack from the slot for this parameter
     ld(tmp2, Address(tmp2, 0));
     neg(tmp2, tmp2);
 
     // read the parameter from the local area
-    slli(tmp2, tmp2, Interpreter::logStackElementSize);
-    add(tmp2, tmp2, xlocals);
+    shadd(tmp2, tmp2, xlocals, tmp2, Interpreter::logStackElementSize);
     ld(tmp2, Address(tmp2, 0));
 
     // profile the parameter
-    slli(t0, tmp1, per_arg_scale);
-    add(t1, t0, t1);
+    shadd(t1, tmp1, t1, t0, per_arg_scale);
     Address arg_type(t1, 0);
     profile_obj_type(tmp2, arg_type, tmp3);
 

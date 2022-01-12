@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -70,8 +70,8 @@ void CardTableBarrierSetAssembler::gen_write_ref_array_post_barrier(MacroAssembl
   const Register end = count;
 
   __ beqz(count, L_done); // zero count - nothing to do
-  __ slli(count, count, LogBytesPerHeapOop);
-  __ add(end, start, count); // end = start + count << LogBytesPerHeapOop
+  // end = start + count << LogBytesPerHeapOop
+  __ shadd(end, count, start, count, LogBytesPerHeapOop);
   __ sub(end, end, BytesPerHeapOop); // last element address to make inclusive
 
   __ srli(start, start, CardTable::card_shift());

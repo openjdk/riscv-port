@@ -3028,6 +3028,17 @@ operand immLOffset()
   interface(CONST_INTER);
 %}
 
+// Scale values
+operand immIScale()
+%{
+  predicate(1 <= n->get_int() && (n->get_int() <= 3));
+  match(ConI);
+
+  op_cost(0);
+  format %{ %}
+  interface(CONST_INTER);
+%}
+
 // Integer 32 bit Register Operands
 operand iRegI()
 %{
