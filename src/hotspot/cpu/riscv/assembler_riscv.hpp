@@ -2045,7 +2045,7 @@ public:
   void set_in_compressible_region(bool b) { _in_compressible_region = b; }
 public:
 
-// RVC: a compressible region
+  // a compressible region
   class CompressibleRegion : public StackObj {
   protected:
     Assembler *_masm;
@@ -2061,7 +2061,7 @@ public:
     }
   };
 
-  // RVC: patch a 16-bit instruction.
+  // patch a 16-bit instruction.
   static void c_patch(address a, unsigned msb, unsigned lsb, uint16_t val) {
     assert_cond(a != NULL);
     assert_cond(msb >= lsb && msb <= 15);
@@ -2080,22 +2080,22 @@ public:
     c_patch(a, bit, bit, val);
   }
 
-  // RVC: patch a 16-bit instruction with a general purpose register ranging [0, 31] (5 bits)
+  // patch a 16-bit instruction with a general purpose register ranging [0, 31] (5 bits)
   static void c_patch_reg(address a, unsigned lsb, Register reg) {
     c_patch(a, lsb + 4, lsb, reg->encoding_nocheck());
   }
 
-  // RVC: patch a 16-bit instruction with a general purpose register ranging [8, 15] (3 bits)
+  // patch a 16-bit instruction with a general purpose register ranging [8, 15] (3 bits)
   static void c_patch_compressed_reg(address a, unsigned lsb, Register reg) {
     c_patch(a, lsb + 2, lsb, reg->compressed_encoding_nocheck());
   }
 
-  // RVC: patch a 16-bit instruction with a float register ranging [0, 31] (5 bits)
+  // patch a 16-bit instruction with a float register ranging [0, 31] (5 bits)
   static void c_patch_reg(address a, unsigned lsb, FloatRegister reg) {
     c_patch(a, lsb + 4, lsb, reg->encoding_nocheck());
   }
 
-  // RVC: patch a 16-bit instruction with a float register ranging [8, 15] (3 bits)
+  // patch a 16-bit instruction with a float register ranging [8, 15] (3 bits)
   static void c_patch_compressed_reg(address a, unsigned lsb, FloatRegister reg) {
     c_patch(a, lsb + 2, lsb, reg->compressed_encoding_nocheck());
   }
