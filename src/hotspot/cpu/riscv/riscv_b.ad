@@ -306,3 +306,90 @@ instruct shaddL_reg_reg_ext_rvb(iRegLNoSp dst, iRegL src1, iRegI src2, immIScale
 
   ins_pipe(ialu_reg_reg);
 %}
+
+// Zeros Count instructions
+instruct countLeadingZerosI_rvb(iRegINoSp dst, iRegIorL2I src) %{
+  predicate(UseRVB);
+  match(Set dst (CountLeadingZerosI src));
+
+  ins_cost(ALU_COST);
+  format %{ "clzw  $dst, $src\t#@countLeadingZerosI_rvb" %}
+
+  ins_encode %{
+    __ clzw(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+instruct countLeadingZerosL_rvb(iRegINoSp dst, iRegL src) %{
+  predicate(UseRVB);
+  match(Set dst (CountLeadingZerosL src));
+
+  ins_cost(ALU_COST);
+  format %{ "clz  $dst, $src\t#@countLeadingZerosL_rvb" %}
+
+  ins_encode %{
+    __ clz(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+instruct countTrailingZerosI_rvb(iRegINoSp dst, iRegIorL2I src) %{
+  predicate(UseRVB);
+  match(Set dst (CountTrailingZerosI src));
+
+  ins_cost(ALU_COST);
+  format %{ "ctzw  $dst, $src\t#@countTrailingZerosI_rvb" %}
+
+  ins_encode %{
+    __ ctzw(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+instruct countTrailingZerosL_rvb(iRegINoSp dst, iRegL src) %{
+  predicate(UseRVB);
+  match(Set dst (CountTrailingZerosL src));
+
+  ins_cost(ALU_COST);
+  format %{ "ctz  $dst, $src\t#@countTrailingZerosL_rvb" %}
+
+  ins_encode %{
+    __ ctz(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// Population Count instructions
+instruct popCountI_rvb(iRegINoSp dst, iRegIorL2I src) %{
+  predicate(UsePopCountInstruction);
+  match(Set dst (PopCountI src));
+
+  ins_cost(ALU_COST);
+  format %{ "cpopw  $dst, $src\t#@popCountI_rvb" %}
+
+  ins_encode %{
+    __ cpopw(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// Note: Long/bitCount(long) returns an int.
+instruct popCountL_rvb(iRegINoSp dst, iRegL src) %{
+  predicate(UsePopCountInstruction);
+  match(Set dst (PopCountL src));
+
+  ins_cost(ALU_COST);
+  format %{ "cpop  $dst, $src\t#@popCountL_rvb" %}
+
+  ins_encode %{
+    __ cpop(as_Register($dst$$reg), as_Register($src$$reg));
+  %}
+
+  ins_pipe(ialu_reg);
+%}

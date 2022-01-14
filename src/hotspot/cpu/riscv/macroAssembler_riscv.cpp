@@ -3550,39 +3550,47 @@ void MacroAssembler::multiply_to_len(Register x, Register xlen, Register y, Regi
 // Count bits of trailing zero chars from lsb to msb until first non-zero element.
 // For LL case, one byte for one element, so shift 8 bits once, and for other case,
 // shift 16 bits once.
-void MacroAssembler::ctzc_bit(Register Rd, Register Rs, bool isLL, Register Rtmp1, Register Rtmp2)
+void MacroAssembler::ctzc_bit(Register Rd, Register Rs, bool isLL, Register tmp1, Register tmp2)
 {
-  assert_different_registers(Rd, Rs, Rtmp1, Rtmp2);
+  if (UseRVB) {
+    assert_different_registers(Rd, Rs, tmp1);
+    int step = isLL ? 8 : 16;
+    ctz(Rd, Rs);
+    andi(tmp1, Rd, step - 1);
+    sub(Rd, Rd, tmp1);
+    return;
+  }
+  assert_different_registers(Rd, Rs, tmp1, tmp2);
   Label Loop;
   int step = isLL ? 8 : 16;
   li(Rd, -step);
-  mv(Rtmp2, Rs);
+  mv(tmp2, Rs);
 
   bind(Loop);
   addi(Rd, Rd, step);
-  andi(Rtmp1, Rtmp2, ((1 << step) - 1));
-  srli(Rtmp2, Rtmp2, step);
-  beqz(Rtmp1, Loop);
+  andi(tmp1, tmp2, ((1 << step) - 1));
+  srli(tmp2, tmp2, step);
+  beqz(tmp1, Loop);
 }
 
 // This instruction reads adjacent 4 bytes from the lower half of source register,
 // inflate into a register, for example:
 // Rs: A7A6A5A4A3A2A1A0
 // Rd: 00A300A200A100A0
-void MacroAssembler::inflate_lo32(Register Rd, Register Rs, Register Rtmp1, Register Rtmp2)
+void MacroAssembler::inflate_lo32(Register Rd, Register Rs, Register tmp1, Register tmp2)
 {
-  assert_different_registers(Rd, Rs, Rtmp1, Rtmp2);
-  li(Rtmp1, 0xFF);
+  assert_different_registers(Rd, Rs, tmp1, tmp2);
+  li(tmp1, 0xFF);
   mv(Rd, zr);
   for (int i = 0; i <= 3; i++)
   {
-    andr(Rtmp2, Rs, Rtmp1);
+    andr(tmp2, Rs, tmp1);
     if (i) {
-      slli(Rtmp2, Rtmp2, i * 8);
+      slli(tmp2, tmp2, i * 8);
     }
-    orr(Rd, Rd, Rtmp2);
+    orr(Rd, Rd, tmp2);
     if (i != 3) {
-      slli(Rtmp1, Rtmp1, 8);
+      slli(tmp1, tmp1, 8);
     }
   }
 }
@@ -3591,18 +3599,18 @@ void MacroAssembler::inflate_lo32(Register Rd, Register Rs, Register Rtmp1, Regi
 // inflate into a register, for example:
 // Rs: A7A6A5A4A3A2A1A0
 // Rd: 00A700A600A500A4
-void MacroAssembler::inflate_hi32(Register Rd, Register Rs, Register Rtmp1, Register Rtmp2)
+void MacroAssembler::inflate_hi32(Register Rd, Register Rs, Register tmp1, Register tmp2)
 {
-  assert_different_registers(Rd, Rs, Rtmp1, Rtmp2);
-  li(Rtmp1, 0xFF00000000);
+  assert_different_registers(Rd, Rs, tmp1, tmp2);
+  li(tmp1, 0xFF00000000);
   mv(Rd, zr);
   for (int i = 0; i <= 3; i++)
   {
-    andr(Rtmp2, Rs, Rtmp1);
-    orr(Rd, Rd, Rtmp2);
+    andr(tmp2, Rs, tmp1);
+    orr(Rd, Rd, tmp2);
     srli(Rd, Rd, 8);
     if (i != 3) {
-      slli(Rtmp1, Rtmp1, 8);
+      slli(tmp1, tmp1, 8);
     }
   }
 }

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -86,11 +86,6 @@ void VM_Version::initialize() {
     FLAG_SET_DEFAULT(UseSHA3Intrinsics, false);
   }
 
-  if (UsePopCountInstruction) {
-    warning("Pop count instructions are not available on this CPU.");
-    FLAG_SET_DEFAULT(UsePopCountInstruction, false);
-  }
-
   if (UseCRC32Intrinsics) {
     warning("CRC32 intrinsics are not available on this CPU.");
     FLAG_SET_DEFAULT(UseCRC32Intrinsics, false);
@@ -123,6 +118,14 @@ void VM_Version::initialize() {
 
   if (FLAG_IS_DEFAULT(AvoidUnalignedAccesses)) {
     FLAG_SET_DEFAULT(AvoidUnalignedAccesses, true);
+  }
+
+  if (UseRVB) {
+    if (FLAG_IS_DEFAULT(UsePopCountInstruction)) {
+      FLAG_SET_DEFAULT(UsePopCountInstruction, true);
+    }
+  } else {
+    FLAG_SET_DEFAULT(UsePopCountInstruction, false);
   }
 
   char buf[512];
