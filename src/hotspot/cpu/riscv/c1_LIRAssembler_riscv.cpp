@@ -1349,6 +1349,7 @@ void LIR_Assembler::ic_call(LIR_OpJavaCall* op) {
 
 void LIR_Assembler::emit_static_call_stub() {
   address call_pc = __ pc();
+  assert((__ offset() % 4) == 0, "call pc (patchable jals) must be aligned to maintain atomicity");
   address stub = __ start_a_stub(call_stub_size());
   if (stub == NULL) {
     bailout("static call stub overflow");
