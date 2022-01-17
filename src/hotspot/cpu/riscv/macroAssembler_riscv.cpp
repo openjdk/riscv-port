@@ -554,7 +554,6 @@ void MacroAssembler::emit_static_call_stub() {
   // exact layout of this stub.
 
   ifence();
-
   mov_metadata(xmethod, (Metadata*)NULL);
 
   // Jump to the entry point of the i2c stub.
@@ -562,6 +561,7 @@ void MacroAssembler::emit_static_call_stub() {
   movptr_with_offset(t0, 0, offset);
   jalr(x0, t0, offset);
 }
+
 void MacroAssembler::call_VM_leaf_base(address entry_point,
                                        int number_of_arguments,
                                        Label *retaddr) {
