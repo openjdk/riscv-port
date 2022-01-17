@@ -2027,14 +2027,14 @@ enum Nf {
 //    transformed to 16-bit instructions if compressible.
 // 2. RVC instructions in Assembler always begin with 'c_' prefix, as 'c_li',
 //    but most of time we have no need to explicitly use these instructions.
-// 3. We introduce 'CompressibleRegion' to hint instructions in this Region's RTTI range
-//    are qualified to change to their 2-byte versions.
+// 3. 'CompressibleRegion' is introduced to hint instructions in this Region's RTTI range
+//    are qualified to be compressed with their 2-byte versions.
 //    An example:
 //
 //      CompressibleRegion cr(_masm);
 //      __ andr(...);      // this instruction could change to c.and if able to
 //
-// 4. Using -XX:PrintAssemblyOptions=no-aliases could print RVC instructions instead of
+// 4. Using -XX:PrintAssemblyOptions=no-aliases could distinguish RVC instructions from
 //    normal ones.
 //
 
