@@ -7367,6 +7367,44 @@ instruct negD_reg_reg(fRegD dst, fRegD src) %{
   ins_pipe(fp_uop_d);
 %}
 
+instruct absI_reg(iRegINoSp dst, iRegIorL2I src) %{
+  match(Set dst (AbsI src));
+
+  ins_cost(ALU_COST * 3);
+  format %{
+    "sraiw  t0, $src, 0x1f\n\t"
+    "addw  $dst, $src, t0\n\t"
+    "xorr  $dst, $dst, t0\t#@absI_reg"
+  %}
+
+  ins_encode %{
+    __ sraiw(t0, as_Register($src$$reg), 0x1f);
+    __ addw(as_Register($dst$$reg), as_Register($src$$reg), t0);
+    __ xorr(as_Register($dst$$reg), as_Register($dst$$reg), t0);
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct absL_reg(iRegLNoSp dst, iRegL src) %{
+  match(Set dst (AbsL src));
+
+  ins_cost(ALU_COST * 3);
+  format %{
+    "srai  t0, $src, 0x3f\n\t"
+    "add  $dst, $src, t0\n\t"
+    "xorr  $dst, $dst, t0\t#@absL_reg"
+  %}
+
+  ins_encode %{
+    __ srai(t0, as_Register($src$$reg), 0x3f);
+    __ add(as_Register($dst$$reg), as_Register($src$$reg), t0);
+    __ xorr(as_Register($dst$$reg), as_Register($dst$$reg), t0);
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
 instruct absF_reg(fRegF dst, fRegF src) %{
   match(Set dst (AbsF src));
 
