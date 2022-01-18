@@ -1190,17 +1190,22 @@ int MachCallNativeNode::ret_addr_offset() {
   return -1;
 }
 
-// With RVC a call site may get 2-byte aligned.
-// The offset encoding in jal instruction bits [12, 31] could span multiple cache lines.
-// Patching this jal instruction will not be atomic when its address is not naturally aligned.
-// Other threads may be running the same piece of code at the same time, thus causing concurrency issues.
+//
+// Compute padding required for nodes which need alignment
+//
+
+// With RVC a call instruction may get 2-byte aligned.
+// The address of the call instruction needs to be 4-byte aligned to
+// ensure that it does not span a cache line so that it can be patched.
 int CallStaticJavaDirectNode::compute_padding(int current_offset) const
 {
   // to make sure the address of jal 4-byte aligned.
   return align_up(current_offset, alignment_required()) - current_offset;
 }
 
-// Please see CallStaticJavaDirectNode::compute_padding() for more info.
+// With RVC a call instruction may get 2-byte aligned.
+// The address of the call instruction needs to be 4-byte aligned to
+// ensure that it does not span a cache line so that it can be patched.
 int CallDynamicJavaDirectNode::compute_padding(int current_offset) const
 {
   // skip the movptr in MacroAssembler::ic_call():
@@ -9933,7 +9938,8 @@ instruct cmovI_cmpUL(iRegINoSp dst, iRegI src, iRegL op1, iRegL op2, cmpOpU cop)
 // Procedure Call/Return Instructions
 
 // Call Java Static Instruction
-
+// Note: If this code changes, the corresponding ret_addr_offset() and
+//       compute_padding() functions will have to be adjusted.
 instruct CallStaticJavaDirect(method meth)
 %{
   match(CallStaticJava);
@@ -9954,6 +9960,8 @@ instruct CallStaticJavaDirect(method meth)
 // TO HERE
 
 // Call Java Dynamic Instruction
+// Note: If this code changes, the corresponding ret_addr_offset() and
+//       compute_padding() functions will have to be adjusted.
 instruct CallDynamicJavaDirect(method meth, rFlagsReg cr)
 %{
   match(CallDynamicJava);
@@ -9965,7 +9973,7 @@ instruct CallDynamicJavaDirect(method meth, rFlagsReg cr)
   format %{ "CALL,dynamic $meth\t#@CallDynamicJavaDirect" %}
 
   ins_encode( riscv64_enc_java_dynamic_call(meth),
-               riscv64_enc_call_epilog );
+              riscv64_enc_call_epilog );
 
   ins_pipe(pipe_class_call);
   ins_alignment(4);
