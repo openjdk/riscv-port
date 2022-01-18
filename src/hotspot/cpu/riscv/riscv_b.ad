@@ -393,3 +393,135 @@ instruct popCountL_rvb(iRegINoSp dst, iRegL src) %{
 
   ins_pipe(ialu_reg);
 %}
+
+// Max and Min
+instruct minI_reg_rvb(iRegINoSp dst, iRegI src1, iRegI src2) %{
+  predicate(UseRVB);
+  match(Set dst (MinI src1 src2));
+
+  ins_cost(ALU_COST);
+  format %{ "min  $dst, $src1, $src2\t#@minI_reg_rvb" %}
+
+  ins_encode %{
+    __ min(as_Register($dst$$reg), as_Register($src1$$reg), as_Register($src2$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct maxI_reg_rvb(iRegINoSp dst, iRegI src1, iRegI src2) %{
+  predicate(UseRVB);
+  match(Set dst (MaxI src1 src2));
+
+  ins_cost(ALU_COST);
+  format %{ "max  $dst, $src1, $src2\t#@maxI_reg_rvb" %}
+
+  ins_encode %{
+    __ max(as_Register($dst$$reg), as_Register($src1$$reg), as_Register($src2$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+// Abs
+instruct absI_reg_rvb(iRegINoSp dst, iRegI src) %{
+  predicate(UseRVB);
+  match(Set dst (AbsI src));
+
+  ins_cost(ALU_COST * 2);
+  format %{
+    "negw  t0, $src\n\t"
+    "max  $dst, $src, t0\t#@absI_reg_rvb"
+  %}
+
+  ins_encode %{
+    __ negw(t0, as_Register($src$$reg));
+    __ max(as_Register($dst$$reg), as_Register($src$$reg), t0);
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct absL_reg_rvb(iRegLNoSp dst, iRegL src) %{
+  predicate(UseRVB);
+  match(Set dst (AbsL src));
+
+  ins_cost(ALU_COST * 2);
+  format %{
+    "neg  t0, $src\n\t"
+    "max $dst, $src, t0\t#@absL_reg_rvb"
+  %}
+
+  ins_encode %{
+    __ neg(t0, as_Register($src$$reg));
+    __ max(as_Register($dst$$reg), as_Register($src$$reg), t0);
+  %}
+
+  ins_pipe(ialu_reg);
+%}
+
+// And Not
+instruct andnI_reg_reg_rvb(iRegINoSp dst, iRegI src1, iRegI src2, immI_M1 m1) %{
+  predicate(UseRVB);
+  match(Set dst (AndI src1 (XorI src2 m1)));
+
+  ins_cost(ALU_COST);
+  format %{ "andn  $dst, $src1, $src2\t#@andnI_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ andn(as_Register($dst$$reg),
+            as_Register($src1$$reg),
+            as_Register($src2$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct andnL_reg_reg_rvb(iRegLNoSp dst, iRegL src1, iRegL src2, immL_M1 m1) %{
+  predicate(UseRVB);
+  match(Set dst (AndL src1 (XorL src2 m1)));
+
+  ins_cost(ALU_COST);
+  format %{ "andn  $dst, $src1, $src2\t#@andnL_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ andn(as_Register($dst$$reg),
+            as_Register($src1$$reg),
+            as_Register($src2$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+// Or Not
+instruct ornI_reg_reg_rvb(iRegINoSp dst, iRegI src1, iRegI src2, immI_M1 m1) %{
+  predicate(UseRVB);
+  match(Set dst (OrI src1 (XorI src2 m1)));
+
+  ins_cost(ALU_COST);
+  format %{ "orn  $dst, $src1, $src2\t#@ornI_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ orn(as_Register($dst$$reg),
+           as_Register($src1$$reg),
+           as_Register($src2$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}
+
+instruct ornL_reg_reg_rvb(iRegLNoSp dst, iRegL src1, iRegL src2, immL_M1 m1) %{
+  predicate(UseRVB);
+  match(Set dst (OrL src1 (XorL src2 m1)));
+
+  ins_cost(ALU_COST);
+  format %{ "orn  $dst, $src1, $src2\t#@ornL_reg_reg_rvb" %}
+
+  ins_encode %{
+    __ orn(as_Register($dst$$reg),
+           as_Register($src1$$reg),
+           as_Register($src2$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
+%}

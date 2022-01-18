@@ -1958,6 +1958,13 @@ enum Nf {
   INSN(sh1add_uw, 0b0111011, 0b010, 0b0010000);
   INSN(sh2add_uw, 0b0111011, 0b100, 0b0010000);
   INSN(sh3add_uw, 0b0111011, 0b110, 0b0010000);
+  INSN(andn,      0b0110011, 0b111, 0b0100000);
+  INSN(orn,       0b0110011, 0b110, 0b0100000);
+  INSN(xnor,      0b0110011, 0b100, 0b0100000);
+  INSN(max,       0b0110011, 0b110, 0b0000101);
+  INSN(maxu,      0b0110011, 0b111, 0b0000101);
+  INSN(min,       0b0110011, 0b100, 0b0000101);
+  INSN(minu,      0b0110011, 0b101, 0b0000101);
 
 #undef INSN
 
@@ -1982,6 +1989,7 @@ enum Nf {
   INSN(ctzw,   0b0011011, 0b001, 0b011000000001);
   INSN(cpop,   0b0010011, 0b001, 0b011000000010);
   INSN(cpopw,  0b0011011, 0b001, 0b011000000010);
+  INSN(orc_b,  0b0010011, 0b101, 0b001010000111);
 
 #undef INSN
 
@@ -1998,7 +2006,8 @@ enum Nf {
     emit(insn);                                         \
   }
 
-  INSN(rori, 0b0010011, 0b101, 0b011000);
+  INSN(rori,    0b0010011, 0b101, 0b011000);
+  INSN(slli_uw, 0b0011011, 0b001, 0b000010);
 
 #undef INSN
 
