@@ -1323,8 +1323,9 @@ void LIR_Assembler::comp_fl2i(LIR_Code code, LIR_Opr left, LIR_Opr right, LIR_Op
 }
 
 void LIR_Assembler::align_call(LIR_Code code) {
-  // With RVC a call instruction (which will be patched later) may get 2-byte aligned and could
-  // span multiple cache lines. See CallStaticJavaDirectNode::compute_padding() for more info.
+  // With RVC a call instruction may get 2-byte aligned.
+  // The address of the call instruction needs to be 4-byte aligned to
+  // ensure that it does not span a cache line so that it can be patched.
   __ align(4);
 }
 
@@ -1348,7 +1349,7 @@ void LIR_Assembler::ic_call(LIR_OpJavaCall* op) {
 
 void LIR_Assembler::emit_static_call_stub() {
   address call_pc = __ pc();
-  assert((__ offset() % 4) == 0, "call sites must be properly aligned");
+  assert((__ offset() % 4) == 0, "bad alignment");
   address stub = __ start_a_stub(call_stub_size());
   if (stub == NULL) {
     bailout("static call stub overflow");
@@ -1360,7 +1361,8 @@ void LIR_Assembler::emit_static_call_stub() {
   __ relocate(static_stub_Relocation::spec(call_pc));
   __ emit_static_call_stub();
 
-  assert(__ offset() - start + CompiledStaticCall::to_trampoline_stub_size() <= call_stub_size(), "stub too big");
+  assert(__ offset() - start + CompiledStaticCall::to_trampoline_stub_size()
+         <= call_stub_size(), "stub too big");
   __ end_a_stub();
 }
 
