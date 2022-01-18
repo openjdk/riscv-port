@@ -1322,7 +1322,11 @@ void LIR_Assembler::comp_fl2i(LIR_Code code, LIR_Opr left, LIR_Opr right, LIR_Op
   }
 }
 
-void LIR_Assembler::align_call(LIR_Code code) {  }
+void LIR_Assembler::align_call(LIR_Code code) {
+  // With RVC a call instruction (which will be patched later) may get 2-byte aligned and could
+  // span multiple cache lines. See CallStaticJavaDirectNode::compute_padding() for more info.
+  __ align(4);
+}
 
 void LIR_Assembler::call(LIR_OpJavaCall* op, relocInfo::relocType rtype) {
   address call = __ trampoline_call(Address(op->addr(), rtype));
@@ -1344,6 +1348,7 @@ void LIR_Assembler::ic_call(LIR_OpJavaCall* op) {
 
 void LIR_Assembler::emit_static_call_stub() {
   address call_pc = __ pc();
+  assert((__ offset() % 4) == 0, "call sites must be properly aligned");
   address stub = __ start_a_stub(call_stub_size());
   if (stub == NULL) {
     bailout("static call stub overflow");

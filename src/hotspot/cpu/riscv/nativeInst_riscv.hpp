@@ -53,7 +53,8 @@ class NativeInstruction {
   friend bool is_NativeCallTrampolineStub_at(address);
  public:
   enum {
-    instruction_size = 4
+    instruction_size = 4,
+    compressed_instruction_size = 2,
   };
 
   juint encoding() const {
@@ -422,10 +423,10 @@ inline NativeMovRegMem* nativeMovRegMem_at (address addr) {
 class NativeJump: public NativeInstruction {
  public:
   enum RISCV64_specific_constants {
-    instruction_size            =    4,
+    instruction_size            =    NativeInstruction::instruction_size,
     instruction_offset          =    0,
     data_offset                 =    0,
-    next_instruction_offset     =    4
+    next_instruction_offset     =    NativeInstruction::instruction_size
   };
 
   address instruction_address() const       { return addr_at(instruction_offset); }

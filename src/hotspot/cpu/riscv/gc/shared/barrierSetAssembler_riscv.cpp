@@ -238,6 +238,9 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
     return;
   }
 
+  // RISCV's amoswap instructions require that the memory address must be naturally aligned.
+  __ align(4);
+
   Label skip, guard;
   Address thread_disarmed_addr(xthread, in_bytes(bs_nm->thread_disarmed_offset()));
 
@@ -256,6 +259,7 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
 
   __ bind(guard);
 
+  assert(__ offset() % 4 == 0, "bad alignment");
   __ emit_int32(0); // nmethod guard value. Skipped over in common case.
 
   __ bind(skip);

@@ -49,7 +49,7 @@ class MacroAssembler: public Assembler {
   void safepoint_ifence();
 
   // Alignment
-  void align(int modulus);
+  void align(int modulus, int extra_offset = 0);
 
   // Stack frame creation/removal
   void enter() {
@@ -445,11 +445,11 @@ class MacroAssembler: public Assembler {
   void fsflagsi(unsigned imm);
 
   void beqz(Register Rs, const address &dest);
+  void bnez(Register Rs, const address &dest);
   void blez(Register Rs, const address &dest);
   void bgez(Register Rs, const address &dest);
   void bltz(Register Rs, const address &dest);
   void bgtz(Register Rs, const address &dest);
-  void bnez(Register Rs, const address &dest);
   void la(Register Rd, Label &label);
   void la(Register Rd, const address &dest);
   void la(Register Rd, const Address &adr);

@@ -83,7 +83,7 @@ void Assembler::zext_w(Register Rd, Register Rs) {
   add_uw(Rd, Rs, zr);
 }
 
-void Assembler::li(Register Rd, int64_t imm) {
+void Assembler::_li(Register Rd, int64_t imm) {
   // int64_t is in range 0x8000 0000 0000 0000 ~ 0x7fff ffff ffff ffff
   int shift = 12;
   int64_t upper = imm, lower = imm;

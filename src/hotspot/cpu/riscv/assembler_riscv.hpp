@@ -301,7 +301,7 @@ public:
     }
   }
 
-  void li(Register Rd, int64_t imm);  // optimized load immediate
+  void _li(Register Rd, int64_t imm);  // optimized load immediate
   void li32(Register Rd, int32_t imm);
   void li64(Register Rd, int64_t imm);
   void movptr(Register Rd, address addr);
@@ -378,11 +378,11 @@ public:
     emit_int32((jint)insn);
   }
 
-  void halt() {
+  void _halt() {
     emit_int32(0);
   }
 
-// Rigster Instruction
+// Register Instruction
 #define INSN(NAME, op, funct3, funct7)                          \
   void NAME(Register Rd, Register Rs1, Register Rs2) {          \
     unsigned insn = 0;                                          \
@@ -395,18 +395,18 @@ public:
     emit(insn);                                                 \
   }
 
-  INSN(add,   0b0110011, 0b000, 0b0000000);
-  INSN(sub,   0b0110011, 0b000, 0b0100000);
-  INSN(andr,  0b0110011, 0b111, 0b0000000);
-  INSN(orr,   0b0110011, 0b110, 0b0000000);
-  INSN(xorr,  0b0110011, 0b100, 0b0000000);
+  INSN(_add,  0b0110011, 0b000, 0b0000000);
+  INSN(_sub,  0b0110011, 0b000, 0b0100000);
+  INSN(_andr, 0b0110011, 0b111, 0b0000000);
+  INSN(_orr,  0b0110011, 0b110, 0b0000000);
+  INSN(_xorr, 0b0110011, 0b100, 0b0000000);
   INSN(sll,   0b0110011, 0b001, 0b0000000);
   INSN(sra,   0b0110011, 0b101, 0b0100000);
   INSN(srl,   0b0110011, 0b101, 0b0000000);
   INSN(slt,   0b0110011, 0b010, 0b0000000);
   INSN(sltu,  0b0110011, 0b011, 0b0000000);
-  INSN(addw,  0b0111011, 0b000, 0b0000000);
-  INSN(subw,  0b0111011, 0b000, 0b0100000);
+  INSN(_addw, 0b0111011, 0b000, 0b0000000);
+  INSN(_subw, 0b0111011, 0b000, 0b0100000);
   INSN(sllw,  0b0111011, 0b001, 0b0000000);
   INSN(sraw,  0b0111011, 0b101, 0b0100000);
   INSN(srlw,  0b0111011, 0b101, 0b0000000);
@@ -436,8 +436,8 @@ public:
   // Load/store register (all modes)
 #define INSN(NAME, op, funct3)                                                                     \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                                      \
-    unsigned insn = 0;                                                                             \
     guarantee(is_offset_in_range(offset, 12), "offset is invalid.");                               \
+    unsigned insn = 0;                                                                             \
     int32_t val = offset & 0xfff;                                                                  \
     patch((address)&insn, 6, 0, op);                                                               \
     patch((address)&insn, 14, 12, funct3);                                                         \
@@ -445,7 +445,19 @@ public:
     patch_reg((address)&insn, 7, Rd);                                                              \
     patch((address)&insn, 31, 20, val);                                                            \
     emit(insn);                                                                                    \
-  }                                                                                                \
+  }
+
+  INSN(lb,  0b0000011, 0b000);
+  INSN(lbu, 0b0000011, 0b100);
+  INSN(lh,  0b0000011, 0b001);
+  INSN(lhu, 0b0000011, 0b101);
+  INSN(_lw, 0b0000011, 0b010);
+  INSN(lwu, 0b0000011, 0b110);
+  INSN(_ld, 0b0000011, 0b011);
+
+#undef INSN
+
+#define INSN(NAME)                                                                                 \
   void NAME(Register Rd, address dest) {                                                           \
     assert_cond(dest != NULL);                                                                     \
     int64_t distance = (dest - pc());                                                              \
@@ -491,20 +503,20 @@ public:
     wrap_label(Rd, L, &Assembler::NAME);                                                           \
   }
 
-  INSN(lb,  0b0000011, 0b000);
-  INSN(lbu, 0b0000011, 0b100);
-  INSN(ld,  0b0000011, 0b011);
-  INSN(lh,  0b0000011, 0b001);
-  INSN(lhu, 0b0000011, 0b101);
-  INSN(lw,  0b0000011, 0b010);
-  INSN(lwu, 0b0000011, 0b110);
+  INSN(lb);
+  INSN(lbu);
+  INSN(lh);
+  INSN(lhu);
+  INSN(lw);
+  INSN(lwu);
+  INSN(ld);
 
 #undef INSN
 
 #define INSN(NAME, op, funct3)                                                                     \
   void NAME(FloatRegister Rd, Register Rs, const int32_t offset) {                                 \
-    unsigned insn = 0;                                                                             \
     guarantee(is_offset_in_range(offset, 12), "offset is invalid.");                               \
+    unsigned insn = 0;                                                                             \
     uint32_t val = offset & 0xfff;                                                                 \
     patch((address)&insn, 6, 0, op);                                                               \
     patch((address)&insn, 14, 12, funct3);                                                         \
@@ -512,7 +524,14 @@ public:
     patch_reg((address)&insn, 7, Rd);                                                              \
     patch((address)&insn, 31, 20, val);                                                            \
     emit(insn);                                                                                    \
-  }                                                                                                \
+  }
+
+  INSN(flw,  0b0000111, 0b010);
+  INSN(_fld, 0b0000111, 0b011);
+
+#undef INSN
+
+#define INSN(NAME)                                                                                 \
   void NAME(FloatRegister Rd, address dest, Register temp = t0) {                                  \
     assert_cond(dest != NULL);                                                                     \
     int64_t distance = (dest - pc());                                                              \
@@ -550,14 +569,14 @@ public:
     }                                                                                              \
   }
 
-  INSN(flw, 0b0000111, 0b010);
-  INSN(fld, 0b0000111, 0b011);
+  INSN(flw);
+  INSN(fld);
 #undef INSN
 
 #define INSN(NAME, op, funct3)                                                                           \
   void NAME(Register Rs1, Register Rs2, const int64_t offset) {                                          \
-    unsigned insn = 0;                                                                                   \
     guarantee(is_imm_in_range(offset, 12, 1), "offset is invalid.");                                     \
+    unsigned insn = 0;                                                                                   \
     uint32_t val  = offset & 0x1fff;                                                                     \
     uint32_t val11 = (val >> 11) & 0x1;                                                                  \
     uint32_t val12 = (val >> 12) & 0x1;                                                                  \
@@ -572,7 +591,18 @@ public:
     patch((address)&insn, 30, 25, high);                                                                 \
     patch((address)&insn, 31, val12);                                                                    \
     emit(insn);                                                                                          \
-  }                                                                                                      \
+  }
+
+  INSN(_beq, 0b1100011, 0b000);
+  INSN(_bne, 0b1100011, 0b001);
+  INSN(bge,  0b1100011, 0b101);
+  INSN(bgeu, 0b1100011, 0b111);
+  INSN(blt,  0b1100011, 0b100);
+  INSN(bltu, 0b1100011, 0b110);
+
+#undef INSN
+
+#define INSN(NAME)                                                                                       \
   void NAME(Register Rs1, Register Rs2, const address dest) {                                            \
     assert_cond(dest != NULL);                                                                           \
     int64_t offset = (dest - pc());                                                                      \
@@ -583,12 +613,12 @@ public:
     NAME(Rs1, Rs2, dest);                                                                                \
   }
 
-  INSN(beq,  0b1100011, 0b000);
-  INSN(bge,  0b1100011, 0b101);
-  INSN(bgeu, 0b1100011, 0b111);
-  INSN(blt,  0b1100011, 0b100);
-  INSN(bltu, 0b1100011, 0b110);
-  INSN(bne,  0b1100011, 0b001);
+  INSN(beq);
+  INSN(bne);
+  INSN(bge);
+  INSN(bgeu);
+  INSN(blt);
+  INSN(bltu);
 
 #undef INSN
 
@@ -608,8 +638,8 @@ public:
 
 #define INSN(NAME, REGISTER, op, funct3)                                                                    \
   void NAME(REGISTER Rs1, Register Rs2, const int32_t offset) {                                             \
-    unsigned insn = 0;                                                                                      \
     guarantee(is_offset_in_range(offset, 12), "offset is invalid.");                                        \
+    unsigned insn = 0;                                                                                      \
     uint32_t val  = offset & 0xfff;                                                                         \
     uint32_t low  = val & 0x1f;                                                                             \
     uint32_t high = (val >> 5) & 0x7f;                                                                      \
@@ -621,16 +651,27 @@ public:
     patch((address)&insn, 31, 25, high);                                                                    \
     emit(insn);                                                                                             \
   }                                                                                                         \
+
+  INSN(sb,   Register,      0b0100011, 0b000);
+  INSN(sh,   Register,      0b0100011, 0b001);
+  INSN(_sw,  Register,      0b0100011, 0b010);
+  INSN(_sd,  Register,      0b0100011, 0b011);
+  INSN(fsw,  FloatRegister, 0b0100111, 0b010);
+  INSN(_fsd, FloatRegister, 0b0100111, 0b011);
+
+#undef INSN
+
+#define INSN(NAME, REGISTER)                                                                                \
   INSN_ENTRY_RELOC(void, NAME(REGISTER Rs, address dest, relocInfo::relocType rtype, Register temp = t0))   \
     NAME(Rs, dest, temp);                                                                                   \
   }
 
-  INSN(sb,  Register,      0b0100011, 0b000);
-  INSN(sh,  Register,      0b0100011, 0b001);
-  INSN(sw,  Register,      0b0100011, 0b010);
-  INSN(sd,  Register,      0b0100011, 0b011);
-  INSN(fsw, FloatRegister, 0b0100111, 0b010);
-  INSN(fsd, FloatRegister, 0b0100111, 0b011);
+  INSN(sb,  Register);
+  INSN(sh,  Register);
+  INSN(sw,  Register);
+  INSN(sd,  Register);
+  INSN(fsw, FloatRegister);
+  INSN(fsd, FloatRegister);
 
 #undef INSN
 
@@ -759,8 +800,8 @@ public:
 
 #define INSN(NAME, op)                                                                        \
   void NAME(Register Rd, const int32_t offset) {                                              \
-    unsigned insn = 0;                                                                        \
     guarantee(is_imm_in_range(offset, 20, 1), "offset is invalid.");                          \
+    unsigned insn = 0;                                                                        \
     patch((address)&insn, 6, 0, op);                                                          \
     patch_reg((address)&insn, 7, Rd);                                                         \
     patch((address)&insn, 19, 12, (uint32_t)((offset >> 12) & 0xff));                         \
@@ -768,7 +809,13 @@ public:
     patch((address)&insn, 30, 21, (uint32_t)((offset >> 1) & 0x3ff));                         \
     patch((address)&insn, 31, (uint32_t)((offset >> 20) & 0x1));                              \
     emit(insn);                                                                               \
-  }                                                                                           \
+  }
+
+  INSN(_jal, 0b1101111);
+
+#undef INSN
+
+#define INSN(NAME)                                                                            \
   void NAME(Register Rd, const address dest, Register temp = t0) {                            \
     assert_cond(dest != NULL);                                                                \
     int64_t offset = dest - pc();                                                             \
@@ -786,7 +833,7 @@ public:
     wrap_label(Rd, L, temp, &Assembler::NAME);                                                \
   }
 
-  INSN(jal, 0b1101111);
+  INSN(jal);
 
 #undef INSN
 
@@ -794,8 +841,8 @@ public:
 
 #define INSN(NAME, op, funct)                                                              \
   void NAME(Register Rd, Register Rs, const int32_t offset) {                              \
-    unsigned insn = 0;                                                                     \
     guarantee(is_offset_in_range(offset, 12), "offset is invalid.");                       \
+    unsigned insn = 0;                                                                     \
     patch((address)&insn, 6, 0, op);                                                       \
     patch_reg((address)&insn, 7, Rd);                                                      \
     patch((address)&insn, 14, 12, funct);                                                  \
@@ -805,7 +852,7 @@ public:
     emit(insn);                                                                            \
   }
 
-  INSN(jalr, 0b1100111, 0b000);
+  INSN(_jalr, 0b1100111, 0b000);
 
 #undef INSN
 
@@ -841,7 +888,8 @@ public:
 
   INSN(fence_i, 0b0001111, 0b001, 0b000000000000);
   INSN(ecall,   0b1110011, 0b000, 0b000000000000);
-  INSN(ebreak,  0b1110011, 0b000, 0b000000000001);
+  INSN(_ebreak, 0b1110011, 0b000, 0b000000000001);
+
 #undef INSN
 
 enum Aqrl {relaxed = 0b00, rl = 0b01, aq = 0b10, aqrl = 0b11};
@@ -949,12 +997,12 @@ enum operand_size { int8, int16, int32, uint32, int64 };
     emit(insn);                                                                             \
   }
 
-  INSN(addi,  0b0010011, 0b000);
-  INSN(slti,  0b0010011, 0b010);
-  INSN(addiw, 0b0011011, 0b000);
-  INSN(and_imm12,  0b0010011, 0b111);
-  INSN(ori,   0b0010011, 0b110);
-  INSN(xori,  0b0010011, 0b100);
+  INSN(_addi,      0b0010011, 0b000);
+  INSN(slti,       0b0010011, 0b010);
+  INSN(_addiw,     0b0011011, 0b000);
+  INSN(_and_imm12, 0b0010011, 0b111);
+  INSN(ori,        0b0010011, 0b110);
+  INSN(xori,       0b0010011, 0b100);
 
 #undef INSN
 
@@ -988,9 +1036,9 @@ enum operand_size { int8, int16, int32, uint32, int64 };
     emit(insn);                                                          \
   }
 
-  INSN(slli,  0b0010011, 0b001, 0b000000);
-  INSN(srai,  0b0010011, 0b101, 0b010000);
-  INSN(srli,  0b0010011, 0b101, 0b000000);
+  INSN(_slli, 0b0010011, 0b001, 0b000000);
+  INSN(_srai, 0b0010011, 0b101, 0b010000);
+  INSN(_srli, 0b0010011, 0b101, 0b000000);
 
 #undef INSN
 
@@ -1026,7 +1074,7 @@ enum operand_size { int8, int16, int32, uint32, int64 };
     emit(insn);                                                         \
   }
 
-  INSN(lui,   0b0110111);
+  INSN(_lui,  0b0110111);
   INSN(auipc, 0b0010111);
 
 #undef INSN
@@ -1971,6 +2019,963 @@ enum Nf {
 
 #undef INSN
 
+// ========================================
+// RISC-V Compressed Instructions Extension
+// ========================================
+// Note:
+// 1. When UseRVC is enabled, 32-bit instructions under 'CompressibleRegion's will be
+//    transformed to 16-bit instructions if compressible.
+// 2. RVC instructions in Assembler always begin with 'c_' prefix, as 'c_li',
+//    but most of time we have no need to explicitly use these instructions.
+// 3. 'CompressibleRegion' is introduced to hint instructions in this Region's RTTI range
+//    are qualified to be compressed with their 2-byte versions.
+//    An example:
+//
+//      CompressibleRegion cr(_masm);
+//      __ andr(...);      // this instruction could change to c.and if able to
+//
+// 4. Using -XX:PrintAssemblyOptions=no-aliases could distinguish RVC instructions from
+//    normal ones.
+//
+
+private:
+  bool _in_compressible_region;
+public:
+  bool in_compressible_region() const { return _in_compressible_region; }
+  void set_in_compressible_region(bool b) { _in_compressible_region = b; }
+public:
+
+  // a compressible region
+  class CompressibleRegion : public StackObj {
+  protected:
+    Assembler *_masm;
+    bool _saved_in_compressible_region;
+  public:
+    CompressibleRegion(Assembler *_masm)
+    : _masm(_masm)
+    , _saved_in_compressible_region(_masm->in_compressible_region()) {
+      _masm->set_in_compressible_region(true);
+    }
+    ~CompressibleRegion() {
+      _masm->set_in_compressible_region(_saved_in_compressible_region);
+    }
+  };
+
+  // patch a 16-bit instruction.
+  static void c_patch(address a, unsigned msb, unsigned lsb, uint16_t val) {
+    assert_cond(a != NULL);
+    assert_cond(msb >= lsb && msb <= 15);
+    unsigned nbits = msb - lsb + 1;
+    guarantee(val < (1U << nbits), "Field too big for insn");
+    uint16_t mask = (1U << nbits) - 1;
+    val <<= lsb;
+    mask <<= lsb;
+    uint16_t target = *(uint16_t *)a;
+    target &= ~mask;
+    target |= val;
+    *(uint16_t *)a = target;
+  }
+
+  static void c_patch(address a, unsigned bit, uint16_t val) {
+    c_patch(a, bit, bit, val);
+  }
+
+  // patch a 16-bit instruction with a general purpose register ranging [0, 31] (5 bits)
+  static void c_patch_reg(address a, unsigned lsb, Register reg) {
+    c_patch(a, lsb + 4, lsb, reg->encoding_nocheck());
+  }
+
+  // patch a 16-bit instruction with a general purpose register ranging [8, 15] (3 bits)
+  static void c_patch_compressed_reg(address a, unsigned lsb, Register reg) {
+    c_patch(a, lsb + 2, lsb, reg->compressed_encoding_nocheck());
+  }
+
+  // patch a 16-bit instruction with a float register ranging [0, 31] (5 bits)
+  static void c_patch_reg(address a, unsigned lsb, FloatRegister reg) {
+    c_patch(a, lsb + 4, lsb, reg->encoding_nocheck());
+  }
+
+  // patch a 16-bit instruction with a float register ranging [8, 15] (3 bits)
+  static void c_patch_compressed_reg(address a, unsigned lsb, FloatRegister reg) {
+    c_patch(a, lsb + 2, lsb, reg->compressed_encoding_nocheck());
+  }
+
+// --------------  RVC Instruction Definitions  --------------
+
+  void c_nop() {
+    c_addi(x0, 0);
+  }
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rd_Rs1, int32_t imm) {                                                  \
+    assert_cond(is_imm_in_range(imm, 6, 0));                                                 \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 6, 2, (imm & right_n_bits(5)));                                  \
+    c_patch_reg((address)&insn, 7, Rd_Rs1);                                                  \
+    c_patch((address)&insn, 12, 12, (imm & nth_bit(5)) >> 5);                                \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_addi,   0b000, 0b01);
+  INSN(c_addiw,  0b001, 0b01);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(int32_t imm) {                                                                   \
+    assert_cond(is_imm_in_range(imm, 10, 0));                                                \
+    assert_cond((imm & 0b1111) == 0);                                                        \
+    assert_cond(imm != 0);                                                                   \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 2, 2, (imm & nth_bit(5)) >> 5);                                  \
+    c_patch((address)&insn, 4, 3, (imm & right_n_bits(9)) >> 7);                             \
+    c_patch((address)&insn, 5, 5, (imm & nth_bit(6)) >> 6);                                  \
+    c_patch((address)&insn, 6, 6, (imm & nth_bit(4)) >> 4);                                  \
+    c_patch_reg((address)&insn, 7, sp);                                                      \
+    c_patch((address)&insn, 12, 12, (imm & nth_bit(9)) >> 9);                                \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_addi16sp, 0b011, 0b01);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rd, uint32_t uimm) {                                                    \
+    assert_cond(is_unsigned_imm_in_range(uimm, 10, 0));                                      \
+    assert_cond((uimm & 0b11) == 0);                                                         \
+    assert_cond(uimm != 0);                                                                  \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch_compressed_reg((address)&insn, 2, Rd);                                           \
+    c_patch((address)&insn, 5, 5, (uimm & nth_bit(3)) >> 3);                                 \
+    c_patch((address)&insn, 6, 6, (uimm & nth_bit(2)) >> 2);                                 \
+    c_patch((address)&insn, 10, 7, (uimm & right_n_bits(10)) >> 6);                          \
+    c_patch((address)&insn, 12, 11, (uimm & right_n_bits(6)) >> 4);                          \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_addi4spn, 0b000, 0b00);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rd_Rs1, uint32_t shamt) {                                               \
+    assert_cond(is_unsigned_imm_in_range(shamt, 6, 0));                                      \
+    assert_cond(shamt != 0);                                                                 \
+    assert_cond(Rd_Rs1 != x0);                                                               \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 6, 2, (shamt & right_n_bits(5)));                                \
+    c_patch_reg((address)&insn, 7, Rd_Rs1);                                                  \
+    c_patch((address)&insn, 12, 12, (shamt & nth_bit(5)) >> 5);                              \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_slli, 0b000, 0b10);
+
+#undef INSN
+
+#define INSN(NAME, funct3, funct2, op)                                                       \
+  void NAME(Register Rd_Rs1, uint32_t shamt) {                                               \
+    assert_cond(is_unsigned_imm_in_range(shamt, 6, 0));                                      \
+    assert_cond(shamt != 0);                                                                 \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 6, 2, (shamt & right_n_bits(5)));                                \
+    c_patch_compressed_reg((address)&insn, 7, Rd_Rs1);                                       \
+    c_patch((address)&insn, 11, 10, funct2);                                                 \
+    c_patch((address)&insn, 12, 12, (shamt & nth_bit(5)) >> 5);                              \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_srli, 0b100, 0b00, 0b01);
+  INSN(c_srai, 0b100, 0b01, 0b01);
+
+#undef INSN
+
+#define INSN(NAME, funct3, funct2, op)                                                       \
+  void NAME(Register Rd_Rs1, int32_t imm) {                                                  \
+    assert_cond(is_imm_in_range(imm, 6, 0));                                                 \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 6, 2, (imm & right_n_bits(5)));                                  \
+    c_patch_compressed_reg((address)&insn, 7, Rd_Rs1);                                       \
+    c_patch((address)&insn, 11, 10, funct2);                                                 \
+    c_patch((address)&insn, 12, 12, (imm & nth_bit(5)) >> 5);                                \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_andi, 0b100, 0b10, 0b01);
+
+#undef INSN
+
+#define INSN(NAME, funct6, funct2, op)                                                       \
+  void NAME(Register Rd_Rs1, Register Rs2) {                                                 \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch_compressed_reg((address)&insn, 2, Rs2);                                          \
+    c_patch((address)&insn, 6, 5, funct2);                                                   \
+    c_patch_compressed_reg((address)&insn, 7, Rd_Rs1);                                       \
+    c_patch((address)&insn, 15, 10, funct6);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_sub,  0b100011, 0b00, 0b01);
+  INSN(c_xor,  0b100011, 0b01, 0b01);
+  INSN(c_or,   0b100011, 0b10, 0b01);
+  INSN(c_and,  0b100011, 0b11, 0b01);
+  INSN(c_subw, 0b100111, 0b00, 0b01);
+  INSN(c_addw, 0b100111, 0b01, 0b01);
+
+#undef INSN
+
+#define INSN(NAME, funct4, op)                                                               \
+  void NAME(Register Rd_Rs1, Register Rs2) {                                                 \
+    assert_cond(Rd_Rs1 != x0);                                                               \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch_reg((address)&insn, 2, Rs2);                                                     \
+    c_patch_reg((address)&insn, 7, Rd_Rs1);                                                  \
+    c_patch((address)&insn, 15, 12, funct4);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_mv,  0b1000, 0b10);
+  INSN(c_add, 0b1001, 0b10);
+
+#undef INSN
+
+#define INSN(NAME, funct4, op)                                                               \
+  void NAME(Register Rs1) {                                                                  \
+    assert_cond(Rs1 != x0);                                                                  \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch_reg((address)&insn, 2, x0);                                                      \
+    c_patch_reg((address)&insn, 7, Rs1);                                                     \
+    c_patch((address)&insn, 15, 12, funct4);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_jr,   0b1000, 0b10);
+  INSN(c_jalr, 0b1001, 0b10);
+
+#undef INSN
+
+  typedef void (Assembler::* j_c_insn)(address dest);
+  typedef void (Assembler::* compare_and_branch_c_insn)(Register Rs1, address dest);
+
+  void wrap_label(Label &L, j_c_insn insn) {
+    if (L.is_bound()) {
+      (this->*insn)(target(L));
+    } else {
+      L.add_patch_at(code(), locator());
+      (this->*insn)(pc());
+    }
+  }
+
+  void wrap_label(Label &L, Register r, compare_and_branch_c_insn insn) {
+    if (L.is_bound()) {
+      (this->*insn)(r, target(L));
+    } else {
+      L.add_patch_at(code(), locator());
+      (this->*insn)(r, pc());
+    }
+  }
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(int32_t offset) {                                                                \
+    assert_cond(is_imm_in_range(offset, 11, 1));                                             \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 2, 2, (offset & nth_bit(5)) >> 5);                               \
+    c_patch((address)&insn, 5, 3, (offset & right_n_bits(4)) >> 1);                          \
+    c_patch((address)&insn, 6, 6, (offset & nth_bit(7)) >> 7);                               \
+    c_patch((address)&insn, 7, 7, (offset & nth_bit(6)) >> 6);                               \
+    c_patch((address)&insn, 8, 8, (offset & nth_bit(10)) >> 10);                             \
+    c_patch((address)&insn, 10, 9, (offset & right_n_bits(10)) >> 8);                        \
+    c_patch((address)&insn, 11, 11, (offset & nth_bit(4)) >> 4);                             \
+    c_patch((address)&insn, 12, 12, (offset & nth_bit(11)) >> 11);                           \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }                                                                                          \
+  void NAME(address dest) {                                                                  \
+    assert_cond(dest != NULL);                                                               \
+    int64_t distance = dest - pc();                                                          \
+    assert_cond(is_imm_in_range(distance, 11, 1));                                           \
+    c_j(distance);                                                                           \
+  }                                                                                          \
+  void NAME(Label &L) {                                                                      \
+    wrap_label(L, &Assembler::NAME);                                                         \
+  }
+
+  INSN(c_j, 0b101, 0b01);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rs1, int32_t imm) {                                                     \
+    assert_cond(is_imm_in_range(imm, 8, 1));                                                 \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 2, 2, (imm & nth_bit(5)) >> 5);                                  \
+    c_patch((address)&insn, 4, 3, (imm & right_n_bits(3)) >> 1);                             \
+    c_patch((address)&insn, 6, 5, (imm & right_n_bits(8)) >> 6);                             \
+    c_patch_compressed_reg((address)&insn, 7, Rs1);                                          \
+    c_patch((address)&insn, 11, 10, (imm & right_n_bits(5)) >> 3);                           \
+    c_patch((address)&insn, 12, 12, (imm & nth_bit(8)) >> 8);                                \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }                                                                                          \
+  void NAME(Register Rs1, address dest) {                                                    \
+    assert_cond(dest != NULL);                                                               \
+    int64_t distance = dest - pc();                                                          \
+    assert_cond(is_imm_in_range(distance, 8, 1));                                            \
+    NAME(Rs1, distance);                                                                     \
+  }                                                                                          \
+  void NAME(Register Rs1, Label &L) {                                                        \
+    wrap_label(L, Rs1, &Assembler::NAME);                                                    \
+  }
+
+  INSN(c_beqz, 0b110, 0b01);
+  INSN(c_bnez, 0b111, 0b01);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rd, int32_t imm) {                                                      \
+    assert_cond(is_imm_in_range(imm, 18, 0));                                                \
+    assert_cond((imm & 0xfff) == 0);                                                         \
+    assert_cond(imm != 0);                                                                   \
+    assert_cond(Rd != x0 && Rd != x2);                                                       \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 6, 2, (imm & right_n_bits(17)) >> 12);                           \
+    c_patch_reg((address)&insn, 7, Rd);                                                      \
+    c_patch((address)&insn, 12, 12, (imm & nth_bit(17)) >> 17);                              \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_lui, 0b011, 0b01);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rd, int32_t imm) {                                                      \
+    assert_cond(is_imm_in_range(imm, 6, 0));                                                 \
+    assert_cond(Rd != x0);                                                                   \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 6, 2, (imm & right_n_bits(5)));                                  \
+    c_patch_reg((address)&insn, 7, Rd);                                                      \
+    c_patch((address)&insn, 12, 12, (imm & right_n_bits(6)) >> 5);                           \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_li, 0b010, 0b01);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rd, uint32_t uimm) {                                                    \
+    assert_cond(is_unsigned_imm_in_range(uimm, 9, 0));                                       \
+    assert_cond((uimm & 0b111) == 0);                                                        \
+    assert_cond(Rd != x0);                                                                   \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 4, 2, (uimm & right_n_bits(9)) >> 6);                            \
+    c_patch((address)&insn, 6, 5, (uimm & right_n_bits(5)) >> 3);                            \
+    c_patch_reg((address)&insn, 7, Rd);                                                      \
+    c_patch((address)&insn, 12, 12, (uimm & nth_bit(5)) >> 5);                               \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_ldsp,  0b011, 0b10);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(FloatRegister Rd, uint32_t uimm) {                                               \
+    assert_cond(is_unsigned_imm_in_range(uimm, 9, 0));                                       \
+    assert_cond((uimm & 0b111) == 0);                                                        \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 4, 2, (uimm & right_n_bits(9)) >> 6);                            \
+    c_patch((address)&insn, 6, 5, (uimm & right_n_bits(5)) >> 3);                            \
+    c_patch_reg((address)&insn, 7, Rd);                                                      \
+    c_patch((address)&insn, 12, 12, (uimm & nth_bit(5)) >> 5);                               \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_fldsp, 0b001, 0b10);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op, REGISTER_TYPE)                                                \
+  void NAME(REGISTER_TYPE Rd_Rs2, Register Rs1, uint32_t uimm) {                             \
+    assert_cond(is_unsigned_imm_in_range(uimm, 8, 0));                                       \
+    assert_cond((uimm & 0b111) == 0);                                                        \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch_compressed_reg((address)&insn, 2, Rd_Rs2);                                       \
+    c_patch((address)&insn, 6, 5, (uimm & right_n_bits(8)) >> 6);                            \
+    c_patch_compressed_reg((address)&insn, 7, Rs1);                                          \
+    c_patch((address)&insn, 12, 10, (uimm & right_n_bits(6)) >> 3);                          \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_ld,  0b011, 0b00, Register);
+  INSN(c_sd,  0b111, 0b00, Register);
+  INSN(c_fld, 0b001, 0b00, FloatRegister);
+  INSN(c_fsd, 0b101, 0b00, FloatRegister);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op, REGISTER_TYPE)                                                \
+  void NAME(REGISTER_TYPE Rs2, uint32_t uimm) {                                              \
+    assert_cond(is_unsigned_imm_in_range(uimm, 9, 0));                                       \
+    assert_cond((uimm & 0b111) == 0);                                                        \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch_reg((address)&insn, 2, Rs2);                                                     \
+    c_patch((address)&insn, 9, 7, (uimm & right_n_bits(9)) >> 6);                            \
+    c_patch((address)&insn, 12, 10, (uimm & right_n_bits(6)) >> 3);                          \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_sdsp,  0b111, 0b10, Register);
+  INSN(c_fsdsp, 0b101, 0b10, FloatRegister);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rs2, uint32_t uimm) {                                                   \
+    assert_cond(is_unsigned_imm_in_range(uimm, 8, 0));                                       \
+    assert_cond((uimm & 0b11) == 0);                                                         \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch_reg((address)&insn, 2, Rs2);                                                     \
+    c_patch((address)&insn, 8, 7, (uimm & right_n_bits(8)) >> 6);                            \
+    c_patch((address)&insn, 12, 9, (uimm & right_n_bits(6)) >> 2);                           \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_swsp, 0b110, 0b10);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rd, uint32_t uimm) {                                                    \
+    assert_cond(is_unsigned_imm_in_range(uimm, 8, 0));                                       \
+    assert_cond((uimm & 0b11) == 0);                                                         \
+    assert_cond(Rd != x0);                                                                   \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 3, 2, (uimm & right_n_bits(8)) >> 6);                            \
+    c_patch((address)&insn, 6, 4, (uimm & right_n_bits(5)) >> 2);                            \
+    c_patch_reg((address)&insn, 7, Rd);                                                      \
+    c_patch((address)&insn, 12, 12, (uimm & nth_bit(5)) >> 5);                               \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_lwsp, 0b010, 0b10);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME(Register Rd_Rs2, Register Rs1, uint32_t uimm) {                                  \
+    assert_cond(is_unsigned_imm_in_range(uimm, 7, 0));                                       \
+    assert_cond((uimm & 0b11) == 0);                                                         \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch_compressed_reg((address)&insn, 2, Rd_Rs2);                                       \
+    c_patch((address)&insn, 5, 5, (uimm & nth_bit(6)) >> 6);                                 \
+    c_patch((address)&insn, 6, 6, (uimm & nth_bit(2)) >> 2);                                 \
+    c_patch_compressed_reg((address)&insn, 7, Rs1);                                          \
+    c_patch((address)&insn, 12, 10, (uimm & right_n_bits(6)) >> 3);                          \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_lw, 0b010, 0b00);
+  INSN(c_sw, 0b110, 0b00);
+
+#undef INSN
+
+#define INSN(NAME, funct3, op)                                                               \
+  void NAME() {                                                                              \
+    uint16_t insn = 0;                                                                       \
+    c_patch((address)&insn, 1, 0, op);                                                       \
+    c_patch((address)&insn, 11, 2, 0x0);                                                     \
+    c_patch((address)&insn, 12, 12, 0b1);                                                    \
+    c_patch((address)&insn, 15, 13, funct3);                                                 \
+    emit_int16(insn);                                                                        \
+  }
+
+  INSN(c_ebreak, 0b100, 0b10);
+
+#undef INSN
+
+// --------------  RVC Transformation Functions  --------------
+
+// --------------------------
+// Register instructions
+// --------------------------
+#define INSN(NAME)                                                                             \
+  void NAME(Register Rd, Register Rs1, Register Rs2) {                                         \
+    /* add -> c.add */                                                                         \
+    if (do_compress()) {                                                                       \
+      Register src = noreg;                                                                    \
+      if (Rs1 != x0 && Rs2 != x0 && ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd))) {      \
+        c_add(Rd, src);                                                                        \
+        return;                                                                                \
+      }                                                                                        \
+    }                                                                                          \
+    _add(Rd, Rs1, Rs2);                                                                        \
+  }
+
+  INSN(add);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
+  void NAME(Register Rd, Register Rs1, Register Rs2) {                                       \
+    /* sub/subw -> c.sub/c.subw */                                                           \
+    if (do_compress() &&                                                                     \
+        (Rd == Rs1 && Rd->is_compressed_valid() && Rs2->is_compressed_valid())) {            \
+      C_NAME(Rd, Rs2);                                                                       \
+      return;                                                                                \
+    }                                                                                        \
+    NORMAL_NAME(Rd, Rs1, Rs2);                                                               \
+  }
+
+  INSN(sub,  c_sub,  _sub);
+  INSN(subw, c_subw, _subw);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
+  void NAME(Register Rd, Register Rs1, Register Rs2) {                                       \
+    /* and/or/xor/addw -> c.and/c.or/c.xor/c.addw */                                         \
+    if (do_compress()) {                                                                     \
+      Register src = noreg;                                                                  \
+      if (Rs1->is_compressed_valid() && Rs2->is_compressed_valid() &&                        \
+        ((src = Rs1, Rs2 == Rd) || (src = Rs2, Rs1 == Rd))) {                                \
+        C_NAME(Rd, src);                                                                     \
+        return;                                                                              \
+      }                                                                                      \
+    }                                                                                        \
+    NORMAL_NAME(Rd, Rs1, Rs2);                                                               \
+  }
+
+  INSN(andr, c_and,  _andr);
+  INSN(orr,  c_or,   _orr);
+  INSN(xorr, c_xor,  _xorr);
+  INSN(addw, c_addw, _addw);
+
+#undef INSN
+
+private:
+// some helper functions
+  bool do_compress() const {
+    return UseRVC && in_compressible_region();
+  }
+
+#define FUNC(NAME, funct3, bits)                                                             \
+  bool NAME(Register rs1, Register rd_rs2, int32_t imm12, bool ld) {                         \
+    return rs1 == sp &&                                                                      \
+      is_unsigned_imm_in_range(imm12, bits, 0) &&                                            \
+      (intx(imm12) & funct3) == 0x0 &&                                                       \
+      (!ld || rd_rs2 != x0);                                                                 \
+  }                                                                                          \
+
+  FUNC(is_c_ldsdsp,  0b111, 9);
+  FUNC(is_c_lwswsp,  0b011, 8);
+
+#undef FUNC
+
+#define FUNC(NAME, funct3, bits)                                                             \
+  bool NAME(Register rs1, int32_t imm12) {                                                   \
+    return rs1 == sp &&                                                                      \
+      is_unsigned_imm_in_range(imm12, bits, 0) &&                                            \
+      (intx(imm12) & funct3) == 0x0;                                                         \
+  }                                                                                          \
+
+  FUNC(is_c_fldsdsp, 0b111, 9);
+
+#undef FUNC
+
+#define FUNC(NAME, REG_TYPE, funct3, bits)                                                   \
+  bool NAME(Register rs1, REG_TYPE rd_rs2, int32_t imm12) {                                  \
+    return rs1->is_compressed_valid() &&                                                     \
+      rd_rs2->is_compressed_valid() &&                                                       \
+      is_unsigned_imm_in_range(imm12, bits, 0) &&                                            \
+      (intx(imm12) & funct3) == 0x0;                                                         \
+  }                                                                                          \
+
+  FUNC(is_c_ldsd,  Register,      0b111, 8);
+  FUNC(is_c_lwsw,  Register,      0b011, 7);
+  FUNC(is_c_fldsd, FloatRegister, 0b111, 8);
+
+#undef FUNC
+
+public:
+// --------------------------
+// Load/store register
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
+    /* lw -> c.lwsp/c.lw */                                                                  \
+    if (do_compress()) {                                                                     \
+      if (is_c_lwswsp(Rs, Rd, offset, true)) {                                               \
+        c_lwsp(Rd, offset);                                                                  \
+        return;                                                                              \
+      } else if (is_c_lwsw(Rs, Rd, offset)) {                                                \
+        c_lw(Rd, Rs, offset);                                                                \
+        return;                                                                              \
+      }                                                                                      \
+    }                                                                                        \
+    _lw(Rd, Rs, offset);                                                                     \
+  }
+
+  INSN(lw);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
+    /* ld -> c.ldsp/c.ld */                                                                  \
+    if (do_compress()) {                                                                     \
+      if (is_c_ldsdsp(Rs, Rd, offset, true)) {                                               \
+        c_ldsp(Rd, offset);                                                                  \
+        return;                                                                              \
+      } else if (is_c_ldsd(Rs, Rd, offset)) {                                                \
+        c_ld(Rd, Rs, offset);                                                                \
+        return;                                                                              \
+      }                                                                                      \
+    }                                                                                        \
+    _ld(Rd, Rs, offset);                                                                     \
+  }
+
+  INSN(ld);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(FloatRegister Rd, Register Rs, const int32_t offset) {                           \
+    /* fld -> c.fldsp/c.fld */                                                               \
+    if (do_compress()) {                                                                     \
+      if (is_c_fldsdsp(Rs, offset)) {                                                        \
+        c_fldsp(Rd, offset);                                                                 \
+        return;                                                                              \
+      } else if (is_c_fldsd(Rs, Rd, offset)) {                                               \
+        c_fld(Rd, Rs, offset);                                                               \
+        return;                                                                              \
+      }                                                                                      \
+    }                                                                                        \
+    _fld(Rd, Rs, offset);                                                                    \
+  }
+
+  INSN(fld);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
+    /* sd -> c.sdsp/c.sd */                                                                  \
+    if (do_compress()) {                                                                     \
+      if (is_c_ldsdsp(Rs, Rd, offset, false)) {                                              \
+        c_sdsp(Rd, offset);                                                                  \
+        return;                                                                              \
+      } else if (is_c_ldsd(Rs, Rd, offset)) {                                                \
+        c_sd(Rd, Rs, offset);                                                                \
+        return;                                                                              \
+      }                                                                                      \
+    }                                                                                        \
+    _sd(Rd, Rs, offset);                                                                     \
+  }
+
+  INSN(sd);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
+    /* sw -> c.swsp/c.sw */                                                                  \
+    if (do_compress()) {                                                                     \
+      if (is_c_lwswsp(Rs, Rd, offset, false)) {                                              \
+        c_swsp(Rd, offset);                                                                  \
+        return;                                                                              \
+      } else if (is_c_lwsw(Rs, Rd, offset)) {                                                \
+        c_sw(Rd, Rs, offset);                                                                \
+        return;                                                                              \
+      }                                                                                      \
+    }                                                                                        \
+    _sw(Rd, Rs, offset);                                                                     \
+  }
+
+  INSN(sw);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(FloatRegister Rd, Register Rs, const int32_t offset) {                           \
+    /* fsd -> c.fsdsp/c.fsd */                                                               \
+    if (do_compress()) {                                                                     \
+      if (is_c_fldsdsp(Rs, offset)) {                                                        \
+        c_fsdsp(Rd, offset);                                                                 \
+        return;                                                                              \
+      } else if (is_c_fldsd(Rs, Rd, offset)) {                                               \
+        c_fsd(Rd, Rs, offset);                                                               \
+        return;                                                                              \
+      }                                                                                      \
+    }                                                                                        \
+    _fsd(Rd, Rs, offset);                                                                    \
+  }
+
+  INSN(fsd);
+
+#undef INSN
+
+// --------------------------
+// Conditional branch instructions
+// --------------------------
+#define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
+  void NAME(Register Rs1, Register Rs2, const int64_t offset) {                              \
+    /* beq/bne -> c.beqz/c.bnez */                                                           \
+    if (do_compress() &&                                                                     \
+        (offset != 0 && Rs2 == x0 && Rs1->is_compressed_valid() &&                           \
+        is_imm_in_range(offset, 8, 1))) {                                                    \
+      C_NAME(Rs1, offset);                                                                   \
+      return;                                                                                \
+    }                                                                                        \
+    NORMAL_NAME(Rs1, Rs2, offset);                                                           \
+  }
+
+  INSN(beq, c_beqz, _beq);
+  INSN(bne, c_beqz, _bne);
+
+#undef INSN
+
+// --------------------------
+// Unconditional branch instructions
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, const int32_t offset) {                                             \
+    /* jal -> c.j */                                                                         \
+    if (do_compress() && offset != 0 && Rd == x0 && is_imm_in_range(offset, 11, 1)) {        \
+      c_j(offset);                                                                           \
+      return;                                                                                \
+    }                                                                                        \
+    _jal(Rd, offset);                                                                        \
+  }
+
+  INSN(jal);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, Register Rs, const int32_t offset) {                                \
+    /* jalr -> c.jr/c.jalr */                                                                \
+    if (do_compress() && (offset == 0 && Rs != x0)) {                                        \
+      if (Rd == x1) {                                                                        \
+        c_jalr(Rs);                                                                          \
+        return;                                                                              \
+      } else if (Rd == x0) {                                                                 \
+        c_jr(Rs);                                                                            \
+        return;                                                                              \
+      }                                                                                      \
+    }                                                                                        \
+    _jalr(Rd, Rs, offset);                                                                   \
+  }
+
+  INSN(jalr);
+
+#undef INSN
+
+// --------------------------
+// Miscellaneous Instructions
+// --------------------------
+#define INSN(NAME)                                                     \
+  void NAME() {                                                        \
+    /* ebreak -> c.ebreak */                                           \
+    if (do_compress()) {                                               \
+      c_ebreak();                                                      \
+      return;                                                          \
+    }                                                                  \
+    _ebreak();                                                         \
+  }
+
+  INSN(ebreak);
+
+#undef INSN
+
+#define INSN(NAME)                                                      \
+  void NAME() {                                                         \
+    /* The illegal instruction in RVC is presented by a 16-bit 0. */    \
+    if (do_compress()) {                                                \
+      emit_int16(0);                                                    \
+      return;                                                           \
+    }                                                                   \
+    _halt();                                                            \
+  }
+
+  INSN(halt);
+
+#undef INSN
+
+// --------------------------
+// Immediate Instructions
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, int64_t imm) {                                                      \
+    /* li -> c.li */                                                                         \
+    if (do_compress() && (is_imm_in_range(imm, 6, 0) && Rd != x0)) {                         \
+      c_li(Rd, imm);                                                                         \
+      return;                                                                                \
+    }                                                                                        \
+    _li(Rd, imm);                                                                            \
+  }
+
+  INSN(li);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, Register Rs1, int32_t imm) {                                        \
+    /* addi -> c.addi/c.nop/c.mv/c.addi16sp/c.addi4spn */                                    \
+    if (do_compress()) {                                                                     \
+      if (Rd == Rs1 && is_imm_in_range(imm, 6, 0)) {                                         \
+        c_addi(Rd, imm);                                                                     \
+        return;                                                                              \
+      } else if (imm == 0 && Rd != x0 && Rs1 != x0) {                                        \
+        c_mv(Rd, Rs1);                                                                       \
+        return;                                                                              \
+      } else if (Rs1 == sp && imm != 0) {                                                    \
+        if (Rd == Rs1 && (imm & 0b1111) == 0x0 && is_imm_in_range(imm, 10, 0)) {             \
+          c_addi16sp(imm);                                                                   \
+          return;                                                                            \
+        } else if (Rd->is_compressed_valid() && (imm & 0b11) == 0x0 && is_unsigned_imm_in_range(imm, 10, 0)) { \
+          c_addi4spn(Rd, imm);                                                               \
+          return;                                                                            \
+        }                                                                                    \
+      }                                                                                      \
+    }                                                                                        \
+    _addi(Rd, Rs1, imm);                                                                     \
+  }
+
+  INSN(addi);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, Register Rs1, int32_t imm) {                                        \
+    /* addiw -> c.addiw */                                                                   \
+    if (do_compress() && (Rd == Rs1 && Rd != x0 && is_imm_in_range(imm, 6, 0))) {            \
+      c_addiw(Rd, imm);                                                                      \
+      return;                                                                                \
+    }                                                                                        \
+    _addiw(Rd, Rs1, imm);                                                                    \
+  }
+
+  INSN(addiw);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, Register Rs1, int32_t imm) {                                        \
+    /* and_imm12 -> c.andi */                                                                \
+    if (do_compress() &&                                                                     \
+        (Rd == Rs1 && Rd->is_compressed_valid() && is_imm_in_range(imm, 6, 0))) {            \
+      c_andi(Rd, imm);                                                                       \
+      return;                                                                                \
+    }                                                                                        \
+    _and_imm12(Rd, Rs1, imm);                                                                \
+  }
+
+  INSN(and_imm12);
+
+#undef INSN
+
+// --------------------------
+// Shift Immediate Instructions
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, Register Rs1, unsigned shamt) {                                     \
+    /* slli -> c.slli */                                                                     \
+    if (do_compress() && (Rd == Rs1 && Rd != x0 && shamt != 0)) {                            \
+      c_slli(Rd, shamt);                                                                     \
+      return;                                                                                \
+    }                                                                                        \
+    _slli(Rd, Rs1, shamt);                                                                   \
+  }
+
+  INSN(slli);
+
+#undef INSN
+
+// --------------------------
+#define INSN(NAME, C_NAME, NORMAL_NAME)                                                      \
+  void NAME(Register Rd, Register Rs1, unsigned shamt) {                                     \
+    /* srai/srli -> c.srai/c.srli */                                                         \
+    if (do_compress() && (Rd == Rs1 && Rd->is_compressed_valid() && shamt != 0)) {           \
+      C_NAME(Rd, shamt);                                                                     \
+      return;                                                                                \
+    }                                                                                        \
+    NORMAL_NAME(Rd, Rs1, shamt);                                                             \
+  }
+
+  INSN(srai, c_srai, _srai);
+  INSN(srli, c_srli, _srli);
+
+#undef INSN
+
+// --------------------------
+// Upper Immediate Instruction
+// --------------------------
+#define INSN(NAME)                                                                           \
+  void NAME(Register Rd, int32_t imm) {                                                      \
+    /* lui -> c.lui */                                                                       \
+    if (do_compress() && (Rd != x0 && Rd != x2 && imm != 0 && is_imm_in_range(imm, 18, 0))) { \
+      c_lui(Rd, imm);                                                                        \
+      return;                                                                                \
+    }                                                                                        \
+    _lui(Rd, imm);                                                                           \
+  }
+
+  INSN(lui);
+
+#undef INSN
+
+// ---------------------------------------------------------------------------------------
+
   void bgt(Register Rs, Register Rt, const address &dest);
   void ble(Register Rs, Register Rt, const address &dest);
   void bgtu(Register Rs, Register Rt, const address &dest);
@@ -2000,7 +3005,7 @@ enum Nf {
   // zero extend word
   void zext_w(Register Rd, Register Rs);
 
-  Assembler(CodeBuffer* code) : AbstractAssembler(code) {
+  Assembler(CodeBuffer* code) : AbstractAssembler(code), _in_compressible_region(false) {
   }
 
   // Stack overflow checking
@@ -2021,7 +3026,5 @@ enum Nf {
   virtual ~Assembler() {}
 
 };
-
-class BiasedLockingCounters;
 
 #endif // CPU_RISCV_ASSEMBLER_RISCV_HPP

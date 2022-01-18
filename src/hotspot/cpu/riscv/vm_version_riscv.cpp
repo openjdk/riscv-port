@@ -116,6 +116,11 @@ void VM_Version::initialize() {
     FLAG_SET_DEFAULT(UseRVB, false);
   }
 
+  if (UseRVC && !(_features & CPU_C)) {
+    warning("RVC is not supported on this CPU");
+    FLAG_SET_DEFAULT(UseRVC, false);
+  }
+
   if (FLAG_IS_DEFAULT(AvoidUnalignedAccesses)) {
     FLAG_SET_DEFAULT(AvoidUnalignedAccesses, true);
   }

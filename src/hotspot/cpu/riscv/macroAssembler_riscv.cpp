@@ -88,8 +88,9 @@ static void pass_arg3(MacroAssembler* masm, Register arg) {
   }
 }
 
-void MacroAssembler::align(int modulus) {
-  while (offset() % modulus != 0) { nop(); }
+void MacroAssembler::align(int modulus, int extra_offset) {
+  CompressibleRegion cr(this);
+  while ((offset() + extra_offset) % modulus != 0) { nop(); }
 }
 
 void MacroAssembler::call_VM_helper(Register oop_result, address entry_point, int number_of_arguments, bool check_exceptions) {
@@ -801,6 +802,7 @@ void MacroAssembler::la(Register Rd, Label &label) {
 
   INSN(beq, feq, bnez);
   INSN(bne, feq, beqz);
+
 #undef INSN
 
 
@@ -960,6 +962,7 @@ int MacroAssembler::bitset_to_regs(unsigned int bitset, unsigned char* regs) {
 // Return the number of words pushed
 int MacroAssembler::push_reg(unsigned int bitset, Register stack) {
   DEBUG_ONLY(int words_pushed = 0;)
+  CompressibleRegion cr(this);
 
   unsigned char regs[32];
   int count = bitset_to_regs(bitset, regs);
@@ -981,6 +984,7 @@ int MacroAssembler::push_reg(unsigned int bitset, Register stack) {
 
 int MacroAssembler::pop_reg(unsigned int bitset, Register stack) {
   DEBUG_ONLY(int words_popped = 0;)
+  CompressibleRegion cr(this);
 
   unsigned char regs[32];
   int count = bitset_to_regs(bitset, regs);
@@ -1003,6 +1007,7 @@ int MacroAssembler::pop_reg(unsigned int bitset, Register stack) {
 // Push float registers in the bitset, except sp.
 // Return the number of heapwords pushed.
 int MacroAssembler::push_fp(unsigned int bitset, Register stack) {
+  CompressibleRegion cr(this);
   int words_pushed = 0;
   unsigned char regs[32];
   int count = bitset_to_regs(bitset, regs);
@@ -1022,6 +1027,7 @@ int MacroAssembler::push_fp(unsigned int bitset, Register stack) {
 }
 
 int MacroAssembler::pop_fp(unsigned int bitset, Register stack) {
+  CompressibleRegion cr(this);
   int words_popped = 0;
   unsigned char regs[32];
   int count = bitset_to_regs(bitset, regs);
@@ -1042,6 +1048,7 @@ int MacroAssembler::pop_fp(unsigned int bitset, Register stack) {
 
 #ifdef COMPILER2
 int MacroAssembler::push_vp(unsigned int bitset, Register stack) {
+  CompressibleRegion cr(this);
   int vector_size_in_bytes = Matcher::scalable_vector_reg_size(T_BYTE);
 
   // Scan bitset to accumulate register pairs
@@ -1063,6 +1070,7 @@ int MacroAssembler::push_vp(unsigned int bitset, Register stack) {
 }
 
 int MacroAssembler::pop_vp(unsigned int bitset, Register stack) {
+  CompressibleRegion cr(this);
   int vector_size_in_bytes = Matcher::scalable_vector_reg_size(T_BYTE);
 
   // Scan bitset to accumulate register pairs
@@ -1085,6 +1093,7 @@ int MacroAssembler::pop_vp(unsigned int bitset, Register stack) {
 #endif // COMPILER2
 
 void MacroAssembler::push_call_clobbered_registers_except(RegSet exclude) {
+  CompressibleRegion cr(this);
   // Push integer registers x7, x10-x17, x28-x31.
   push_reg(RegSet::of(x7) + RegSet::range(x10, x17) + RegSet::range(x28, x31) - exclude, sp);
 
@@ -1099,6 +1108,7 @@ void MacroAssembler::push_call_clobbered_registers_except(RegSet exclude) {
 }
 
 void MacroAssembler::pop_call_clobbered_registers_except(RegSet exclude) {
+  CompressibleRegion cr(this);
   int offset = 0;
   for (int i = 0; i < 32; i++) {
     if (i <= f7->encoding() || i >= f28->encoding() || (i >= f10->encoding() && i <= f17->encoding())) {
@@ -1112,15 +1122,18 @@ void MacroAssembler::pop_call_clobbered_registers_except(RegSet exclude) {
 
 // Push all the integer registers, except zr(x0) & sp(x2) & gp(x3) & tp(x4).
 void MacroAssembler::pusha() {
+  CompressibleRegion cr(this);
   push_reg(0xffffffe2, sp);
 }
 
 // Pop all the integer registers, except zr(x0) & sp(x2) & gp(x3) & tp(x4).
 void MacroAssembler::popa() {
+  CompressibleRegion cr(this);
   pop_reg(0xffffffe2, sp);
 }
 
 void MacroAssembler::push_CPU_state(bool save_vectors, int vector_size_in_bytes) {
+  CompressibleRegion cr(this);
   // integer registers, except zr(x0) & ra(x1) & sp(x2) & gp(x3) & tp(x4)
   push_reg(0xffffffe0, sp);
 
@@ -1142,6 +1155,7 @@ void MacroAssembler::push_CPU_state(bool save_vectors, int vector_size_in_bytes)
 }
 
 void MacroAssembler::pop_CPU_state(bool restore_vectors, int vector_size_in_bytes) {
+  CompressibleRegion cr(this);
   // vector registers
   if (restore_vectors) {
     vsetvli(t0, x0, Assembler::e64, Assembler::m8);
@@ -1308,7 +1322,10 @@ int MacroAssembler::pd_patch_instruction_size(address branch, address target) {
     int64_t imm = (intptr_t)target;
     return patch_imm_in_li32(branch, (int32_t)imm);
   } else {
-    tty->print_cr("pd_patch_instruction_size: instruction 0x%x could not be patched!\n", *(unsigned*)branch);
+#ifdef ASSERT
+    tty->print_cr("pd_patch_instruction_size: instruction 0x%x at " INTPTR_FORMAT " could not be patched!\n", *(unsigned*)branch, p2i(branch));
+    Disassembler::decode(branch - 10, branch + 10);
+#endif
     ShouldNotReachHere();
   }
   return -1;
@@ -2917,7 +2934,8 @@ address MacroAssembler::emit_trampoline_stub(int insts_call_instruction_offset,
 
   // make sure 4 byte aligned here, so that the destination address would be
   // 8 byte aligned after 3 intructions
-  while (offset() % wordSize == 0) { nop(); }
+  // when we reach here we may get a 2-byte alignment so need to align it
+  align(wordSize, NativeCallTrampolineStub::data_offset);
 
   relocate(trampoline_stub_Relocation::spec(code()->insts()->start() +
                                             insts_call_instruction_offset));
@@ -2932,6 +2950,7 @@ address MacroAssembler::emit_trampoline_stub(int insts_call_instruction_offset,
   bind(target);
   assert(offset() - stub_start_offset == NativeCallTrampolineStub::data_offset,
          "should be");
+  assert(offset() % wordSize == 0, "address loaded by ld must be 8-byte aligned under riscv64");
   emit_int64((intptr_t)dest);
 
   const address stub_start_addr = addr_at(stub_start_offset);
