@@ -238,7 +238,7 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
     return;
   }
 
-  // RISCV's amoswap instructions require that the memory address must be naturally aligned.
+  // RISCV atomic operations require that the memory address be naturally aligned.
   __ align(4);
 
   Label skip, guard;
