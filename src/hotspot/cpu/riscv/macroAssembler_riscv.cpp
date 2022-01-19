@@ -199,7 +199,7 @@ void MacroAssembler::check_and_handle_popframe(Register java_thread) {}
 void MacroAssembler::set_last_Java_frame(Register last_java_sp,
                                          Register last_java_fp,
                                          Register last_java_pc,
-                                         Register temp) {
+                                         Register tmp) {
 
   if (last_java_pc->is_valid()) {
       sd(last_java_pc, Address(xthread,
@@ -209,8 +209,8 @@ void MacroAssembler::set_last_Java_frame(Register last_java_sp,
 
   // determine last_java_sp register
   if (last_java_sp == sp) {
-    mv(temp, sp);
-    last_java_sp = temp;
+    mv(tmp, sp);
+    last_java_sp = tmp;
   } else if (!last_java_sp->is_valid()) {
     last_java_sp = esp;
   }
@@ -226,25 +226,25 @@ void MacroAssembler::set_last_Java_frame(Register last_java_sp,
 void MacroAssembler::set_last_Java_frame(Register last_java_sp,
                                          Register last_java_fp,
                                          address  last_java_pc,
-                                         Register temp) {
+                                         Register tmp) {
   assert(last_java_pc != NULL, "must provide a valid PC");
 
-  la(temp, last_java_pc);
-  sd(temp, Address(xthread, JavaThread::frame_anchor_offset() + JavaFrameAnchor::last_Java_pc_offset()));
+  la(tmp, last_java_pc);
+  sd(tmp, Address(xthread, JavaThread::frame_anchor_offset() + JavaFrameAnchor::last_Java_pc_offset()));
 
-  set_last_Java_frame(last_java_sp, last_java_fp, noreg, temp);
+  set_last_Java_frame(last_java_sp, last_java_fp, noreg, tmp);
 }
 
 void MacroAssembler::set_last_Java_frame(Register last_java_sp,
                                          Register last_java_fp,
                                          Label &L,
-                                         Register temp) {
+                                         Register tmp) {
   if (L.is_bound()) {
-    set_last_Java_frame(last_java_sp, last_java_fp, target(L), temp);
+    set_last_Java_frame(last_java_sp, last_java_fp, target(L), tmp);
   } else {
     InstructionMark im(this);
     L.add_patch_at(code(), locator());
-    set_last_Java_frame(last_java_sp, last_java_fp, pc() /* Patched later */, temp);
+    set_last_Java_frame(last_java_sp, last_java_fp, pc() /* Patched later */, tmp);
   }
 }
 
@@ -1622,6 +1622,22 @@ void MacroAssembler::revb(Register Rd, Register Rs, Register tmp1, Register tmp2
   orr(Rd, tmp1, Rd);
 }
 
+// rotate right with shift bits
+void MacroAssembler::ror_imm(Register dst, Register src, uint32_t shift, Register tmp)
+{
+  if (UseRVB) {
+    rori(dst, src, shift);
+    return;
+  }
+
+  assert_different_registers(dst, tmp);
+  assert_different_registers(src, tmp);
+  assert(shift < 64, "shift amount must be < 64");
+  slli(tmp, src, 64 - shift);
+  srli(dst, src, shift);
+  orr(dst, dst, tmp);
+}
+
 void MacroAssembler::andi(Register Rd, Register Rn, int64_t imm, Register tmp) {
   if (is_imm_in_range(imm, 12, 0)) {
     and_imm12(Rd, Rn, imm);
@@ -2056,11 +2072,11 @@ void MacroAssembler::lookup_interface_method(Register recv_klass,
                                              Register intf_klass,
                                              RegisterOrConstant itable_index,
                                              Register method_result,
-                                             Register scan_temp,
+                                             Register scan_tmp,
                                              Label& L_no_such_interface,
                                              bool return_method) {
-  assert_different_registers(recv_klass, intf_klass, scan_temp);
-  assert_different_registers(method_result, intf_klass, scan_temp);
+  assert_different_registers(recv_klass, intf_klass, scan_tmp);
+  assert_different_registers(method_result, intf_klass, scan_tmp);
   assert(recv_klass != method_result || !return_method,
          "recv_klass can be destroyed when mehtid isn't needed");
   assert(itable_index.is_constant() || itable_index.as_register() == method_result,
@@ -2073,11 +2089,11 @@ void MacroAssembler::lookup_interface_method(Register recv_klass,
   int vte_size    = vtableEntry::size_in_bytes();
   assert(vte_size == wordSize, "else adjust times_vte_scale");
 
-  lwu(scan_temp, Address(recv_klass, Klass::vtable_length_offset()));
+  lwu(scan_tmp, Address(recv_klass, Klass::vtable_length_offset()));
 
   // %%% Could store the aligned, prescaled offset in the klassoop.
-  shadd(scan_temp, scan_temp, recv_klass, scan_temp, 3);
-  add(scan_temp, scan_temp, vtable_base);
+  shadd(scan_tmp, scan_tmp, recv_klass, scan_tmp, 3);
+  add(scan_tmp, scan_tmp, vtable_base);
 
   if (return_method) {
     // Adjust recv_klass by scaled itable_index, so we can free itable_index.
@@ -2095,23 +2111,23 @@ void MacroAssembler::lookup_interface_method(Register recv_klass,
 
   Label search, found_method;
 
-  ld(method_result, Address(scan_temp, itableOffsetEntry::interface_offset_in_bytes()));
+  ld(method_result, Address(scan_tmp, itableOffsetEntry::interface_offset_in_bytes()));
   beq(intf_klass, method_result, found_method);
   bind(search);
   // Check that the previous entry is non-null. A null entry means that
   // the receiver class doens't implement the interface, and wasn't the
   // same as when the caller was compiled.
   beqz(method_result, L_no_such_interface, /* is_far */ true);
-  addi(scan_temp, scan_temp, scan_step);
-  ld(method_result, Address(scan_temp, itableOffsetEntry::interface_offset_in_bytes()));
+  addi(scan_tmp, scan_tmp, scan_step);
+  ld(method_result, Address(scan_tmp, itableOffsetEntry::interface_offset_in_bytes()));
   bne(intf_klass, method_result, search);
 
   bind(found_method);
 
   // Got a hit.
   if (return_method) {
-    lwu(scan_temp, Address(scan_temp, itableOffsetEntry::offset_offset_in_bytes()));
-    add(method_result, recv_klass, scan_temp);
+    lwu(scan_tmp, Address(scan_tmp, itableOffsetEntry::offset_offset_in_bytes()));
+    add(method_result, recv_klass, scan_tmp);
     ld(method_result, Address(method_result));
   }
 }
@@ -2172,11 +2188,11 @@ Address MacroAssembler::form_address(Register Rd, Register base, long byte_offse
 
 void MacroAssembler::check_klass_subtype(Register sub_klass,
                                          Register super_klass,
-                                         Register temp_reg,
+                                         Register tmp_reg,
                                          Label& L_success) {
   Label L_failure;
-  check_klass_subtype_fast_path(sub_klass, super_klass, temp_reg, &L_success, &L_failure, NULL);
-  check_klass_subtype_slow_path(sub_klass, super_klass, temp_reg, noreg, &L_success, NULL);
+  check_klass_subtype_fast_path(sub_klass, super_klass, tmp_reg, &L_success, &L_failure, NULL);
+  check_klass_subtype_slow_path(sub_klass, super_klass, tmp_reg, noreg, &L_success, NULL);
   bind(L_failure);
 }
 
@@ -2510,15 +2526,15 @@ void MacroAssembler::far_call(Address entry, CodeBuffer *cbuf, Register tmp) {
 
 void MacroAssembler::check_klass_subtype_fast_path(Register sub_klass,
                                                    Register super_klass,
-                                                   Register temp_reg,
+                                                   Register tmp_reg,
                                                    Label* L_success,
                                                    Label* L_failure,
                                                    Label* L_slow_path,
                                                    Register super_check_offset) {
-  assert_different_registers(sub_klass, super_klass, temp_reg);
+  assert_different_registers(sub_klass, super_klass, tmp_reg);
   bool must_load_sco = (super_check_offset == noreg);
   if (must_load_sco) {
-    assert(temp_reg != noreg, "supply either a temp or a register offset");
+    assert(tmp_reg != noreg, "supply either a temp or a register offset");
   } else {
     assert_different_registers(sub_klass, super_klass, super_check_offset);
   }
@@ -2550,8 +2566,8 @@ void MacroAssembler::check_klass_subtype_fast_path(Register sub_klass,
 
   // Check the supertype display:
   if (must_load_sco) {
-    lwu(temp_reg, super_check_offset_addr);
-    super_check_offset = temp_reg;
+    lwu(tmp_reg, super_check_offset_addr);
+    super_check_offset = tmp_reg;
   }
   add(t0, sub_klass, super_check_offset);
   Address super_check_addr(t0);
@@ -2585,12 +2601,12 @@ void MacroAssembler::check_klass_subtype_fast_path(Register sub_klass,
 // Scans count pointer sized words at [addr] for occurence of value,
 // generic
 void MacroAssembler::repne_scan(Register addr, Register value, Register count,
-                                Register temp) {
+                                Register tmp) {
   Label Lloop, Lexit;
   beqz(count, Lexit);
   bind(Lloop);
-  ld(temp, addr);
-  beq(value, temp, Lexit);
+  ld(tmp, addr);
+  beq(value, tmp, Lexit);
   add(addr, addr, wordSize);
   sub(count, count, 1);
   bnez(count, Lloop);
@@ -2599,15 +2615,15 @@ void MacroAssembler::repne_scan(Register addr, Register value, Register count,
 
 void MacroAssembler::check_klass_subtype_slow_path(Register sub_klass,
                                                    Register super_klass,
-                                                   Register temp_reg,
-                                                   Register temp2_reg,
+                                                   Register tmp1_reg,
+                                                   Register tmp2_reg,
                                                    Label* L_success,
                                                    Label* L_failure) {
-  assert_different_registers(sub_klass, super_klass, temp_reg);
-  if (temp2_reg != noreg) {
-    assert_different_registers(sub_klass, super_klass, temp_reg, temp2_reg, t0);
+  assert_different_registers(sub_klass, super_klass, tmp1_reg);
+  if (tmp2_reg != noreg) {
+    assert_different_registers(sub_klass, super_klass, tmp1_reg, tmp2_reg, t0);
   }
-#define IS_A_TEMP(reg) ((reg) == temp_reg || (reg) == temp2_reg)
+#define IS_A_TEMP(reg) ((reg) == tmp1_reg || (reg) == tmp2_reg)
 
   Label L_fallthrough;
   int label_nulls = 0;
@@ -2674,7 +2690,7 @@ void MacroAssembler::check_klass_subtype_slow_path(Register sub_klass,
   // pop will restore x10, so we should use a temp register to keep its value
   mv(t1, x10);
 
-  // Unspill the temp. registers:
+  // Unspill the temp registers:
   pop_reg(pushed_registers, sp);
 
   bne(t1, t0, *L_failure);
@@ -3133,22 +3149,6 @@ void MacroAssembler::cadc(Register dst, Register src1, Register src2, Register c
   assert_different_registers(dst, src2);
   adc(dst, src1, src2, carry);
   sltu(carry, dst, src2);
-}
-
-// rotate right with shift bits
-void MacroAssembler::ror_imm(Register dst, Register src, uint32_t shift, Register tmp)
-{
-  if (UseRVB) {
-    rori(dst, src, shift);
-    return;
-  }
-
-  assert_different_registers(dst, tmp);
-  assert_different_registers(src, tmp);
-  assert(shift < 64, "shift amount must be < 64");
-  slli(tmp, src, 64 - shift);
-  srli(dst, src, shift);
-  orr(dst, dst, tmp);
 }
 
 void MacroAssembler::add2_with_carry(Register final_dest_hi, Register dest_hi, Register dest_lo,
@@ -3788,15 +3788,15 @@ void MacroAssembler::fill_words(Register base, Register cnt, Register value)
 }
 
 #define FCVT_SAFE(FLOATCVT, FLOATEQ)                                                             \
-void MacroAssembler:: FLOATCVT##_safe(Register dst, FloatRegister src, Register temp) {          \
+void MacroAssembler:: FLOATCVT##_safe(Register dst, FloatRegister src, Register tmp) {           \
   Label L_Okay;                                                                                  \
   fscsr(zr);                                                                                     \
   FLOATCVT(dst, src);                                                                            \
-  frcsr(temp);                                                                                   \
-  andi(temp, temp, 0x1E);                                                                        \
-  beqz(temp, L_Okay);                                                                            \
-  FLOATEQ(temp, src, src);                                                                       \
-  bnez(temp, L_Okay);                                                                            \
+  frcsr(tmp);                                                                                    \
+  andi(tmp, tmp, 0x1E);                                                                          \
+  beqz(tmp, L_Okay);                                                                             \
+  FLOATEQ(tmp, src, src);                                                                        \
+  bnez(tmp, L_Okay);                                                                             \
   mv(dst, zr);                                                                                   \
   bind(L_Okay);                                                                                  \
 }
