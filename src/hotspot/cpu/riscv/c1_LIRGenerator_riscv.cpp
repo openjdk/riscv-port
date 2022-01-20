@@ -143,7 +143,6 @@ bool LIRGenerator::can_inline_as_constant(Value v) const {
   return false;
 }
 
-
 bool LIRGenerator::can_inline_as_constant(LIR_Const* c) const {
   if (c->as_constant() != NULL) {
     long constant = 0;
@@ -158,7 +157,6 @@ bool LIRGenerator::can_inline_as_constant(LIR_Const* c) const {
   }
   return false;
 }
-
 
 LIR_Opr LIRGenerator::safepoint_poll_register() {
   return LIR_OprFact::illegalOpr;
@@ -192,7 +190,7 @@ LIR_Address* LIRGenerator::emit_array_address(LIR_Opr array_opr, LIR_Opr index_o
                                               BasicType type) {
   int offset_in_bytes = arrayOopDesc::base_offset_in_bytes(type);
   int elem_size = type2aelembytes(type);
-  int shift = log2i_exact(elem_size);
+  int shift = exact_log2(elem_size);
 
   LIR_Address* addr = NULL;
   if (index_opr->is_constant()) {
@@ -252,11 +250,11 @@ void LIRGenerator::cmp_reg_mem(LIR_Condition condition, LIR_Opr reg, LIR_Opr bas
 bool LIRGenerator::strength_reduce_multiply(LIR_Opr left, jint c, LIR_Opr result, LIR_Opr tmp) {
   if (tmp->is_valid() && c > 0 && c < max_jint) {
     if (is_power_of_2(c - 1)) {
-      __ shift_left(left, log2i_exact(c - 1), tmp);
+      __ shift_left(left, exact_log2(c - 1), tmp);
       __ add(tmp, left, result);
       return true;
     } else if (is_power_of_2(c + 1)) {
-      __ shift_left(left, log2i_exact(c + 1), tmp);
+      __ shift_left(left, exact_log2(c + 1), tmp);
       __ sub(tmp, left, result);
       return true;
     }

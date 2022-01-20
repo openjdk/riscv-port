@@ -440,7 +440,7 @@ Address MacroAssembler::argument_address(RegisterOrConstant arg_slot,
     return Address(esp, arg_slot.as_constant() * stackElementSize + offset);
   } else {
     assert_different_registers(t0, arg_slot.as_register());
-    shadd(t0, arg_slot.as_register(), esp, t0, log2i_exact(stackElementSize));
+    shadd(t0, arg_slot.as_register(), esp, t0, exact_log2(stackElementSize));
     return Address(t0, offset);
   }
 }
@@ -1323,12 +1323,13 @@ int MacroAssembler::pd_patch_instruction_size(address branch, address target) {
     return patch_imm_in_li32(branch, (int32_t)imm);
   } else {
 #ifdef ASSERT
-    tty->print_cr("pd_patch_instruction_size: instruction 0x%x at " INTPTR_FORMAT " could not be patched!\n", *(unsigned*)branch, p2i(branch));
-    Disassembler::decode(branch - 10, branch + 10);
+    tty->print_cr("pd_patch_instruction_size: instruction 0x%x at " INTPTR_FORMAT " could not be patched!\n",
+                  *(unsigned*)branch, p2i(branch));
+    Disassembler::decode(branch - 16, branch + 16);
 #endif
     ShouldNotReachHere();
+    return -1;
   }
-  return -1;
 }
 
 address MacroAssembler::target_addr_for_insn(address insn_addr) {

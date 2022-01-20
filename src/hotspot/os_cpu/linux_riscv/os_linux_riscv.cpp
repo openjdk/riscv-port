@@ -104,7 +104,6 @@ intptr_t* os::Linux::ucontext_get_fp(const ucontext_t * uc) {
 
 address os::fetch_frame_from_context(const void* ucVoid,
                                      intptr_t** ret_sp, intptr_t** ret_fp) {
-
   address epc;
   const ucontext_t* uc = (const ucontext_t*)ucVoid;
 

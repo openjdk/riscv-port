@@ -914,7 +914,7 @@ class StubGenerator: public StubCodeGenerator {
     }
 
     __ beqz(count, done);
-    __ slli(cnt, count, log2i_exact(granularity));
+    __ slli(cnt, count, exact_log2(granularity));
     if (is_backwards) {
       __ add(src, s, cnt);
       __ add(dst, d, cnt);
@@ -992,7 +992,7 @@ class StubGenerator: public StubCodeGenerator {
   void verify_oop_array(size_t size, Register a, Register count, Register temp) {
     Label loop, end;
     __ mv(t1, zr);
-    __ slli(t0, count, log2i_exact(size));
+    __ slli(t0, count, exact_log2(size));
     __ bind(loop);
     __ bgeu(t1, t0, end);
 
@@ -1113,7 +1113,7 @@ class StubGenerator: public StubCodeGenerator {
 
     // use fwd copy when (d-s) above_equal (count*size)
     __ sub(t0, d, s);
-    __ slli(t1, count, log2i_exact(size));
+    __ slli(t1, count, exact_log2(size));
     __ bgeu(t0, t1, nooverlap_target);
 
     DecoratorSet decorators = IN_HEAP | IS_ARRAY;
@@ -1771,7 +1771,7 @@ class StubGenerator: public StubCodeGenerator {
     const Register x22_elsize = lh;   // element size
 
     // Get array_header_in_bytes()
-    int lh_header_size_width = log2i_exact(Klass::_lh_header_size_mask + 1);
+    int lh_header_size_width = exact_log2(Klass::_lh_header_size_mask + 1);
     int lh_header_size_msb = Klass::_lh_header_size_shift + lh_header_size_width;
     __ slli(t0_offset, lh, XLEN - lh_header_size_msb);          // left shift to remove 24 ~ 32;
     __ srli(t0_offset, t0_offset, XLEN - lh_header_size_width); // array_offset
@@ -1790,7 +1790,7 @@ class StubGenerator: public StubCodeGenerator {
 
     assert(Klass::_lh_log2_element_size_shift == 0, "fix this code");
 
-    // The possible values of elsize are 0-3, i.e. log2i_exact(element
+    // The possible values of elsize are 0-3, i.e. exact_log2(element
     // size in bytes).  We do a simple bitwise binary search.
   __ BIND(L_copy_bytes);
     __ andi(t0, x22_elsize, 2);

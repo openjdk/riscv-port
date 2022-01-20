@@ -1020,7 +1020,7 @@ void C2_MacroAssembler::arrays_equals(Register a1, Register a2, Register tmp3,
   Register tmp2 = t1;
   Register cnt2 = tmp2;  // cnt2 only used in array length compare
   Register elem_per_word = tmp6;
-  int log_elem_size = log2i_exact(elem_size);
+  int log_elem_size = exact_log2(elem_size);
   int length_offset = arrayOopDesc::length_offset_in_bytes();
   int base_offset   = arrayOopDesc::base_offset_in_bytes(elem_size == 2 ? T_CHAR : T_BYTE);
 

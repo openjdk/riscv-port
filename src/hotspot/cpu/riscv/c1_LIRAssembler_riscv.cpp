@@ -133,6 +133,43 @@ static jlong as_long(LIR_Opr data) {
   return result;
 }
 
+Address LIR_Assembler::as_Address(LIR_Address* addr, Register tmp) {
+  if (addr->base()->is_illegal()) {
+    assert(addr->index()->is_illegal(), "must be illegal too");
+    __ movptr(tmp, addr->disp());
+    return Address(tmp, 0);
+  }
+
+  Register base = addr->base()->as_pointer_register();
+  LIR_Opr index_opr = addr->index();
+
+  if (index_opr->is_illegal()) {
+    return Address(base, addr->disp());
+  }
+
+  int scale = addr->scale();
+  if (index_opr->is_cpu_register()) {
+    Register index;
+    if (index_opr->is_single_cpu()) {
+      index = index_opr->as_register();
+    } else {
+      index = index_opr->as_register_lo();
+    }
+    if (scale != 0) {
+      __ shadd(tmp, index, base, tmp, scale);
+    } else {
+      __ add(tmp, base, index);
+    }
+    return Address(tmp, addr->disp());
+  } else if (index_opr->is_constant()) {
+    intptr_t addr_offset = (((intptr_t)index_opr->as_constant_ptr()->as_jint()) << scale) + addr->disp();
+    return Address(base, addr_offset);
+  }
+
+  Unimplemented();
+  return Address();
+}
+
 Address LIR_Assembler::as_Address_hi(LIR_Address* addr) {
   ShouldNotReachHere();
   return Address();
@@ -1948,42 +1985,7 @@ void LIR_Assembler::atomic_op(LIR_Code code, LIR_Opr src, LIR_Opr data, LIR_Opr 
 
 int LIR_Assembler::array_element_size(BasicType type) const {
   int elem_size = type2aelembytes(type);
-  return log2i_exact(elem_size);
-}
-
-Address LIR_Assembler::as_Address(LIR_Address* addr, Register tmp) {
-  if (addr->base()->is_illegal()) {
-    assert(addr->index()->is_illegal(), "must be illegal too");
-    __ movptr(tmp, addr->disp());
-    return Address(tmp, 0);
-  }
-
-  Register base = addr->base()->as_pointer_register();
-  LIR_Opr index_op = addr->index();
-  int scale = addr->scale();
-
-  if (index_op->is_illegal()) {
-    return Address(base, addr->disp());
-  } else if (index_op->is_cpu_register()) {
-    Register index;
-    if (index_op->is_single_cpu()) {
-      index = index_op->as_register();
-    } else {
-      index = index_op->as_register_lo();
-    }
-    if (scale != 0) {
-      __ shadd(tmp, index, base, tmp, scale);
-    } else {
-      __ add(tmp, base, index);
-    }
-    return Address(tmp, addr->disp());
-  } else if (index_op->is_constant()) {
-    intptr_t addr_offset = (((intptr_t)index_op->as_constant_ptr()->as_jint()) << scale) + addr->disp();
-    return Address(base, addr_offset);
-  }
-
-  Unimplemented();
-  return Address();
+  return exact_log2(elem_size);
 }
 
 // helper functions which checks for overflow and sets bailout if it

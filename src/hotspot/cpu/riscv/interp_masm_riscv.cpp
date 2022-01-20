@@ -262,7 +262,8 @@ void InterpreterMacroAssembler::get_cache_entry_pointer_at_bcp(Register cache,
   assert(sizeof(ConstantPoolCacheEntry) == 4 * wordSize, "adjust code below");
   // Convert from field index to ConstantPoolCacheEntry index
   // and from word offset to byte offset
-  assert(log2i_exact(in_bytes(ConstantPoolCacheEntry::size_in_bytes())) == 2 + LogBytesPerWord, "else change next line");
+  assert(exact_log2(in_bytes(ConstantPoolCacheEntry::size_in_bytes())) == 2 + LogBytesPerWord,
+         "else change next line");
   ld(cache, Address(fp, frame::interpreter_frame_cache_offset * wordSize));
   // skip past the header
   add(cache, cache, in_bytes(ConstantPoolCache::base_offset()));
