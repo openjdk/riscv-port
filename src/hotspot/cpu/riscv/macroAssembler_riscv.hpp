@@ -60,9 +60,12 @@ class MacroAssembler: public Assembler {
   }
 
   void leave() {
-    mv(sp, fp);
-    ld(fp, Address(sp, -2 * wordSize));
-    ld(ra, Address(sp, -wordSize));
+    // Note: setting sp above the address of alive variables could result in undefined behaviors:
+    //   signals could happen at any time, and sig handlers will crash alive variables below sp.
+    addi(sp, fp, - 2 * wordSize);
+    ld(fp, Address(sp));
+    ld(ra, Address(sp, wordSize));
+    addi(sp, sp, 2 * wordSize);
   }
 
 
