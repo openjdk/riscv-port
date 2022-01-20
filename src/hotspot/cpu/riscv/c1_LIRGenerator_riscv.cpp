@@ -165,6 +165,7 @@ LIR_Opr LIRGenerator::safepoint_poll_register() {
 LIR_Address* LIRGenerator::generate_address(LIR_Opr base, LIR_Opr index,
                                             int shift, int disp, BasicType type) {
   assert(base->is_register(), "must be");
+
   if (index->is_constant()) {
     LIR_Const *constant = index->as_constant_ptr();
     jlong c;
@@ -181,9 +182,9 @@ LIR_Address* LIRGenerator::generate_address(LIR_Opr base, LIR_Opr index,
       __ move(index, tmp);
       return new LIR_Address(base, tmp, type);
     }
-  } else {
-    return new LIR_Address(base, index, (LIR_Address::Scale)shift, disp, type);
   }
+
+  return new LIR_Address(base, index, (LIR_Address::Scale)shift, disp, type);
 }
 
 LIR_Address* LIRGenerator::emit_array_address(LIR_Opr array_opr, LIR_Opr index_opr,
@@ -191,19 +192,7 @@ LIR_Address* LIRGenerator::emit_array_address(LIR_Opr array_opr, LIR_Opr index_o
   int offset_in_bytes = arrayOopDesc::base_offset_in_bytes(type);
   int elem_size = type2aelembytes(type);
   int shift = exact_log2(elem_size);
-
-  LIR_Address* addr = NULL;
-  if (index_opr->is_constant()) {
-    addr = new LIR_Address(array_opr, offset_in_bytes + (intx)(index_opr->as_jint()) * elem_size, type);
-  } else {
-    if (index_opr->type() == T_INT) {
-      LIR_Opr tmp = new_register(T_LONG);
-      __ convert(Bytecodes::_i2l, index_opr, tmp);
-      index_opr = tmp;
-    }
-    addr = new LIR_Address(array_opr, index_opr, LIR_Address::scale(type), offset_in_bytes, type);
-  }
-  return addr;
+  return generate_address(array_opr, index_opr, shift, offset_in_bytes, type);
 }
 
 LIR_Opr LIRGenerator::load_immediate(int x, BasicType type) {
