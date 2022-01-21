@@ -51,7 +51,9 @@ class MacroAssembler: public Assembler {
   // Alignment
   void align(int modulus, int extra_offset = 0);
 
-  // Stack frame creation/removal
+  // Stack frame creation/removal:
+  // SP must be updated to the right place before saving/restoring RA and FP because signal
+  // based thread suspend/resume could happen asynchronously.
   void enter() {
     addi(sp, sp, - 2 * wordSize);
     sd(ra, Address(sp, wordSize));
@@ -60,8 +62,6 @@ class MacroAssembler: public Assembler {
   }
 
   void leave() {
-    // Note: setting sp above the address of alive variables could result in undefined behaviors:
-    //   signals could happen at any time, and sig handlers will crash alive variables below sp.
     addi(sp, fp, - 2 * wordSize);
     ld(fp, Address(sp));
     ld(ra, Address(sp, wordSize));
