@@ -330,7 +330,7 @@ Address FrameMap::make_new_address(ByteSize sp_offset) const {
 
 
 // ----------------mapping-----------------------
-// all mapping is based on rfp addressing, except for simple leaf methods where we access
+// all mapping is based on fp addressing, except for simple leaf methods where we access
 // the locals sp based (and no frame is built)
 
 
@@ -351,7 +351,7 @@ Address FrameMap::make_new_address(ByteSize sp_offset) const {
 //   +----------+
 //   | ret addr |
 //   +----------+
-//   |  args    |  <- RFP
+//   |  args    |  <- FP
 //   | .........|
 
 
