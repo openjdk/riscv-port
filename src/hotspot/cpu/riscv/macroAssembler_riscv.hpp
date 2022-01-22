@@ -482,11 +482,11 @@ class MacroAssembler: public Assembler {
   void pop_reg(Register Rd);
   int  push_reg(unsigned int bitset, Register stack);
   int  pop_reg(unsigned int bitset, Register stack);
-  void push_fp(RegSet regs, Register stack) { if (regs.bits()) push_fp(regs.bits(), stack); }
-  void pop_fp(RegSet regs, Register stack) { if (regs.bits()) pop_fp(regs.bits(), stack); }
+  void push_fp(FloatRegSet regs, Register stack) { if (regs.bits()) push_fp(regs.bits(), stack); }
+  void pop_fp(FloatRegSet regs, Register stack) { if (regs.bits()) pop_fp(regs.bits(), stack); }
 #ifdef COMPILER2
-  void push_vp(RegSet regs, Register stack) { if (regs.bits()) push_vp(regs.bits(), stack); }
-  void pop_vp(RegSet regs, Register stack) { if (regs.bits()) pop_vp(regs.bits(), stack); }
+  void push_vp(VectorRegSet regs, Register stack) { if (regs.bits()) push_vp(regs.bits(), stack); }
+  void pop_vp(VectorRegSet regs, Register stack) { if (regs.bits()) pop_vp(regs.bits(), stack); }
 #endif // COMPILER2
 
   // Push and pop everything that might be clobbered by a native
@@ -776,6 +776,7 @@ class MacroAssembler: public Assembler {
 
   int push_fp(unsigned int bitset, Register stack);
   int pop_fp(unsigned int bitset, Register stack);
+
   int push_vp(unsigned int bitset, Register stack);
   int pop_vp(unsigned int bitset, Register stack);
 

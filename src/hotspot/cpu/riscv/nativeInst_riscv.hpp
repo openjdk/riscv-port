@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2018, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -518,10 +518,10 @@ inline bool is_NativeCallTrampolineStub_at(address addr) {
   // 3). check if the offset in ld[31:20] equals the data_offset
   assert_cond(addr != NULL);
   if (NativeInstruction::is_auipc_at(addr) && NativeInstruction::is_ld_at(addr + 4) && NativeInstruction::is_jalr_at(addr + 8) &&
-      ((Register)(intptr_t)Assembler::extract(((unsigned*)addr)[0], 11, 7)     == x5) &&
-      ((Register)(intptr_t)Assembler::extract(((unsigned*)addr)[1], 11, 7)     == x5) &&
-      ((Register)(intptr_t)Assembler::extract(((unsigned*)addr)[1], 19, 15)    == x5) &&
-      ((Register)(intptr_t)Assembler::extract(((unsigned*)addr)[2], 19, 15)    == x5) &&
+      (as_Register((intptr_t)Assembler::extract(((unsigned*)addr)[0], 11, 7))     == x5) &&
+      (as_Register((intptr_t)Assembler::extract(((unsigned*)addr)[1], 11, 7))     == x5) &&
+      (as_Register((intptr_t)Assembler::extract(((unsigned*)addr)[1], 19, 15))    == x5) &&
+      (as_Register((intptr_t)Assembler::extract(((unsigned*)addr)[2], 19, 15))    == x5) &&
       (Assembler::extract(((unsigned*)addr)[1], 31, 20) == NativeCallTrampolineStub::data_offset)) {
     return true;
   }
