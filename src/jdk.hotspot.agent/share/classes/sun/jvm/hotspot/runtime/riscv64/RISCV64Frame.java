@@ -387,11 +387,11 @@ public class RISCV64Frame extends Frame {
     Address senderSP = getUnextendedSP().addOffsetTo(cb.getFrameSize());
 
     // The return_address is always the word on the stack
-    Address senderPC = senderSP.getAddressAt(RETURN_ADDR_OFFSET * VM.getVM().getAddressSize());
+    Address senderPC = senderSP.getAddressAt(-1 * VM.getVM().getAddressSize());
 
     // This is the saved value of FP which may or may not really be an FP.
     // It is only an FP if the sender is an interpreter frame.
-    Address savedFPAddr = senderSP.addOffsetTo(LINK_OFFSET * VM.getVM().getAddressSize());
+    Address savedFPAddr = senderSP.addOffsetTo(-2 * VM.getVM().getAddressSize());
 
     if (map.getUpdateMap()) {
       // Tell GC to use argument oopmaps for some runtime stubs that need it.

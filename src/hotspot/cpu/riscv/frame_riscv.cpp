@@ -151,9 +151,10 @@ bool frame::safe_for_sender(JavaThread *thread) {
       if (!thread->is_in_full_stack_checked((address)sender_sp)) {
         return false;
       }
+
       sender_unextended_sp = sender_sp;
-      sender_pc = (address) *(sender_sp + frame::return_addr_offset);
-      saved_fp = (intptr_t*) *(sender_sp + frame::link_offset);
+      sender_pc = (address) *(sender_sp - 1);
+      saved_fp = (intptr_t*) *(sender_sp - 2);
     }
 
 
