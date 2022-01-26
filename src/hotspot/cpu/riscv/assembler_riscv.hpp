@@ -166,18 +166,11 @@ class Address {
     : _base(noreg), _index(noreg), _offset(0), _mode(no_mode), _target(NULL) { }
   Address(Register r)
     : _base(r),     _index(noreg), _offset(0), _mode(base_plus_offset), _target(NULL) { }
-  Address(Register r, int o)
-    : _base(r),     _index(noreg), _offset(o), _mode(base_plus_offset), _target(NULL) { }
-  Address(Register r, long o)
-    : _base(r),     _index(noreg), _offset(o), _mode(base_plus_offset), _target(NULL) { }
-  Address(Register r, long long o)
-    : _base(r),     _index(noreg), _offset(o), _mode(base_plus_offset), _target(NULL) { }
-  Address(Register r, unsigned int o)
-    : _base(r),     _index(noreg), _offset(o), _mode(base_plus_offset), _target(NULL) { }
-  Address(Register r, unsigned long o)
-    : _base(r),     _index(noreg), _offset(o), _mode(base_plus_offset), _target(NULL) { }
-  Address(Register r, unsigned long long o)
-    : _base(r),     _index(noreg), _offset(o), _mode(base_plus_offset), _target(NULL) { }
+
+  template<typename T, ENABLE_IF(std::is_integral<T>::value)>
+  Address(Register r, T o)
+    : _base(r), _index(noreg), _offset(o), _mode(base_plus_offset), _target(NULL) {}
+
   Address(Register r, ByteSize disp)
     : Address(r, in_bytes(disp)) {}
   Address(address target, RelocationHolder const& rspec)

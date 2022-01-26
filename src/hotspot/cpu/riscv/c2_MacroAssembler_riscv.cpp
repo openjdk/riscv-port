@@ -201,8 +201,12 @@ void C2_MacroAssembler::string_indexof_char(Register str1, Register cnt1,
     slli(cnt1, cnt1, 1);
   }
 
-  mv(mask1, isL ? 0x0101010101010101 : 0x0001000100010001);
-  mv(mask2, isL ? 0x7f7f7f7f7f7f7f7f : 0x7fff7fff7fff7fff);
+  uint64_t mask0101 = UCONST64(0x0101010101010101);
+  uint64_t mask0001 = UCONST64(0x0001000100010001);
+  mv(mask1, isL ? mask0101 : mask0001);
+  uint64_t mask7f7f = UCONST64(0x7f7f7f7f7f7f7f7f);
+  uint64_t mask7fff = UCONST64(0x7fff7fff7fff7fff);
+  mv(mask2, isL ? mask7f7f : mask7fff);
 
   bind(CH1_LOOP);
   ld(ch1, Address(str1));
