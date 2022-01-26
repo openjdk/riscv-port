@@ -43,7 +43,7 @@ class Argument {
     n_int_register_parameters_c   = 8, // x10, x11, ... x17 (c_rarg0, c_rarg1, ...)
     n_float_register_parameters_c = 8, // f10, f11, ... f17 (c_farg0, c_farg1, ... )
 
-    n_int_register_parameters_j   = 8, // x11, ... x17, x10 (rj_rarg0, j_rarg1, ...)
+    n_int_register_parameters_j   = 8, // x11, ... x17, x10 (j_rarg0, j_rarg1, ...)
     n_float_register_parameters_j = 8  // f10, f11, ... f17 (j_farg0, j_farg1, ...)
   };
 };
