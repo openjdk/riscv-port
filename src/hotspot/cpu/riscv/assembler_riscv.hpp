@@ -275,29 +275,29 @@ public:
     rdy = 0b111,     // in instruction's rm field, selects dynamic rounding mode.In Rounding Mode register, Invalid.
   };
 
-  void baseOffset32(Register temp, const Address &adr, int32_t &offset) {
-    assert(temp != noreg, "temp must not be empty register!");
-    guarantee(adr.base() != temp, "should use different registers!");
+  void baseOffset32(Register Rd, const Address &adr, int32_t &offset) {
+    assert(Rd != noreg, "Rd must not be empty register!");
+    guarantee(Rd != adr.base(), "should use different registers!");
     if (is_offset_in_range(adr.offset(), 32)) {
       int32_t imm = adr.offset();
       int32_t upper = imm, lower = imm;
       lower = (imm << 20) >> 20;
       upper -= lower;
-      lui(temp, upper);
+      lui(Rd, upper);
       offset = lower;
     } else {
-      movptr_with_offset(temp, (address)(uintptr_t)adr.offset(), offset);
+      movptr_with_offset(Rd, (address)(uintptr_t)adr.offset(), offset);
     }
-    add(temp, temp, adr.base());
+    add(Rd, Rd, adr.base());
   }
 
-  void baseOffset(Register temp, const Address &adr, int32_t &offset) {
+  void baseOffset(Register Rd, const Address &adr, int32_t &offset) {
     if (is_offset_in_range(adr.offset(), 12)) {
-      assert(temp != noreg, "temp must not be empty register!");
-      addi(temp, adr.base(), adr.offset());
+      assert(Rd != noreg, "Rd must not be empty register!");
+      addi(Rd, adr.base(), adr.offset());
       offset = 0;
     } else {
-      baseOffset32(temp, adr, offset);
+      baseOffset32(Rd, adr, offset);
     }
   }
 

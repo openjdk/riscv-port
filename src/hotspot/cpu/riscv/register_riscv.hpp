@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -88,7 +88,7 @@ class RegisterImpl: public AbstractRegisterImpl {
   unsigned long bit(bool should_set = true) const { return should_set ? 1 << encoding() : 0; }
 };
 
-// The integer registers of the riscv64 architecture
+// The integer registers of the RISCV64 architecture
 
 CONSTANT_REGISTER_DECLARATION(Register, noreg, (-1));
 
@@ -209,7 +209,7 @@ inline VectorRegister as_VectorRegister(int encoding) {
   return (VectorRegister)(intptr_t) encoding;
 }
 
-// The implementation of vector registers for riscv-v
+// The implementation of vector registers for RVV
 class VectorRegisterImpl: public AbstractRegisterImpl {
  public:
   enum {
