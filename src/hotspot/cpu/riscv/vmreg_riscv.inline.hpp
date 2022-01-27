@@ -26,19 +26,19 @@
 #ifndef CPU_RISCV_VM_VMREG_RISCV_INLINE_HPP
 #define CPU_RISCV_VM_VMREG_RISCV_INLINE_HPP
 
-inline VMReg RegisterImpl::as_VMReg() {
+inline VMReg RegisterImpl::as_VMReg() const {
   if (this == noreg) {
     return VMRegImpl::Bad();
   }
   return VMRegImpl::as_VMReg(encoding() * RegisterImpl::max_slots_per_register);
 }
 
-inline VMReg FloatRegisterImpl::as_VMReg() {
+inline VMReg FloatRegisterImpl::as_VMReg() const {
   return VMRegImpl::as_VMReg((encoding() * FloatRegisterImpl::max_slots_per_register) +
                              ConcreteRegisterImpl::max_gpr);
 }
 
-inline VMReg VectorRegisterImpl::as_VMReg() {
+inline VMReg VectorRegisterImpl::as_VMReg() const {
   return VMRegImpl::as_VMReg((encoding() * VectorRegisterImpl::max_slots_per_register) +
                              ConcreteRegisterImpl::max_fpr);
 }

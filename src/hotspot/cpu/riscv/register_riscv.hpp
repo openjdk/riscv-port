@@ -47,17 +47,16 @@ typedef VMRegImpl* VMReg;
 
 // Use Register as shortcut
 class RegisterImpl;
-typedef RegisterImpl* Register;
+typedef const RegisterImpl* Register;
 
-inline Register as_Register(int encoding) {
-  return (Register)(intptr_t) encoding;
-}
+inline constexpr Register as_Register(int encoding);
 
 class RegisterImpl: public AbstractRegisterImpl {
+  static constexpr Register first();
+
  public:
   enum {
     number_of_registers      = 32,
-    number_of_byte_registers = 32,
     max_slots_per_register   = 2,
 
     // integer registers in the range of [x8~x15] correspond to RVC. Please see Table 16.2 in spec.
@@ -66,27 +65,36 @@ class RegisterImpl: public AbstractRegisterImpl {
   };
 
   // derived registers, offsets, and addresses
-  Register successor() const                          { return as_Register(encoding() + 1); }
+  const Register successor() const { return this + 1; }
 
   // construction
-  inline friend Register as_Register(int encoding);
+  inline friend constexpr Register as_Register(int encoding);
 
-  VMReg as_VMReg();
+  VMReg as_VMReg() const;
 
   // accessors
-  int   encoding() const                         { assert(is_valid(), "invalid register"); return (intptr_t)this; }
-  int   compressed_encoding() const              { assert(is_compressed_valid(), "invalid compressed register"); return ((intptr_t)this - compressed_register_base); }
-  bool  is_valid() const                         { return 0 <= (intptr_t)this && (intptr_t)this < number_of_registers; }
-  bool  is_compressed_valid() const              { return compressed_register_base <= (intptr_t)this && (intptr_t)this <= compressed_register_top; }
-  bool  has_byte_register() const                { return 0 <= (intptr_t)this && (intptr_t)this < number_of_byte_registers; }
+  int   encoding() const                         { assert(is_valid(), "invalid register"); return encoding_nocheck(); }
+  int   encoding_nocheck() const                 { return this - first(); }
+  bool  is_valid() const                         { return (unsigned)encoding_nocheck() < number_of_registers; }
   const char* name() const;
-  int   encoding_nocheck() const                 { return (intptr_t)this; }
-  int   compressed_encoding_nocheck() const      { return ((intptr_t)this - compressed_register_base); }
 
-  // Return the bit which represents this register.  This is intended
-  // to be ORed into a bitmask: for usage see class RegSet below.
-  unsigned long bit(bool should_set = true) const { return should_set ? 1 << encoding() : 0; }
+  // for rvc
+  int compressed_encoding() const {
+    assert(is_compressed_valid(), "invalid compressed register");
+    return encoding() - compressed_register_base;
+  }
+
+  int compressed_encoding_nocheck() const {
+    return encoding_nocheck() - compressed_register_base;
+  }
+
+  bool is_compressed_valid() const {
+    return encoding_nocheck() >= compressed_register_base &&
+           encoding_nocheck() <= compressed_register_top;
+  }
 };
+
+REGISTER_IMPL_DECLARATION(Register, RegisterImpl, RegisterImpl::number_of_registers);
 
 // The integer registers of the RISCV64 architecture
 
@@ -127,14 +135,14 @@ CONSTANT_REGISTER_DECLARATION(Register, x31,  (31));
 
 // Use FloatRegister as shortcut
 class FloatRegisterImpl;
-typedef FloatRegisterImpl* FloatRegister;
+typedef const FloatRegisterImpl* FloatRegister;
 
-inline FloatRegister as_FloatRegister(int encoding) {
-  return (FloatRegister)(intptr_t) encoding;
-}
+inline constexpr FloatRegister as_FloatRegister(int encoding);
 
 // The implementation of floating point registers for the architecture
 class FloatRegisterImpl: public AbstractRegisterImpl {
+  static constexpr FloatRegister first();
+
  public:
   enum {
     number_of_registers     = 32,
@@ -146,23 +154,38 @@ class FloatRegisterImpl: public AbstractRegisterImpl {
   };
 
   // construction
-  inline friend FloatRegister as_FloatRegister(int encoding);
+  inline friend constexpr FloatRegister as_FloatRegister(int encoding);
 
-  VMReg as_VMReg();
+  VMReg as_VMReg() const;
 
   // derived registers, offsets, and addresses
-  FloatRegister successor() const                          { return as_FloatRegister(encoding() + 1); }
+  FloatRegister successor() const {
+    return as_FloatRegister((encoding() + 1) % (unsigned)number_of_registers);
+  }
 
   // accessors
-  int   encoding() const                          { assert(is_valid(), "invalid register"); return (intptr_t)this; }
-  int   compressed_encoding() const               { assert(is_compressed_valid(), "invalid compressed register"); return ((intptr_t)this - compressed_register_base); }
-  int   encoding_nocheck() const                         { return (intptr_t)this; }
-  int   compressed_encoding_nocheck() const       { return ((intptr_t)this - compressed_register_base); }
-  bool  is_valid() const                          { return 0 <= (intptr_t)this && (intptr_t)this < number_of_registers; }
-  bool  is_compressed_valid() const               { return compressed_register_base <= (intptr_t)this && (intptr_t)this <= compressed_register_top; }
+  int encoding() const                          { assert(is_valid(), "invalid register"); return encoding_nocheck(); }
+  int   encoding_nocheck() const                { return this - first(); }
+  int is_valid() const                          { return (unsigned)encoding_nocheck() < number_of_registers; }
   const char* name() const;
 
+  // for rvc
+  int compressed_encoding() const {
+    assert(is_compressed_valid(), "invalid compressed register");
+    return encoding() - compressed_register_base;
+  }
+
+  int compressed_encoding_nocheck() const {
+    return encoding_nocheck() - compressed_register_base;
+  }
+
+  bool is_compressed_valid() const {
+    return encoding_nocheck() >= compressed_register_base &&
+           encoding_nocheck() <= compressed_register_top;
+  }
 };
+
+REGISTER_IMPL_DECLARATION(FloatRegister, FloatRegisterImpl, FloatRegisterImpl::number_of_registers);
 
 // The float registers of the RISCV64 architecture
 
@@ -203,14 +226,14 @@ CONSTANT_REGISTER_DECLARATION(FloatRegister, f31    , (31));
 
 // Use VectorRegister as shortcut
 class VectorRegisterImpl;
-typedef VectorRegisterImpl* VectorRegister;
+typedef const VectorRegisterImpl* VectorRegister;
 
-inline VectorRegister as_VectorRegister(int encoding) {
-  return (VectorRegister)(intptr_t) encoding;
-}
+inline constexpr VectorRegister as_VectorRegister(int encoding);
 
 // The implementation of vector registers for RVV
 class VectorRegisterImpl: public AbstractRegisterImpl {
+  static constexpr VectorRegister first();
+
  public:
   enum {
     number_of_registers    = 32,
@@ -218,20 +241,22 @@ class VectorRegisterImpl: public AbstractRegisterImpl {
   };
 
   // construction
-  inline friend VectorRegister as_VectorRegister(int encoding);
+  inline friend constexpr VectorRegister as_VectorRegister(int encoding);
 
-  VMReg as_VMReg();
+  VMReg as_VMReg() const;
 
   // derived registers, offsets, and addresses
-  VectorRegister successor() const { return as_VectorRegister(encoding() + 1); }
+  VectorRegister successor() const { return this + 1; }
 
   // accessors
-  int encoding() const             { assert(is_valid(), "invalid register"); return (intptr_t)this; }
-  int encoding_nocheck() const     { return (intptr_t)this; }
-  bool is_valid() const            { return 0 <= (intptr_t)this && (intptr_t)this < number_of_registers; }
+  int encoding() const             { assert(is_valid(), "invalid register"); return encoding_nocheck(); }
+  int encoding_nocheck() const     { return this - first(); }
+  bool is_valid() const            { return (unsigned)encoding_nocheck() < number_of_registers; }
   const char* name() const;
 
 };
+
+REGISTER_IMPL_DECLARATION(VectorRegister, VectorRegisterImpl, VectorRegisterImpl::number_of_registers);
 
 // The vector registers of RVV
 CONSTANT_REGISTER_DECLARATION(VectorRegister, vnoreg , (-1));
@@ -292,64 +317,67 @@ class ConcreteRegisterImpl : public AbstractRegisterImpl {
 };
 
 // A set of registers
-class RegSet {
+template<class RegImpl>
+class AbstractRegSet {
   uint32_t _bitset;
 
 public:
-  RegSet(uint32_t bitset) : _bitset(bitset) { }
+  AbstractRegSet(uint32_t bitset) : _bitset(bitset) { }
 
-  RegSet() : _bitset(0) { }
+  AbstractRegSet() : _bitset(0) { }
 
-  RegSet(Register r1) : _bitset(r1->bit()) { }
+  AbstractRegSet(RegImpl r1) : _bitset(1 << r1->encoding()) { }
 
-  ~RegSet() {}
-
-  RegSet operator+(const RegSet aSet) const {
-    RegSet result(_bitset | aSet._bitset);
+  AbstractRegSet operator+(const AbstractRegSet aSet) const {
+    AbstractRegSet result(_bitset | aSet._bitset);
     return result;
   }
 
-  RegSet operator-(const RegSet aSet) const {
-    RegSet result(_bitset & ~aSet._bitset);
+  AbstractRegSet operator-(const AbstractRegSet aSet) const {
+    AbstractRegSet result(_bitset & ~aSet._bitset);
     return result;
   }
 
-  RegSet &operator+=(const RegSet aSet) {
+  AbstractRegSet &operator+=(const AbstractRegSet aSet) {
     *this = *this + aSet;
     return *this;
   }
 
-  RegSet &operator-=(const RegSet aSet) {
+  AbstractRegSet &operator-=(const AbstractRegSet aSet) {
     *this = *this - aSet;
     return *this;
   }
 
-  static RegSet of(Register r1) {
-    return RegSet(r1);
+  static AbstractRegSet of(RegImpl r1) {
+    return AbstractRegSet(r1);
   }
 
-  static RegSet of(Register r1, Register r2) {
+  static AbstractRegSet of(RegImpl r1, RegImpl r2) {
     return of(r1) + r2;
   }
 
-  static RegSet of(Register r1, Register r2, Register r3) {
+  static AbstractRegSet of(RegImpl r1, RegImpl r2, RegImpl r3) {
     return of(r1, r2) + r3;
   }
 
-  static RegSet of(Register r1, Register r2, Register r3, Register r4) {
+  static AbstractRegSet of(RegImpl r1, RegImpl r2, RegImpl r3, RegImpl r4) {
     return of(r1, r2, r3) + r4;
   }
 
-  static RegSet range(Register start, Register end) {
+  static AbstractRegSet range(RegImpl start, RegImpl end) {
     uint32_t bits = ~0;
     bits <<= start->encoding();
     bits <<= (31 - end->encoding());
     bits >>= (31 - end->encoding());
 
-    return RegSet(bits);
+    return AbstractRegSet(bits);
   }
 
   uint32_t bits() const { return _bitset; }
 };
+
+typedef AbstractRegSet<Register> RegSet;
+typedef AbstractRegSet<FloatRegister> FloatRegSet;
+typedef AbstractRegSet<VectorRegister> VectorRegSet;
 
 #endif // CPU_RISCV_REGISTER_RISCV_HPP
