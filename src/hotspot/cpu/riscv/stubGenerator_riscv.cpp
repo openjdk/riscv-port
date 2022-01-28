@@ -2562,9 +2562,13 @@ class StubGenerator: public StubCodeGenerator {
 
     // first is needle[0]
     __ andi(first, ch1, needle_isL ? 0xFF : 0xFFFF, first);
-    __ mv(mask1, haystack_isL ? 0x0101010101010101 : 0x0001000100010001);
+    uint64_t mask0101 = UCONST64(0x0101010101010101);
+    uint64_t mask0001 = UCONST64(0x0001000100010001);
+    __ mv(mask1, haystack_isL ? mask0101 : mask0001);
     __ mul(first, first, mask1);
-    __ mv(mask2, haystack_isL ? 0x7f7f7f7f7f7f7f7f : 0x7fff7fff7fff7fff);
+    uint64_t mask7f7f = UCONST64(0x7f7f7f7f7f7f7f7f);
+    uint64_t mask7fff = UCONST64(0x7fff7fff7fff7fff);
+    __ mv(mask2, haystack_isL ? mask7f7f : mask7fff);
     if (needle_isL != haystack_isL) {
       __ mv(tmp, ch1);
     }

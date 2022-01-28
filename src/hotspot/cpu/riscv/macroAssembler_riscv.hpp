@@ -28,6 +28,7 @@
 #define CPU_RISCV_MACROASSEMBLER_RISCV_HPP
 
 #include "asm/assembler.hpp"
+#include "metaprogramming/enableIf.hpp"
 #include "oops/compressedOops.hpp"
 #include "utilities/powerOfTwo.hpp"
 
@@ -518,9 +519,13 @@ class MacroAssembler: public Assembler {
   }
 
   // mv
-  void mv(Register Rd, int64_t imm64);
-  void mv(Register Rd, int imm);
-  void mvw(Register Rd, int32_t imm32);
+  template<typename T, ENABLE_IF(std::is_integral<T>::value)>
+  inline void mv(Register Rd, T o) {
+    li(Rd, (int64_t)o);
+  }
+
+  inline void mvw(Register Rd, int32_t imm32) { mv(Rd, imm32); }
+
   void mv(Register Rd, Address dest);
   void mv(Register Rd, address addr);
   void mv(Register Rd, RegisterOrConstant src);
