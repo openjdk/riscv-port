@@ -2851,6 +2851,480 @@ class StubGenerator: public StubCodeGenerator {
   }
 #endif
 
+#ifdef COMPILER2
+  class MontgomeryMultiplyGenerator : public MacroAssembler {
+
+    Register Pa_base, Pb_base, Pn_base, Pm_base, inv, Rlen, Ra, Rb, Rm, Rn,
+      Pa, Pb, Pn, Pm, Rhi_ab, Rlo_ab, Rhi_mn, Rlo_mn, tmp, tmp1, tmp2, Ri, Rj;
+
+    RegSet _toSave;
+    bool _squaring;
+
+  public:
+    MontgomeryMultiplyGenerator (Assembler *as, bool squaring)
+      : MacroAssembler(as->code()), _squaring(squaring) {
+
+      // Register allocation
+
+      Register reg = c_rarg0;
+      Pa_base = reg;       // Argument registers
+      if (squaring) {
+        Pb_base = Pa_base;
+      } else {
+        Pb_base = ++reg;
+      }
+      Pn_base = ++reg;
+      Rlen= ++reg;
+      inv = ++reg;
+      Pm_base = ++reg;
+
+                        // Working registers:
+      Ra =  ++reg;      // The current digit of a, b, n, and m.
+      Rb =  ++reg;
+      Rm =  ++reg;
+      Rn =  ++reg;
+
+      Pa =  ++reg;      // Pointers to the current/next digit of a, b, n, and m.
+      Pb =  ++reg;
+      Pm =  ++reg;
+      Pn =  ++reg;
+
+      tmp  =  ++reg;    // Three registers which form a
+      tmp1 =  ++reg;    // triple-precision accumuator.
+      tmp2 =  ++reg;
+
+      Ri =  x6;         // Inner and outer loop indexes.
+      Rj =  x7;
+
+      Rhi_ab = x28;     // Product registers: low and high parts
+      Rlo_ab = x29;     // of a*b and m*n.
+      Rhi_mn = x30;
+      Rlo_mn = x31;
+
+      // x18 and up are callee-saved.
+      _toSave = RegSet::range(x18, reg) + Pm_base;
+    }
+
+  private:
+    void save_regs() {
+      push_reg(_toSave, sp);
+    }
+
+    void restore_regs() {
+      pop_reg(_toSave, sp);
+    }
+
+    template <typename T>
+    void unroll_2(Register count, T block) {
+      Label loop, end, odd;
+      beqz(count, end);
+      andi(t0, count, 0x1);
+      bnez(t0, odd);
+      align(16);
+      bind(loop);
+      (this->*block)();
+      bind(odd);
+      (this->*block)();
+      addi(count, count, -2);
+      bgtz(count, loop);
+      bind(end);
+    }
+
+    template <typename T>
+    void unroll_2(Register count, T block, Register d, Register s, Register tmp) {
+      Label loop, end, odd;
+      beqz(count, end);
+      andi(tmp, count, 0x1);
+      bnez(tmp, odd);
+      align(16);
+      bind(loop);
+      (this->*block)(d, s, tmp);
+      bind(odd);
+      (this->*block)(d, s, tmp);
+      addi(count, count, -2);
+      bgtz(count, loop);
+      bind(end);
+    }
+
+    void pre1(RegisterOrConstant i) {
+      block_comment("pre1");
+      // Pa = Pa_base;
+      // Pb = Pb_base + i;
+      // Pm = Pm_base;
+      // Pn = Pn_base + i;
+      // Ra = *Pa;
+      // Rb = *Pb;
+      // Rm = *Pm;
+      // Rn = *Pn;
+      if (i.is_register()) {
+        slli(t0, i.as_register(), LogBytesPerWord);
+      } else {
+        mv(t0, i.as_constant());
+        slli(t0, t0, LogBytesPerWord);
+      }
+
+      mv(Pa, Pa_base);
+      add(Pb, Pb_base, t0);
+      mv(Pm, Pm_base);
+      add(Pn, Pn_base, t0);
+
+      ld(Ra, Address(Pa));
+      ld(Rb, Address(Pb));
+      ld(Rm, Address(Pm));
+      ld(Rn, Address(Pn));
+
+      // Zero the m*n result.
+      mv(Rhi_mn, zr);
+      mv(Rlo_mn, zr);
+    }
+
+    // The core multiply-accumulate step of a Montgomery
+    // multiplication.  The idea is to schedule operations as a
+    // pipeline so that instructions with long latencies (loads and
+    // multiplies) have time to complete before their results are
+    // used.  This most benefits in-order implementations of the
+    // architecture but out-of-order ones also benefit.
+    void step() {
+      block_comment("step");
+      // MACC(Ra, Rb, tmp, tmp1, tmp2);
+      // Ra = *++Pa;
+      // Rb = *--Pb;
+      mulhu(Rhi_ab, Ra, Rb);
+      mul(Rlo_ab, Ra, Rb);
+      addi(Pa, Pa, wordSize);
+      ld(Ra, Address(Pa));
+      addi(Pb, Pb, -wordSize);
+      ld(Rb, Address(Pb));
+      acc(Rhi_mn, Rlo_mn, tmp, tmp1, tmp2); // The pending m*n from the
+                                            // previous iteration.
+      // MACC(Rm, Rn, tmp, tmp1, tmp2);
+      // Rm = *++Pm;
+      // Rn = *--Pn;
+      mulhu(Rhi_mn, Rm, Rn);
+      mul(Rlo_mn, Rm, Rn);
+      addi(Pm, Pm, wordSize);
+      ld(Rm, Address(Pm));
+      addi(Pn, Pn, -wordSize);
+      ld(Rn, Address(Pn));
+      acc(Rhi_ab, Rlo_ab, tmp, tmp1, tmp2);
+    }
+
+    void post1() {
+      block_comment("post1");
+
+      // MACC(Ra, Rb, tmp, tmp1, tmp2);
+      // Ra = *++Pa;
+      // Rb = *--Pb;
+      mulhu(Rhi_ab, Ra, Rb);
+      mul(Rlo_ab, Ra, Rb);
+      acc(Rhi_mn, Rlo_mn, tmp, tmp1, tmp2);  // The pending m*n
+      acc(Rhi_ab, Rlo_ab, tmp, tmp1, tmp2);
+
+      // *Pm = Rm = tmp * inv;
+      mul(Rm, tmp, inv);
+      sd(Rm, Address(Pm));
+
+      // MACC(Rm, Rn, tmp, tmp1, tmp2);
+      // tmp = tmp1; tmp1 = tmp2; tmp2 = 0;
+      mulhu(Rhi_mn, Rm, Rn);
+
+#ifndef PRODUCT
+      // assert(m[i] * n[0] + tmp == 0, "broken Montgomery multiply");
+      {
+        mul(Rlo_mn, Rm, Rn);
+        add(Rlo_mn, tmp, Rlo_mn);
+        Label ok;
+        beqz(Rlo_mn, ok);
+        stop("broken Montgomery multiply");
+        bind(ok);
+      }
+#endif
+      // We have very carefully set things up so that
+      // m[i]*n[0] + tmp == 0 (mod b), so we don't have to calculate
+      // the lower half of Rm * Rn because we know the result already:
+      // it must be -tmp.  tmp + (-tmp) must generate a carry iff
+      // tmp != 0.  So, rather than do a mul and an cad we just set
+      // the carry flag iff tmp is nonzero.
+      //
+      // mul(Rlo_mn, Rm, Rn);
+      // cad(zr, tmp, Rlo_mn);
+      addi(t0, tmp, -1);
+      sltu(t0, t0, tmp); // Set carry iff tmp is nonzero
+      cadc(tmp, tmp1, Rhi_mn, t0);
+      adc(tmp1, tmp2, zr, t0);
+      mv(tmp2, zr);
+    }
+
+    void pre2(Register i, Register len) {
+      block_comment("pre2");
+      // Pa = Pa_base + i-len;
+      // Pb = Pb_base + len;
+      // Pm = Pm_base + i-len;
+      // Pn = Pn_base + len;
+
+      sub(Rj, i, len);
+      // Rj == i-len
+
+      // Ra as temp register
+      slli(Ra, Rj, LogBytesPerWord);
+      add(Pa, Pa_base, Ra);
+      add(Pm, Pm_base, Ra);
+      slli(Ra, len, LogBytesPerWord);
+      add(Pb, Pb_base, Ra);
+      add(Pn, Pn_base, Ra);
+
+      // Ra = *++Pa;
+      // Rb = *--Pb;
+      // Rm = *++Pm;
+      // Rn = *--Pn;
+      add(Pa, Pa, wordSize);
+      ld(Ra, Address(Pa));
+      add(Pb, Pb, -wordSize);
+      ld(Rb, Address(Pb));
+      add(Pm, Pm, wordSize);
+      ld(Rm, Address(Pm));
+      add(Pn, Pn, -wordSize);
+      ld(Rn, Address(Pn));
+
+      mv(Rhi_mn, zr);
+      mv(Rlo_mn, zr);
+    }
+
+    void post2(Register i, Register len) {
+      block_comment("post2");
+      sub(Rj, i, len);
+
+      cad(tmp, tmp, Rlo_mn, t0); // The pending m*n, low part
+
+      // As soon as we know the least significant digit of our result,
+      // store it.
+      // Pm_base[i-len] = tmp;
+      // Rj as temp register
+      slli(Rj, Rj, LogBytesPerWord);
+      add(Rj, Pm_base, Rj);
+      sd(tmp, Address(Rj));
+
+      // tmp = tmp1; tmp1 = tmp2; tmp2 = 0;
+      cadc(tmp, tmp1, Rhi_mn, t0); // The pending m*n, high part
+      adc(tmp1, tmp2, zr, t0);
+      mv(tmp2, zr);
+    }
+
+    // A carry in tmp after Montgomery multiplication means that we
+    // should subtract multiples of n from our result in m.  We'll
+    // keep doing that until there is no carry.
+    void normalize(Register len) {
+      block_comment("normalize");
+      // while (tmp)
+      //   tmp = sub(Pm_base, Pn_base, tmp, len);
+      Label loop, post, again;
+      Register cnt = tmp1, i = tmp2; // Re-use registers; we're done with them now
+      beqz(tmp, post); {
+        bind(again); {
+          mv(i, zr);
+          mv(cnt, len);
+          slli(Rn, i, LogBytesPerWord);
+          add(Rm, Pm_base, Rn);
+          ld(Rm, Address(Rm));
+          add(Rn, Pn_base, Rn);
+          ld(Rn, Address(Rn));
+          li(t0, 1); // set carry flag, i.e. no borrow
+          align(16);
+          bind(loop); {
+            // csbc(Rm, Rm, Rn);
+            notr(Rn, Rn);
+            add(Rm, Rm, t0);
+            add(Rm, Rm, Rn);
+            sltu(t0, Rm, Rn);
+            slli(Rn, i, LogBytesPerWord); // Rn as temp register
+            add(Rn, Pm_base, Rn);
+            sd(Rm, Address(Rn));
+            add(i, i, 1);
+            slli(Rn, i, LogBytesPerWord);
+            add(Rm, Pm_base, Rn);
+            ld(Rm, Address(Rm));
+            add(Rn, Pn_base, Rn);
+            ld(Rn, Address(Rn));
+            sub(cnt, cnt, 1);
+          } bnez(cnt, loop);
+          // sbc(tmp, tmp, zr);
+          addi(tmp, tmp, -1);
+          add(tmp, tmp, t0);
+        } bnez(tmp, again);
+      } bind(post);
+    }
+
+    // Move memory at s to d, reversing words.
+    //    Increments d to end of copied memory
+    //    Destroys tmp1, tmp2
+    //    Preserves len
+    //    Leaves s pointing to the address which was in d at start
+    void reverse(Register d, Register s, Register len, Register tmp1, Register tmp2) {
+      assert(tmp1 < x28 && tmp2 < x28, "register corruption");
+
+      slli(tmp1, len, LogBytesPerWord);
+      add(s, s, tmp1);
+      mv(tmp1, len);
+      unroll_2(tmp1,  &MontgomeryMultiplyGenerator::reverse1, d, s, tmp2);
+      slli(tmp1, len, LogBytesPerWord);
+      sub(s, d, tmp1);
+    }
+    // [63...0] -> [31...0][63...32]
+    void reverse1(Register d, Register s, Register tmp) {
+      addi(s, s, -wordSize);
+      ld(tmp, Address(s));
+      ror_imm(tmp, tmp, 32, t0);
+      sd(tmp, Address(d));
+      addi(d, d, wordSize);
+    }
+
+    // use t0 as carry
+    void acc(Register Rhi, Register Rlo,
+             Register tmp, Register tmp1, Register tmp2) {
+      cad(tmp, tmp, Rlo, t0);
+      cadc(tmp1, tmp1, Rhi, t0);
+      adc(tmp2, tmp2, zr, t0);
+    }
+
+  public:
+    /**
+     * Fast Montgomery multiplication.  The derivation of the
+     * algorithm is in A Cryptographic Library for the Motorola
+     * DSP56000, Dusse and Kaliski, Proc. EUROCRYPT 90, pp. 230-237.
+     *
+     * Arguments:
+     *
+     * Inputs for multiplication:
+     *   c_rarg0   - int array elements a
+     *   c_rarg1   - int array elements b
+     *   c_rarg2   - int array elements n (the modulus)
+     *   c_rarg3   - int length
+     *   c_rarg4   - int inv
+     *   c_rarg5   - int array elements m (the result)
+     *
+     * Inputs for squaring:
+     *   c_rarg0   - int array elements a
+     *   c_rarg1   - int array elements n (the modulus)
+     *   c_rarg2   - int length
+     *   c_rarg3   - int inv
+     *   c_rarg4   - int array elements m (the result)
+     *
+     */
+    address generate_multiply() {
+      Label argh, nothing;
+      bind(argh);
+      stop("MontgomeryMultiply total_allocation must be <= 8192");
+
+      align(CodeEntryAlignment);
+      address entry = pc();
+
+      beqz(Rlen, nothing);
+
+      enter();
+
+      // Make room.
+      li(Ra, 512);
+      bgt(Rlen, Ra, argh);
+      slli(Ra, Rlen, exact_log2(4 * sizeof(jint)));
+      sub(Ra, sp, Ra);
+      andi(sp, Ra, -2 * wordSize);
+
+      srliw(Rlen, Rlen, 1);  // length in longwords = len/2
+
+      {
+        // Copy input args, reversing as we go.  We use Ra as a
+        // temporary variable.
+        reverse(Ra, Pa_base, Rlen, Ri, Rj);
+        if (!_squaring)
+          reverse(Ra, Pb_base, Rlen, Ri, Rj);
+        reverse(Ra, Pn_base, Rlen, Ri, Rj);
+      }
+
+      // Push all call-saved registers and also Pm_base which we'll need
+      // at the end.
+      save_regs();
+
+#ifndef PRODUCT
+      // assert(inv * n[0] == -1UL, "broken inverse in Montgomery multiply");
+      {
+        ld(Rn, Address(Pn_base));
+        mul(Rlo_mn, Rn, inv);
+        li(t0, -1);
+        Label ok;
+        beq(Rlo_mn, t0, ok);
+        stop("broken inverse in Montgomery multiply");
+        bind(ok);
+      }
+#endif
+
+      mv(Pm_base, Ra);
+
+      mv(tmp, zr);
+      mv(tmp1, zr);
+      mv(tmp2, zr);
+
+      block_comment("for (int i = 0; i < len; i++) {");
+      mv(Ri, zr); {
+        Label loop, end;
+        bge(Ri, Rlen, end);
+
+        bind(loop);
+        pre1(Ri);
+
+        block_comment("  for (j = i; j; j--) {"); {
+          mv(Rj, Ri);
+          unroll_2(Rj, &MontgomeryMultiplyGenerator::step);
+        } block_comment("  } // j");
+
+        post1();
+        addw(Ri, Ri, 1);
+        blt(Ri, Rlen, loop);
+        bind(end);
+        block_comment("} // i");
+      }
+
+      block_comment("for (int i = len; i < 2*len; i++) {");
+      mv(Ri, Rlen); {
+        Label loop, end;
+        slli(Rj, Rlen, 1); // Rj as temp register
+        bge(Ri, Rj, end);
+
+        bind(loop);
+        pre2(Ri, Rlen);
+
+        block_comment("  for (j = len*2-i-1; j; j--) {"); {
+          slliw(Rj, Rlen, 1);
+          subw(Rj, Rj, Ri);
+          subw(Rj, Rj, 1);
+          unroll_2(Rj, &MontgomeryMultiplyGenerator::step);
+        } block_comment("  } // j");
+
+        post2(Ri, Rlen);
+        addw(Ri, Ri, 1);
+        slli(Rj, Rlen, 1);
+        blt(Ri, Rj, loop);
+        bind(end);
+      }
+      block_comment("} // i");
+
+
+      normalize(Rlen);
+
+      mv(Ra, Pm_base);  // Save Pm_base in Ra
+      restore_regs();  // Restore caller's Pm_base
+
+      // Copy our result into caller's Pm_base
+      reverse(Pm_base, Ra, Rlen, Ri, Rj);
+
+      leave();
+      bind(nothing);
+      ret();
+
+      return entry;
+    }
+  };
+#endif // COMPILER2
+
   // Continuation point for throwing of implicit exceptions that are
   // not handled in the current activation. Fabricates an exception
   // oop and initiates normal exception dispatching in this
@@ -3032,6 +3506,12 @@ class StubGenerator: public StubCodeGenerator {
 
     if (UseSquareToLenIntrinsic) {
       StubRoutines::_squareToLen = generate_squareToLen();
+    }
+
+    if (UseMontgomeryMultiplyIntrinsic) {
+      StubCodeMark mark(this, "StubRoutines", "montgomeryMultiply");
+      MontgomeryMultiplyGenerator g(_masm, /*squaring*/false);
+      StubRoutines::_montgomeryMultiply = g.generate_multiply();
     }
 #endif
 
