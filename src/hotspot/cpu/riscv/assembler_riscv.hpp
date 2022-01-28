@@ -29,6 +29,7 @@
 
 #include "asm/register.hpp"
 #include "assembler_riscv.inline.hpp"
+#include "metaprogramming/enableIf.hpp"
 
 #define XLEN 64
 
