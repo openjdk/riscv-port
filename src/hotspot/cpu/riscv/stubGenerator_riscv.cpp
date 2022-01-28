@@ -2859,7 +2859,7 @@ class StubGenerator: public StubCodeGenerator {
   class MontgomeryMultiplyGenerator : public MacroAssembler {
 
     Register Pa_base, Pb_base, Pn_base, Pm_base, inv, Rlen, Ra, Rb, Rm, Rn,
-      Pa, Pb, Pn, Pm, Rhi_ab, Rlo_ab, Rhi_mn, Rlo_mn, tmp, tmp1, tmp2, Ri, Rj;
+      Pa, Pb, Pn, Pm, Rhi_ab, Rlo_ab, Rhi_mn, Rlo_mn, tmp0, tmp1, tmp2, Ri, Rj;
 
     RegSet _toSave;
     bool _squaring;
@@ -2893,7 +2893,7 @@ class StubGenerator: public StubCodeGenerator {
       Pm =  ++reg;
       Pn =  ++reg;
 
-      tmp  =  ++reg;    // Three registers which form a
+      tmp0 =  ++reg;    // Three registers which form a
       tmp1 =  ++reg;    // triple-precision accumuator.
       tmp2 =  ++reg;
 
@@ -2990,7 +2990,7 @@ class StubGenerator: public StubCodeGenerator {
     // architecture but out-of-order ones also benefit.
     void step() {
       block_comment("step");
-      // MACC(Ra, Rb, tmp, tmp1, tmp2);
+      // MACC(Ra, Rb, tmp0, tmp1, tmp2);
       // Ra = *++Pa;
       // Rb = *--Pb;
       mulhu(Rhi_ab, Ra, Rb);
@@ -2999,9 +2999,9 @@ class StubGenerator: public StubCodeGenerator {
       ld(Ra, Address(Pa));
       addi(Pb, Pb, -wordSize);
       ld(Rb, Address(Pb));
-      acc(Rhi_mn, Rlo_mn, tmp, tmp1, tmp2); // The pending m*n from the
+      acc(Rhi_mn, Rlo_mn, tmp0, tmp1, tmp2); // The pending m*n from the
                                             // previous iteration.
-      // MACC(Rm, Rn, tmp, tmp1, tmp2);
+      // MACC(Rm, Rn, tmp0, tmp1, tmp2);
       // Rm = *++Pm;
       // Rn = *--Pn;
       mulhu(Rhi_mn, Rm, Rn);
@@ -3010,33 +3010,33 @@ class StubGenerator: public StubCodeGenerator {
       ld(Rm, Address(Pm));
       addi(Pn, Pn, -wordSize);
       ld(Rn, Address(Pn));
-      acc(Rhi_ab, Rlo_ab, tmp, tmp1, tmp2);
+      acc(Rhi_ab, Rlo_ab, tmp0, tmp1, tmp2);
     }
 
     void post1() {
       block_comment("post1");
 
-      // MACC(Ra, Rb, tmp, tmp1, tmp2);
+      // MACC(Ra, Rb, tmp0, tmp1, tmp2);
       // Ra = *++Pa;
       // Rb = *--Pb;
       mulhu(Rhi_ab, Ra, Rb);
       mul(Rlo_ab, Ra, Rb);
-      acc(Rhi_mn, Rlo_mn, tmp, tmp1, tmp2);  // The pending m*n
-      acc(Rhi_ab, Rlo_ab, tmp, tmp1, tmp2);
+      acc(Rhi_mn, Rlo_mn, tmp0, tmp1, tmp2);  // The pending m*n
+      acc(Rhi_ab, Rlo_ab, tmp0, tmp1, tmp2);
 
-      // *Pm = Rm = tmp * inv;
-      mul(Rm, tmp, inv);
+      // *Pm = Rm = tmp0 * inv;
+      mul(Rm, tmp0, inv);
       sd(Rm, Address(Pm));
 
-      // MACC(Rm, Rn, tmp, tmp1, tmp2);
-      // tmp = tmp1; tmp1 = tmp2; tmp2 = 0;
+      // MACC(Rm, Rn, tmp0, tmp1, tmp2);
+      // tmp0 = tmp1; tmp1 = tmp2; tmp2 = 0;
       mulhu(Rhi_mn, Rm, Rn);
 
 #ifndef PRODUCT
-      // assert(m[i] * n[0] + tmp == 0, "broken Montgomery multiply");
+      // assert(m[i] * n[0] + tmp0 == 0, "broken Montgomery multiply");
       {
         mul(Rlo_mn, Rm, Rn);
-        add(Rlo_mn, tmp, Rlo_mn);
+        add(Rlo_mn, tmp0, Rlo_mn);
         Label ok;
         beqz(Rlo_mn, ok);
         stop("broken Montgomery multiply");
@@ -3044,17 +3044,17 @@ class StubGenerator: public StubCodeGenerator {
       }
 #endif
       // We have very carefully set things up so that
-      // m[i]*n[0] + tmp == 0 (mod b), so we don't have to calculate
+      // m[i]*n[0] + tmp0 == 0 (mod b), so we don't have to calculate
       // the lower half of Rm * Rn because we know the result already:
-      // it must be -tmp.  tmp + (-tmp) must generate a carry iff
-      // tmp != 0.  So, rather than do a mul and an cad we just set
-      // the carry flag iff tmp is nonzero.
+      // it must be -tmp0.  tmp0 + (-tmp0) must generate a carry iff
+      // tmp0 != 0.  So, rather than do a mul and an cad we just set
+      // the carry flag iff tmp0 is nonzero.
       //
       // mul(Rlo_mn, Rm, Rn);
-      // cad(zr, tmp, Rlo_mn);
-      addi(t0, tmp, -1);
-      sltu(t0, t0, tmp); // Set carry iff tmp is nonzero
-      cadc(tmp, tmp1, Rhi_mn, t0);
+      // cad(zr, tmp0, Rlo_mn);
+      addi(t0, tmp0, -1);
+      sltu(t0, t0, tmp0); // Set carry iff tmp0 is nonzero
+      cadc(tmp0, tmp1, Rhi_mn, t0);
       adc(tmp1, tmp2, zr, t0);
       mv(tmp2, zr);
     }
@@ -3098,32 +3098,32 @@ class StubGenerator: public StubCodeGenerator {
       block_comment("post2");
       sub(Rj, i, len);
 
-      cad(tmp, tmp, Rlo_mn, t0); // The pending m*n, low part
+      cad(tmp0, tmp0, Rlo_mn, t0); // The pending m*n, low part
 
       // As soon as we know the least significant digit of our result,
       // store it.
-      // Pm_base[i-len] = tmp;
+      // Pm_base[i-len] = tmp0;
       // Rj as temp register
       slli(Rj, Rj, LogBytesPerWord);
       add(Rj, Pm_base, Rj);
-      sd(tmp, Address(Rj));
+      sd(tmp0, Address(Rj));
 
-      // tmp = tmp1; tmp1 = tmp2; tmp2 = 0;
-      cadc(tmp, tmp1, Rhi_mn, t0); // The pending m*n, high part
+      // tmp0 = tmp1; tmp1 = tmp2; tmp2 = 0;
+      cadc(tmp0, tmp1, Rhi_mn, t0); // The pending m*n, high part
       adc(tmp1, tmp2, zr, t0);
       mv(tmp2, zr);
     }
 
-    // A carry in tmp after Montgomery multiplication means that we
+    // A carry in tmp0 after Montgomery multiplication means that we
     // should subtract multiples of n from our result in m.  We'll
     // keep doing that until there is no carry.
     void normalize(Register len) {
       block_comment("normalize");
-      // while (tmp)
-      //   tmp = sub(Pm_base, Pn_base, tmp, len);
+      // while (tmp0)
+      //   tmp0 = sub(Pm_base, Pn_base, tmp0, len);
       Label loop, post, again;
       Register cnt = tmp1, i = tmp2; // Re-use registers; we're done with them now
-      beqz(tmp, post); {
+      beqz(tmp0, post); {
         bind(again); {
           mv(i, zr);
           mv(cnt, len);
@@ -3135,7 +3135,6 @@ class StubGenerator: public StubCodeGenerator {
           li(t0, 1); // set carry flag, i.e. no borrow
           align(16);
           bind(loop); {
-            // csbc(Rm, Rm, Rn);
             notr(Rn, Rn);
             add(Rm, Rm, t0);
             add(Rm, Rm, Rn);
@@ -3151,10 +3150,9 @@ class StubGenerator: public StubCodeGenerator {
             ld(Rn, Address(Rn));
             sub(cnt, cnt, 1);
           } bnez(cnt, loop);
-          // sbc(tmp, tmp, zr);
-          addi(tmp, tmp, -1);
-          add(tmp, tmp, t0);
-        } bnez(tmp, again);
+          addi(tmp0, tmp0, -1);
+          add(tmp0, tmp0, t0);
+        } bnez(tmp0, again);
       } bind(post);
     }
 
@@ -3182,10 +3180,82 @@ class StubGenerator: public StubCodeGenerator {
       addi(d, d, wordSize);
     }
 
+    void step_squaring() {
+      // An extra ACC
+      step();
+      acc(Rhi_ab, Rlo_ab, tmp0, tmp1, tmp2);
+    }
+
+    void last_squaring(Register i) {
+      Label dont;
+      // if ((i & 1) == 0) {
+      andi(t0, i, 0x1);
+      bnez(t0, dont); {
+        // MACC(Ra, Rb, tmp0, tmp1, tmp2);
+        // Ra = *++Pa;
+        // Rb = *--Pb;
+        mulhu(Rhi_ab, Ra, Rb);
+        mul(Rlo_ab, Ra, Rb);
+        acc(Rhi_ab, Rlo_ab, tmp0, tmp1, tmp2);
+      } bind(dont);
+    }
+
+    void extra_step_squaring() {
+      acc(Rhi_mn, Rlo_mn, tmp0, tmp1, tmp2);  // The pending m*n
+
+      // MACC(Rm, Rn, tmp0, tmp1, tmp2);
+      // Rm = *++Pm;
+      // Rn = *--Pn;
+      mulhu(Rhi_mn, Rm, Rn);
+      mul(Rlo_mn, Rm, Rn);
+      addi(Pm, Pm, wordSize);
+      ld(Rm, Address(Pm));
+      addi(Pn, Pn, -wordSize);
+      ld(Rn, Address(Pn));
+    }
+
+    void post1_squaring() {
+      acc(Rhi_mn, Rlo_mn, tmp0, tmp1, tmp2);  // The pending m*n
+
+      // *Pm = Rm = tmp0 * inv;
+      mul(Rm, tmp0, inv);
+      sd(Rm, Address(Pm));
+
+      // MACC(Rm, Rn, tmp0, tmp1, tmp2);
+      // tmp0 = tmp1; tmp1 = tmp2; tmp2 = 0;
+      mulhu(Rhi_mn, Rm, Rn);
+
+#ifndef PRODUCT
+      // assert(m[i] * n[0] + tmp0 == 0, "broken Montgomery multiply");
+      {
+        mul(Rlo_mn, Rm, Rn);
+        add(Rlo_mn, tmp0, Rlo_mn);
+        Label ok;
+        beqz(Rlo_mn, ok); {
+          stop("broken Montgomery multiply");
+        } bind(ok);
+      }
+#endif
+      // We have very carefully set things up so that
+      // m[i]*n[0] + tmp0 == 0 (mod b), so we don't have to calculate
+      // the lower half of Rm * Rn because we know the result already:
+      // it must be -tmp0.  tmp0 + (-tmp0) must generate a carry iff
+      // tmp0 != 0.  So, rather than do a mul and a cad we just set
+      // the carry flag iff tmp0 is nonzero.
+      //
+      // mul(Rlo_mn, Rm, Rn);
+      // cad(zr, tmp, Rlo_mn);
+      addi(t0, tmp0, -1);
+      sltu(t0, t0, tmp0); // Set carry iff tmp0 is nonzero
+      cadc(tmp0, tmp1, Rhi_mn, t0);
+      adc(tmp1, tmp2, zr, t0);
+      mv(tmp2, zr);
+    }
+
     // use t0 as carry
     void acc(Register Rhi, Register Rlo,
-             Register tmp, Register tmp1, Register tmp2) {
-      cad(tmp, tmp, Rlo, t0);
+             Register tmp0, Register tmp1, Register tmp2) {
+      cad(tmp0, tmp0, Rlo, t0);
       cadc(tmp1, tmp1, Rhi, t0);
       adc(tmp2, tmp2, zr, t0);
     }
@@ -3263,7 +3333,7 @@ class StubGenerator: public StubCodeGenerator {
 
       mv(Pm_base, Ra);
 
-      mv(tmp, zr);
+      mv(tmp0, zr);
       mv(tmp1, zr);
       mv(tmp2, zr);
 
@@ -3322,6 +3392,132 @@ class StubGenerator: public StubCodeGenerator {
 
       leave();
       bind(nothing);
+      ret();
+
+      return entry;
+    }
+
+    /**
+     *
+     * Arguments:
+     *
+     * Inputs:
+     *   c_rarg0   - int array elements a
+     *   c_rarg1   - int array elements n (the modulus)
+     *   c_rarg2   - int length
+     *   c_rarg3   - int inv
+     *   c_rarg4   - int array elements m (the result)
+     *
+     */
+    address generate_square() {
+      Label argh;
+      bind(argh);
+      stop("MontgomeryMultiply total_allocation must be <= 8192");
+
+      align(CodeEntryAlignment);
+      address entry = pc();
+
+      enter();
+
+      // Make room.
+      li(Ra, 512);
+      bgt(Rlen, Ra, argh);
+      slli(Ra, Rlen, exact_log2(4 * sizeof(jint)));
+      sub(Ra, sp, Ra);
+      andi(sp, Ra, -2 * wordSize);
+
+      srliw(Rlen, Rlen, 1);  // length in longwords = len/2
+
+      {
+        // Copy input args, reversing as we go.  We use Ra as a
+        // temporary variable.
+        reverse(Ra, Pa_base, Rlen, Ri, Rj);
+        reverse(Ra, Pn_base, Rlen, Ri, Rj);
+      }
+
+      // Push all call-saved registers and also Pm_base which we'll need
+      // at the end.
+      save_regs();
+
+      mv(Pm_base, Ra);
+
+      mv(tmp0, zr);
+      mv(tmp1, zr);
+      mv(tmp2, zr);
+
+      block_comment("for (int i = 0; i < len; i++) {");
+      mv(Ri, zr); {
+        Label loop, end;
+        bind(loop);
+        bge(Ri, Rlen, end);
+
+        pre1(Ri);
+
+        block_comment("for (j = (i+1)/2; j; j--) {"); {
+          addi(Rj, Ri, 1);
+          srliw(Rj, Rj, 1);
+          unroll_2(Rj, &MontgomeryMultiplyGenerator::step_squaring);
+        } block_comment("  } // j");
+
+        last_squaring(Ri);
+
+        block_comment("  for (j = i/2; j; j--) {"); {
+          srliw(Rj, Ri, 1);
+          unroll_2(Rj, &MontgomeryMultiplyGenerator::extra_step_squaring);
+        } block_comment("  } // j");
+
+        post1_squaring();
+        addi(Ri, Ri, 1);
+        blt(Ri, Rlen, loop);
+
+        bind(end);
+        block_comment("} // i");
+      }
+
+      block_comment("for (int i = len; i < 2*len; i++) {");
+      mv(Ri, Rlen); {
+        Label loop, end;
+        bind(loop);
+        slli(Rj, Rlen, 1);
+        bge(Ri, Rj, end);
+
+        pre2(Ri, Rlen);
+
+        block_comment("  for (j = (2*len-i-1)/2; j; j--) {"); {
+          slli(Rj, Rlen, 1);
+          sub(Rj, Rj, Ri);
+          sub(Rj, Rj, 1);
+          srliw(Rj, Rj, 1);
+          unroll_2(Rj, &MontgomeryMultiplyGenerator::step_squaring);
+        } block_comment("  } // j");
+
+        last_squaring(Ri);
+
+        block_comment("  for (j = (2*len-i)/2; j; j--) {"); {
+          slli(Rj, Rlen, 1);
+          sub(Rj, Rj, Ri);
+          srliw(Rj, Rj, 1);
+          unroll_2(Rj, &MontgomeryMultiplyGenerator::extra_step_squaring);
+        } block_comment("  } // j");
+
+        post2(Ri, Rlen);
+        addi(Ri, Ri, 1);
+        slli(t0, Rlen, 1);
+        blt(Ri, t0, loop);
+
+        bind(end);
+        block_comment("} // i");
+      }
+
+      normalize(Rlen);
+
+      mv(Ra, Pm_base);  // Save Pm_base in Ra
+      restore_regs();  // Restore caller's Pm_base
+
+      // Copy our result into caller's Pm_base
+      reverse(Pm_base, Ra, Rlen, Ri, Rj);
+
+      leave();
       ret();
 
       return entry;
@@ -3516,6 +3712,12 @@ class StubGenerator: public StubCodeGenerator {
       StubCodeMark mark(this, "StubRoutines", "montgomeryMultiply");
       MontgomeryMultiplyGenerator g(_masm, /*squaring*/false);
       StubRoutines::_montgomeryMultiply = g.generate_multiply();
+    }
+
+    if (UseMontgomerySquareIntrinsic) {
+      StubCodeMark mark(this, "StubRoutines", "montgomerySquare");
+      MontgomeryMultiplyGenerator g(_masm, /*squaring*/true);
+      StubRoutines::_montgomerySquare = g.generate_square();
     }
 #endif
 
