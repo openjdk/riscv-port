@@ -87,7 +87,8 @@ void Assembler::_li(Register Rd, int64_t imm) {
   // int64_t is in range 0x8000 0000 0000 0000 ~ 0x7fff ffff ffff ffff
   int shift = 12;
   int64_t upper = imm, lower = imm;
-  // Split imm to a lower 12-bit sign-extended part and the remainder, because addi will sign-extend the lower imm.
+  // Split imm to a lower 12-bit sign-extended part and the remainder,
+  // because addi will sign-extend the lower imm.
   lower = ((int32_t)imm << 20) >> 20;
   upper -= lower;
 
@@ -101,8 +102,7 @@ void Assembler::_li(Register Rd, int64_t imm) {
     if (lower != 0) {
       addi(Rd, Rd, lower);
     }
-  }
-  else {
+  } else {
     // 32-bit integer
     Register hi_Rd = zr;
     if (upper != 0) {
@@ -116,8 +116,8 @@ void Assembler::_li(Register Rd, int64_t imm) {
 }
 
 void Assembler::li64(Register Rd, int64_t imm) {
-   // Load upper 32 bits. Upper = imm[63:32], but if imm[31] = 1 or (imm[31:28] == 0x7ff && imm[19] == 1),
-   // upper = imm[63:32] + 1.
+   // Load upper 32 bits. upper = imm[63:32], but if imm[31] == 1 or
+   // (imm[31:28] == 0x7ff && imm[19] == 1), upper = imm[63:32] + 1.
    int64_t lower = imm & 0xffffffff;
    lower -= ((lower << 44) >> 44);
    int64_t tmp_imm = ((uint64_t)(imm & 0xffffffff00000000)) + (uint64_t)lower;
@@ -280,7 +280,8 @@ void Assembler::movptr_with_offset(Register Rd, address addr, int32_t &offset) {
     block_comment(buffer);
   }
 #endif
-  assert(is_unsigned_imm_in_range(imm64, 47, 0) || (imm64 == (uintptr_t)-1), "48-bit overflow in address constant");
+  assert(is_unsigned_imm_in_range(imm64, 47, 0) || (imm64 == (uintptr_t)-1),
+         "48-bit overflow in address constant");
   // Load upper 32 bits
   int32_t imm = imm64 >> 16;
   int64_t upper = imm, lower = imm;
@@ -295,7 +296,7 @@ void Assembler::movptr_with_offset(Register Rd, address addr, int32_t &offset) {
   addi(Rd, Rd, (imm64 >> 5) & 0x7ff);
   slli(Rd, Rd, 5);
 
-  // Here, remove the addi instruct and return the offset directly. This offset will be used by following jalr/ld.
+  // This offset will be used by following jalr/ld.
   offset = imm64 & 0x1f;
 }
 

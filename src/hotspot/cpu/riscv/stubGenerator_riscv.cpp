@@ -3360,8 +3360,8 @@ class StubGenerator: public StubCodeGenerator {
       block_comment("for (int i = len; i < 2*len; i++) {");
       mv(Ri, Rlen); {
         Label loop, end;
-        slli(Rj, Rlen, 1); // Rj as temp register
-        bge(Ri, Rj, end);
+        slli(t0, Rlen, 1);
+        bge(Ri, t0, end);
 
         bind(loop);
         pre2(Ri, Rlen);
@@ -3375,12 +3375,11 @@ class StubGenerator: public StubCodeGenerator {
 
         post2(Ri, Rlen);
         addw(Ri, Ri, 1);
-        slli(Rj, Rlen, 1);
-        blt(Ri, Rj, loop);
+        slli(t0, Rlen, 1);
+        blt(Ri, t0, loop);
         bind(end);
       }
       block_comment("} // i");
-
 
       normalize(Rlen);
 
@@ -3478,8 +3477,8 @@ class StubGenerator: public StubCodeGenerator {
       mv(Ri, Rlen); {
         Label loop, end;
         bind(loop);
-        slli(Rj, Rlen, 1);
-        bge(Ri, Rj, end);
+        slli(t0, Rlen, 1);
+        bge(Ri, t0, end);
 
         pre2(Ri, Rlen);
 

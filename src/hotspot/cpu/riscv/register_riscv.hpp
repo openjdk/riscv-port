@@ -59,7 +59,8 @@ class RegisterImpl: public AbstractRegisterImpl {
     number_of_registers      = 32,
     max_slots_per_register   = 2,
 
-    // integer registers in the range of [x8~x15] correspond to RVC. Please see Table 16.2 in spec.
+    // integer registers x8 - x15 and floating-point registers f8 - f15 are allocatable
+    // for compressed instructions. See Table 17.2 in spec.
     compressed_register_base = 8,
     compressed_register_top  = 15,
   };
@@ -73,9 +74,9 @@ class RegisterImpl: public AbstractRegisterImpl {
   VMReg as_VMReg() const;
 
   // accessors
-  int   encoding() const                         { assert(is_valid(), "invalid register"); return encoding_nocheck(); }
-  int   encoding_nocheck() const                 { return this - first(); }
-  bool  is_valid() const                         { return (unsigned)encoding_nocheck() < number_of_registers; }
+  int encoding() const            { assert(is_valid(), "invalid register"); return encoding_nocheck(); }
+  int encoding_nocheck() const    { return this - first(); }
+  bool is_valid() const           { return (unsigned)encoding_nocheck() < number_of_registers; }
   const char* name() const;
 
   // for rvc
@@ -164,9 +165,9 @@ class FloatRegisterImpl: public AbstractRegisterImpl {
   }
 
   // accessors
-  int encoding() const                          { assert(is_valid(), "invalid register"); return encoding_nocheck(); }
-  int   encoding_nocheck() const                { return this - first(); }
-  int is_valid() const                          { return (unsigned)encoding_nocheck() < number_of_registers; }
+  int encoding() const            { assert(is_valid(), "invalid register"); return encoding_nocheck(); }
+  int encoding_nocheck() const    { return this - first(); }
+  int is_valid() const            { return (unsigned)encoding_nocheck() < number_of_registers; }
   const char* name() const;
 
   // for rvc
@@ -249,9 +250,9 @@ class VectorRegisterImpl: public AbstractRegisterImpl {
   VectorRegister successor() const { return this + 1; }
 
   // accessors
-  int encoding() const             { assert(is_valid(), "invalid register"); return encoding_nocheck(); }
-  int encoding_nocheck() const     { return this - first(); }
-  bool is_valid() const            { return (unsigned)encoding_nocheck() < number_of_registers; }
+  int encoding() const            { assert(is_valid(), "invalid register"); return encoding_nocheck(); }
+  int encoding_nocheck() const    { return this - first(); }
+  bool is_valid() const           { return (unsigned)encoding_nocheck() < number_of_registers; }
   const char* name() const;
 
 };

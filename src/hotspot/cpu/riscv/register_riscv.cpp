@@ -32,6 +32,7 @@ REGISTER_IMPL_DEFINITION(VectorRegister, VectorRegisterImpl, VectorRegisterImpl:
 
 const int ConcreteRegisterImpl::max_gpr = RegisterImpl::number_of_registers *
                                           RegisterImpl::max_slots_per_register;
+
 const int ConcreteRegisterImpl::max_fpr =
     ConcreteRegisterImpl::max_gpr +
     FloatRegisterImpl::number_of_registers * FloatRegisterImpl::max_slots_per_register;

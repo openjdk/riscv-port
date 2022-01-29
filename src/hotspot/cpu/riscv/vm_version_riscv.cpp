@@ -41,6 +41,7 @@ void VM_Version::initialize() {
   if (FLAG_IS_DEFAULT(UseFMA)) {
     FLAG_SET_DEFAULT(UseFMA, true);
   }
+
   if (FLAG_IS_DEFAULT(AllocatePrefetchDistance)) {
     FLAG_SET_DEFAULT(AllocatePrefetchDistance, 0);
   }

@@ -68,7 +68,21 @@ REGISTER_DECLARATION(FloatRegister, c_farg5, f15);
 REGISTER_DECLARATION(FloatRegister, c_farg6, f16);
 REGISTER_DECLARATION(FloatRegister, c_farg7, f17);
 
-// java function register(caller-save registers)
+// Symbolically name the register arguments used by the Java calling convention.
+// We have control over the convention for java so we can do what we please.
+// What pleases us is to offset the java calling convention so that when
+// we call a suitable jni method the arguments are lined up and we don't
+// have to do much shuffling. A suitable jni method is non-static and a
+// small number of arguments.
+//
+// |------------------------------------------------------------------------|
+// | c_rarg0  c_rarg1  c_rarg2  c_rarg3  c_rarg4  c_rarg5  c_rarg6  c_rarg7 |
+// |------------------------------------------------------------------------|
+// | x10      x11      x12      x13      x14      x15      x16      x17     |
+// |------------------------------------------------------------------------|
+// | j_rarg7  j_rarg0  j_rarg1  j_rarg2  j_rarg3  j_rarg4  j_rarg5  j_rarg6 |
+// |------------------------------------------------------------------------|
+
 REGISTER_DECLARATION(Register, j_rarg0, c_rarg1);
 REGISTER_DECLARATION(Register, j_rarg1, c_rarg2);
 REGISTER_DECLARATION(Register, j_rarg2, c_rarg3);
@@ -77,6 +91,8 @@ REGISTER_DECLARATION(Register, j_rarg4, c_rarg5);
 REGISTER_DECLARATION(Register, j_rarg5, c_rarg6);
 REGISTER_DECLARATION(Register, j_rarg6, c_rarg7);
 REGISTER_DECLARATION(Register, j_rarg7, c_rarg0);
+
+// Java floating args are passed as per C
 
 REGISTER_DECLARATION(FloatRegister, j_farg0, f10);
 REGISTER_DECLARATION(FloatRegister, j_farg1, f11);
@@ -93,6 +109,9 @@ REGISTER_DECLARATION(Register, zr,        x0);
 REGISTER_DECLARATION(Register, gp,        x3);
 // thread pointer
 REGISTER_DECLARATION(Register, tp,        x4);
+
+// registers used to hold VM data either temporarily within a method
+// or across method calls
 
 // volatile (caller-save) registers
 
@@ -116,9 +135,6 @@ REGISTER_DECLARATION(Register, xmonitors, x25);
 // locals on stack
 REGISTER_DECLARATION(Register, xlocals,   x24);
 
-/* If you use x4(tp) as java thread pointer according to the instruction manual,
- * it overlaps with the register used by c++ thread.
- */
 // java thread pointer
 REGISTER_DECLARATION(Register, xthread,   x23);
 // bytecode pointer
@@ -134,7 +150,7 @@ REGISTER_DECLARATION(Register, t1, x6);
 REGISTER_DECLARATION(Register, t2, x7);
 
 const Register g_INTArgReg[Argument::n_int_register_parameters_c] = {
-  c_rarg0, c_rarg1, c_rarg2, c_rarg3, c_rarg4, c_rarg5,  c_rarg6,  c_rarg7
+  c_rarg0, c_rarg1, c_rarg2, c_rarg3, c_rarg4, c_rarg5, c_rarg6, c_rarg7
 };
 
 const FloatRegister g_FPArgReg[Argument::n_float_register_parameters_c] = {

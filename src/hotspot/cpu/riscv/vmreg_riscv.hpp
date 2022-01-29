@@ -39,18 +39,18 @@ inline bool is_VectorRegister() {
 }
 
 inline Register as_Register() {
-  assert( is_Register(), "must be");
+  assert(is_Register(), "must be");
   return ::as_Register(value() / RegisterImpl::max_slots_per_register);
 }
 
 inline FloatRegister as_FloatRegister() {
-  assert( is_FloatRegister() && is_even(value()), "must be" );
+  assert(is_FloatRegister() && is_even(value()), "must be");
   return ::as_FloatRegister((value() - ConcreteRegisterImpl::max_gpr) /
                             FloatRegisterImpl::max_slots_per_register);
 }
 
 inline VectorRegister as_VectorRegister() {
-  assert( is_VectorRegister() && ((value() & (VectorRegisterImpl::max_slots_per_register - 1)) == 0), "must be" );
+  assert(is_VectorRegister() && ((value() & (VectorRegisterImpl::max_slots_per_register - 1)) == 0), "must be");
   return ::as_VectorRegister((value() - ConcreteRegisterImpl::max_fpr) /
                              VectorRegisterImpl::max_slots_per_register);
 }
