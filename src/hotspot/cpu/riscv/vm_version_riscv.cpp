@@ -203,6 +203,10 @@ void VM_Version::c2_initialize() {
   if (FLAG_IS_DEFAULT(UseMontgomeryMultiplyIntrinsic)) {
     FLAG_SET_DEFAULT(UseMontgomeryMultiplyIntrinsic, true);
   }
+
+  if (FLAG_IS_DEFAULT(UseMontgomerySquareIntrinsic)) {
+    FLAG_SET_DEFAULT(UseMontgomerySquareIntrinsic, true);
+  }
 }
 #endif // COMPILER2
 
