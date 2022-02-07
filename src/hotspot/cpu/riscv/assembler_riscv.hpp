@@ -319,7 +319,7 @@ public:
   void movptr(Register Rd, uintptr_t imm64);
   void ifence();
   void j(const address &dest, Register temp = t0);
-  void j(const Address &adr, Register temp = t0) ;
+  void j(const Address &adr, Register temp = t0);
   void j(Label &l, Register temp = t0);
   void jal(Label &l, Register temp = t0);
   void jal(const address &dest, Register temp = t0);

@@ -373,7 +373,7 @@ class MacroAssembler: public Assembler {
 
   // Required platform-specific helpers for Label::patch_instructions.
   // They _shadow_ the declarations in AbstractAssembler, which are undefined.
-  static int pd_patch_instruction_size(address branch, address target) ;
+  static int pd_patch_instruction_size(address branch, address target);
   static void pd_patch_instruction(address branch, address target, const char* file = NULL, int line = 0) {
     pd_patch_instruction_size(branch, target);
   }
@@ -402,7 +402,7 @@ class MacroAssembler: public Assembler {
  public:
   // Standard pseudoinstruction
   void nop();
-  void mv(Register Rd, Register Rs) ;
+  void mv(Register Rd, Register Rs);
   void notr(Register Rd, Register Rs);
   void neg(Register Rd, Register Rs);
   void negw(Register Rd, Register Rs);
@@ -550,7 +550,7 @@ class MacroAssembler: public Assembler {
   void orptr(Address adr, RegisterOrConstant src, Register tmp1 = t0, Register tmp2 = t1);
 
   void cmpxchg_obj_header(Register oldv, Register newv, Register obj, Register tmp, Label &succeed, Label *fail);
-  void cmpxchgptr(Register oldv, Register newv, Register addr, Register tmp, Label &succeed, Label *fail) ;
+  void cmpxchgptr(Register oldv, Register newv, Register addr, Register tmp, Label &succeed, Label *fail);
   void cmpxchg(Register addr, Register expected,
                Register new_val,
                enum operand_size size,

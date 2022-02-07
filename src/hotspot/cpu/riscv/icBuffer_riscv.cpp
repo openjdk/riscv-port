@@ -36,7 +36,7 @@
 
 int InlineCacheBuffer::ic_stub_code_size() {
   // 6: auipc + ld + auipc + jalr + address(2 * instruction_size)
-  // 5: auipc + ld + j + address(2 * instruction_size )
+  // 5: auipc + ld + j + address(2 * instruction_size)
   return (MacroAssembler::far_branches() ? 6 : 5) * NativeInstruction::instruction_size;
 }
 
