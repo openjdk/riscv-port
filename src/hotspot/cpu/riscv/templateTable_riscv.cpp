@@ -3165,8 +3165,8 @@ void TemplateTable::prepare_invoke(int byte_no,
   assert(recv  == noreg || recv  == x12, "");
 
   // setup registers & access constant pool cache
-  if (recv  == noreg) {
-    recv  = x12;
+  if (recv == noreg) {
+    recv = x12;
   }
   if (flags == noreg) {
     flags = x13;

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2020, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -539,13 +539,12 @@ bool frame::is_interpreted_frame_valid(JavaThread* thread) const {
   // do some validation of frame elements
 
   // first the method
-
   Method* m = *interpreter_frame_method_addr();
-
   // validate the method we'd find in this potential sender
   if (!Method::is_valid_method(m)) {
     return false;
   }
+
   // stack frames shouldn't be much larger than max_stack elements
   // this test requires the use of unextended_sp which is the sp as seen by
   // the current frame, and not sp which is the "raw" pc which could point
@@ -556,7 +555,7 @@ bool frame::is_interpreted_frame_valid(JavaThread* thread) const {
   }
 
   // validate bci/bcx
-  address  bcp    = interpreter_frame_bcp();
+  address bcp = interpreter_frame_bcp();
   if (m->validate_bci_from_bcp(bcp) < 0) {
     return false;
   }
@@ -566,12 +565,13 @@ bool frame::is_interpreted_frame_valid(JavaThread* thread) const {
   if (MetaspaceObj::is_valid(cp) == false) {
     return false;
   }
-  // validate locals
-  address locals =  (address) *interpreter_frame_locals_addr();
 
+  // validate locals
+  address locals = (address) *interpreter_frame_locals_addr();
   if (locals > thread->stack_base() || locals < (address) fp()) {
     return false;
   }
+
   // We'd have to be pretty unlucky to be mislead at this point
   return true;
 }
