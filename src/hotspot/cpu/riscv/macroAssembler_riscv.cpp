@@ -2712,11 +2712,11 @@ void MacroAssembler::tlab_allocate(Register obj,
 void MacroAssembler::eden_allocate(Register obj,
                                    Register var_size_in_bytes,
                                    int con_size_in_bytes,
-                                   Register tmp1,
+                                   Register tmp,
                                    Label& slow_case,
                                    bool is_far) {
   BarrierSetAssembler *bs = BarrierSet::barrier_set()->barrier_set_assembler();
-  bs->eden_allocate(this, obj, var_size_in_bytes, con_size_in_bytes, tmp1, slow_case, is_far);
+  bs->eden_allocate(this, obj, var_size_in_bytes, con_size_in_bytes, tmp, slow_case, is_far);
 }
 
 
@@ -3835,8 +3835,8 @@ FCMP(double, d);
 // Zero words; len is in bytes
 // Destroys all registers except addr
 // len must be a nonzero multiple of wordSize
-void MacroAssembler::zero_memory(Register addr, Register len, Register tmp1) {
-  assert_different_registers(addr, len, tmp1, t0, t1);
+void MacroAssembler::zero_memory(Register addr, Register len, Register tmp) {
+  assert_different_registers(addr, len, tmp, t0, t1);
 
 #ifdef ASSERT
   {
@@ -3881,8 +3881,8 @@ void MacroAssembler::zero_memory(Register addr, Register len, Register tmp1) {
   srli(len, len, LogBytesPerWord);
   andi(t0, len, unroll - 1);  // t0 = cnt % unroll
   sub(len, len, t0);          // cnt -= unroll
-  // tmp1 always points to the end of the region we're about to zero
-  shadd(tmp1, t0, addr, t1, LogBytesPerWord);
+  // tmp always points to the end of the region we're about to zero
+  shadd(tmp, t0, addr, t1, LogBytesPerWord);
   la(t1, entry);
   slli(t0, t0, 2);
   sub(t1, t1, t0);
@@ -3890,10 +3890,10 @@ void MacroAssembler::zero_memory(Register addr, Register len, Register tmp1) {
   bind(loop);
   sub(len, len, unroll);
   for (int i = -unroll; i < 0; i++) {
-    Assembler::sd(zr, Address(tmp1, i * wordSize));
+    Assembler::sd(zr, Address(tmp, i * wordSize));
   }
   bind(entry);
-  add(tmp1, tmp1, unroll * wordSize);
+  add(tmp, tmp, unroll * wordSize);
   bnez(len, loop);
 }
 

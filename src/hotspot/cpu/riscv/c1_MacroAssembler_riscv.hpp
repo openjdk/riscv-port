@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1999, 2019, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2015, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,7 +49,7 @@ using MacroAssembler::null_check;
   );
 
   void initialize_header(Register obj, Register klass, Register len, Register tmp1, Register tmp2);
-  void initialize_body(Register obj, Register len_in_bytes, int hdr_size_in_bytes, Register tmp1);
+  void initialize_body(Register obj, Register len_in_bytes, int hdr_size_in_bytes, Register tmp);
 
   void float_cmp(bool is_float, int unordered_result,
                  FloatRegister f0, FloatRegister f1,

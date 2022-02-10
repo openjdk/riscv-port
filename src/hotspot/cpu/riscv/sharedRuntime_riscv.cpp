@@ -1751,7 +1751,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
     __ block_comment("Slow path unlock {");
     __ bind(slow_path_unlock);
 
-    if (ret_type == T_FLOAT || ret_type == T_DOUBLE ) {
+    if (ret_type == T_FLOAT || ret_type == T_DOUBLE) {
       save_native_result(masm, ret_type, stack_slots);
     }
 
@@ -1778,7 +1778,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
     __ sd(x9, Address(xthread, in_bytes(Thread::pending_exception_offset())));
 
-    if (ret_type == T_FLOAT || ret_type == T_DOUBLE ) {
+    if (ret_type == T_FLOAT || ret_type == T_DOUBLE) {
       restore_native_result(masm, ret_type, stack_slots);
     }
     __ j(unlock_done);
@@ -2173,7 +2173,7 @@ void SharedRuntime::generate_deopt_blob() {
   // Set an oopmap for the call site
   // Use the same PC we used for the last java frame
   oop_maps->add_gc_map(the_pc - start,
-                       new OopMap( frame_size_in_words, 0 ));
+                       new OopMap(frame_size_in_words, 0));
 
   // Clear fp AND pc
   __ reset_last_Java_frame(true);

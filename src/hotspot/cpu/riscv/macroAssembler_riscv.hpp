@@ -269,14 +269,6 @@ class MacroAssembler: public Assembler {
   Address form_address(Register Rd, Register base, long byte_offset);
 
   // allocation
-  void eden_allocate(
-    Register obj,                   // result: pointer to object after successful allocation
-    Register var_size_in_bytes,     // object size in bytes if unknown at compile time; invalid otherwise
-    int      con_size_in_bytes,     // object size in bytes if   known at compile time
-    Register tmp1,                  // temp register
-    Label&   slow_case,             // continuation point if fast allocation fails
-    bool is_far = false
-  );
   void tlab_allocate(
     Register obj,                   // result: pointer to object after successful allocation
     Register var_size_in_bytes,     // object size in bytes if unknown at compile time; invalid otherwise
@@ -284,6 +276,15 @@ class MacroAssembler: public Assembler {
     Register tmp1,                  // temp register
     Register tmp2,                  // temp register
     Label&   slow_case,             // continuation point of fast allocation fails
+    bool is_far = false
+  );
+
+  void eden_allocate(
+    Register obj,                   // result: pointer to object after successful allocation
+    Register var_size_in_bytes,     // object size in bytes if unknown at compile time; invalid otherwise
+    int      con_size_in_bytes,     // object size in bytes if   known at compile time
+    Register tmp,                   // temp register
+    Label&   slow_case,             // continuation point if fast allocation fails
     bool is_far = false
   );
 
@@ -687,7 +688,7 @@ class MacroAssembler: public Assembler {
   void zero_words(Register base, u_int64_t cnt);
   address zero_words(Register ptr, Register cnt);
   void fill_words(Register base, Register cnt, Register value);
-  void zero_memory(Register addr, Register len, Register tmp1);
+  void zero_memory(Register addr, Register len, Register tmp);
 
   // shift left by shamt and add
   void shadd(Register Rd, Register Rs1, Register Rs2, Register tmp, int shamt);

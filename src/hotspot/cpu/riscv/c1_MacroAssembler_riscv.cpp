@@ -166,7 +166,7 @@ void C1_MacroAssembler::initialize_header(Register obj, Register klass, Register
 }
 
 // preserves obj, destroys len_in_bytes
-void C1_MacroAssembler::initialize_body(Register obj, Register len_in_bytes, int hdr_size_in_bytes, Register tmp1) {
+void C1_MacroAssembler::initialize_body(Register obj, Register len_in_bytes, int hdr_size_in_bytes, Register tmp) {
   assert(hdr_size_in_bytes >= 0, "header size must be positive or 0");
   Label done;
 
@@ -178,7 +178,7 @@ void C1_MacroAssembler::initialize_body(Register obj, Register len_in_bytes, int
   if (hdr_size_in_bytes) {
     add(obj, obj, hdr_size_in_bytes);
   }
-  zero_memory(obj, len_in_bytes, tmp1);
+  zero_memory(obj, len_in_bytes, tmp);
   if (hdr_size_in_bytes) {
     sub(obj, obj, hdr_size_in_bytes);
   }
