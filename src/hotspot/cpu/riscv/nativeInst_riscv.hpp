@@ -196,10 +196,7 @@ class NativeInstruction {
   static bool is_lwu_to_zr(address instr);
 
   inline bool is_nop();
-  inline bool is_illegal();
-  inline bool is_return();
   inline bool is_jump_or_nop();
-  inline bool is_cond_jump();
   bool is_safepoint_poll();
   bool is_sigill_zombie_not_entrant();
   bool is_stop();

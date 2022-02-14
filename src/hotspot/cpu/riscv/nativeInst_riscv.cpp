@@ -380,8 +380,6 @@ void NativeJump::patch_verified_entry(address entry, address verified_entry, add
 }
 
 void NativeGeneralJump::insert_unconditional(address code_pos, address entry) {
-  NativeGeneralJump* n_jump = (NativeGeneralJump*)code_pos;
-
   CodeBuffer cb(code_pos, instruction_size);
   MacroAssembler a(&cb);
 
