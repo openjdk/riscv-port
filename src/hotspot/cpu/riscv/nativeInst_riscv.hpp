@@ -98,21 +98,31 @@ class NativeInstruction {
   //     slli
   //     addi/jalr/load
   static bool check_movptr_data_dependency(address instr) {
-    address lui = instr;
-    address addi1 = lui + instruction_size;
-    address slli1 = addi1 + instruction_size;
-    address addi2 = slli1 + instruction_size;
-    address slli2 = addi2 + instruction_size;
-    address last_instr = slli2 + instruction_size;
-    return extract_rs1(addi1) == extract_rd(lui) &&
-           extract_rs1(addi1) == extract_rd(addi1) &&
-           extract_rs1(slli1) == extract_rd(addi1) &&
-           extract_rs1(slli1) == extract_rd(slli1) &&
-           extract_rs1(addi2) == extract_rd(slli1) &&
-           extract_rs1(addi2) == extract_rd(addi2) &&
-           extract_rs1(slli2) == extract_rd(addi2) &&
-           extract_rs1(slli2) == extract_rd(slli2) &&
-           extract_rs1(last_instr) == extract_rd(slli2);
+    const address lui = instr;
+    const Register lui_rd = extract_rd(lui);
+    const address addi1 = lui + instruction_size;
+    const Register addi1_rs1 = extract_rs1(addi1);
+    const Register addi1_rd  = extract_rd(addi1);
+    const address slli1 = addi1 + instruction_size;
+    const Register slli1_rs1 = extract_rs1(slli1);
+    const Register slli1_rd  = extract_rd(slli1);
+    const address addi2 = slli1 + instruction_size;
+    const Register addi2_rs1 = extract_rs1(addi2);
+    const Register addi2_rd  = extract_rd(addi2);
+    const address slli2 = addi2 + instruction_size;
+    const Register slli2_rs1 = extract_rs1(slli2);
+    const Register slli2_rd  = extract_rd(slli2);
+    const address last_instr = slli2 + instruction_size;
+    const Register last_instr_rs1 = extract_rs1(last_instr);
+    return addi1_rs1 == lui_rd &&
+           addi1_rs1 == addi1_rd &&
+           slli1_rs1 == addi1_rd &&
+           slli1_rs1 == slli1_rd &&
+           addi2_rs1 == slli1_rd &&
+           addi2_rs1 == addi2_rd &&
+           slli2_rs1 == addi2_rd &&
+           slli2_rs1 == slli2_rd &&
+           last_instr_rs1 == slli2_rd;
   }
 
   // the instruction sequence of li64 is as below:
@@ -125,47 +135,65 @@ class NativeInstruction {
   //     slli
   //     addi
   static bool check_li64_data_dependency(address instr) {
-    address lui = instr;
-    address addi1 = lui + instruction_size;
-    address slli1 = addi1 + instruction_size;
-    address addi2 = slli1 + instruction_size;
-    address slli2 = addi2 + instruction_size;
-    address addi3 = slli2 + instruction_size;
-    address slli3 = addi3 + instruction_size;
-    address addi4 = slli3 + instruction_size;
-    return extract_rs1(addi1) == extract_rd(lui) &&
-           extract_rs1(addi1) == extract_rd(addi1) &&
-           extract_rs1(slli1) == extract_rd(addi1) &&
-           extract_rs1(slli1) == extract_rd(slli1) &&
-           extract_rs1(addi2) == extract_rd(slli1) &&
-           extract_rs1(addi2) == extract_rd(addi2) &&
-           extract_rs1(slli2) == extract_rd(addi2) &&
-           extract_rs1(slli2) == extract_rd(slli2) &&
-           extract_rs1(addi3) == extract_rd(slli2) &&
-           extract_rs1(addi3) == extract_rd(addi3) &&
-           extract_rs1(slli3) == extract_rd(addi3) &&
-           extract_rs1(slli3) == extract_rd(slli3) &&
-           extract_rs1(addi4) == extract_rd(slli3) &&
-           extract_rs1(addi4) == extract_rd(addi4);
+    const address lui = instr;
+    const Register lui_rd = extract_rd(lui);
+    const address addi1 = lui + instruction_size;
+    const Register addi1_rs1 = extract_rs1(addi1);
+    const Register addi1_rd  = extract_rd(addi1);
+    const address slli1 = addi1 + instruction_size;
+    const Register slli1_rs1 = extract_rs1(slli1);
+    const Register slli1_rd  = extract_rd(slli1);
+    const address addi2 = slli1 + instruction_size;
+    const Register addi2_rs1 = extract_rs1(addi2);
+    const Register addi2_rd  = extract_rd(addi2);
+    const address slli2 = addi2 + instruction_size;
+    const Register slli2_rs1 = extract_rs1(slli2);
+    const Register slli2_rd  = extract_rd(slli2);
+    const address addi3 = slli2 + instruction_size;
+    const Register addi3_rs1 = extract_rs1(addi3);
+    const Register addi3_rd  = extract_rd(addi3);
+    const address slli3 = addi3 + instruction_size;
+    const Register slli3_rs1 = extract_rs1(slli3);
+    const Register slli3_rd  = extract_rd(slli3);
+    const address addi4 = slli3 + instruction_size;
+    const Register addi4_rs1 = extract_rs1(addi4);
+    const Register addi4_rd  = extract_rd(addi4);
+    return addi1_rs1 == lui_rd &&
+           addi1_rs1 == addi1_rd &&
+           slli1_rs1 == addi1_rd &&
+           slli1_rs1 == slli1_rd &&
+           addi2_rs1 == slli1_rd &&
+           addi2_rs1 == addi2_rd &&
+           slli2_rs1 == addi2_rd &&
+           slli2_rs1 == slli2_rd &&
+           addi3_rs1 == slli2_rd &&
+           addi3_rs1 == addi3_rd &&
+           slli3_rs1 == addi3_rd &&
+           slli3_rs1 == slli3_rd &&
+           addi4_rs1 == slli3_rd &&
+           addi4_rs1 == addi4_rd;
   }
 
   // the instruction sequence of li32 is as below:
   //     lui
   //     addiw
   static bool check_li32_data_dependency(address instr) {
-    address lui = instr;
-    address addiw = lui + instruction_size;
+    const address lui = instr;
+    const Register lui_rd = extract_rd(lui);
+    const address addiw = lui + instruction_size;
+    const Register addiw_rs1 = extract_rs1(addiw);
+    const Register addiw_rd  = extract_rd(addiw);
 
-    return extract_rs1(addiw) == extract_rd(lui) &&
-           extract_rs1(addiw) == extract_rd(addiw);
+    return addiw_rs1 == lui_rd &&
+           addiw_rs1 == addiw_rd;
   }
 
   // the instruction sequence of pc-relative is as below:
   //     auipc
   //     jalr/addi/load/float_load
   static bool check_pc_relative_data_dependency(address instr) {
-    address auipc = instr;
-    address last_instr = auipc + instruction_size;
+    const address auipc = instr;
+    const address last_instr = auipc + instruction_size;
 
     return extract_rs1(last_instr) == extract_rd(auipc);
   }
@@ -174,11 +202,14 @@ class NativeInstruction {
   //     auipc
   //     load
   static bool check_load_pc_relative_data_dependency(address instr) {
-    address auipc = instr;
-    address load = auipc + instruction_size;
+    const address auipc = instr;
+    const Register auipc_rd = extract_rd(auipc);
+    const address load = auipc + instruction_size;
+    const Register load_rs1 = extract_rs1(load);
+    const Register load_rd  = extract_rd(load);
 
-    return extract_rd(load) == extract_rd(auipc) &&
-           extract_rs1(load) == extract_rd(load);
+    return load_rd == auipc_rd &&
+           load_rs1 == load_rd;
   }
 
   static bool is_movptr_at(address instr);
