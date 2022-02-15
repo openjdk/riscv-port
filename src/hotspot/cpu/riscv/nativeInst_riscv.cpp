@@ -85,33 +85,32 @@ bool NativeInstruction::is_load_pc_relative_at(address instr) {
 }
 
 bool NativeInstruction::is_movptr_at(address instr) {
-  address pos = instr;
-  return is_lui_at(pos) && // Lui
-         is_addi_at(pos += instruction_size) && // Addi
-         is_slli_shift_at(pos += instruction_size, 11) && // Slli Rd, Rs, 11
-         is_addi_at(pos += instruction_size) && // Addi
-         is_slli_shift_at(pos += instruction_size, 5) && // Slli Rd, Rs, 5
-         (is_addi_at(pos += instruction_size) || is_jalr_at(pos) || is_load_at(pos)) && // Addi/Jalr/Load
+  return is_lui_at(instr) && // Lui
+         is_addi_at(instr + instruction_size) && // Addi
+         is_slli_shift_at(instr + instruction_size * 2, 11) && // Slli Rd, Rs, 11
+         is_addi_at(instr + instruction_size * 3) && // Addi
+         is_slli_shift_at(instr + instruction_size * 4, 5) && // Slli Rd, Rs, 5
+         (is_addi_at(instr + instruction_size * 5) ||
+          is_jalr_at(instr + instruction_size * 5) ||
+          is_load_at(instr + instruction_size * 5)) && // Addi/Jalr/Load
          check_movptr_data_dependency(instr);
 }
 
 bool NativeInstruction::is_li32_at(address instr) {
-  address pos = instr;
-  return is_lui_at(pos) && // lui
-         is_addiw_at(pos += instruction_size) && // addiw
+  return is_lui_at(instr) && // lui
+         is_addiw_at(instr + instruction_size) && // addiw
          check_li32_data_dependency(instr);
 }
 
 bool NativeInstruction::is_li64_at(address instr) {
-  address pos = instr;
-  return is_lui_at(pos) && // lui
-         is_addi_at(pos += instruction_size) && // addi
-         is_slli_shift_at(pos += instruction_size, 12) &&  // Slli Rd, Rs, 12
-         is_addi_at(pos += instruction_size) && // addi
-         is_slli_shift_at(pos += instruction_size, 12) &&  // Slli Rd, Rs, 12
-         is_addi_at(pos += instruction_size) && // addi
-         is_slli_shift_at(pos += instruction_size, 8) &&   // Slli Rd, Rs, 8
-         is_addi_at(pos += instruction_size) && // addi
+  return is_lui_at(instr) && // lui
+         is_addi_at(instr + instruction_size) && // addi
+         is_slli_shift_at(instr + instruction_size * 2, 12) &&  // Slli Rd, Rs, 12
+         is_addi_at(instr + instruction_size * 3) && // addi
+         is_slli_shift_at(instr + instruction_size * 4, 12) &&  // Slli Rd, Rs, 12
+         is_addi_at(instr + instruction_size * 5) && // addi
+         is_slli_shift_at(instr + instruction_size * 6, 8) &&   // Slli Rd, Rs, 8
+         is_addi_at(instr + instruction_size * 7) && // addi
          check_li64_data_dependency(instr);
 }
 
