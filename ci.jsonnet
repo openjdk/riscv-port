@@ -251,7 +251,7 @@ local labsjdk_builder_version = "0ae6a84d4d7c9a103f696bffbb2ac807575ab28c";
     },
 
     # Downstream Graal branch to test against.
-    local downstream_branch = "master",
+    local downstream_branch = "me/GR-36838_intrinsics_update",
 
     local clone_graal = {
         run+: [
