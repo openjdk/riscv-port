@@ -39,64 +39,79 @@
 #include "c1/c1_Runtime1.hpp"
 #endif
 
+Register NativeInstruction::extract_rs1(address instr) {
+  assert_cond(instr != NULL);
+  return as_Register(Assembler::extract(((unsigned*)instr)[0], 19, 15));
+}
+
+Register NativeInstruction::extract_rs2(address instr) {
+  assert_cond(instr != NULL);
+  return as_Register(Assembler::extract(((unsigned*)instr)[0], 24, 20));
+}
+
+Register NativeInstruction::extract_rd(address instr) {
+  assert_cond(instr != NULL);
+  return as_Register(Assembler::extract(((unsigned*)instr)[0], 11, 7));
+}
+
+uint32_t NativeInstruction::extract_opcode(address instr) {
+  assert_cond(instr != NULL);
+  return Assembler::extract(((unsigned*)instr)[0], 6, 0);
+}
+
+uint32_t NativeInstruction::extract_funct3(address instr) {
+  assert_cond(instr != NULL);
+  return Assembler::extract(((unsigned*)instr)[0], 14, 12);
+}
+
 bool NativeInstruction::is_pc_relative_at(address instr) {
   // auipc + jalr
   // auipc + addi
   // auipc + load
   // auipc + fload_load
-  if ((is_auipc_at(instr)) &&
-      (is_addi_at(instr + 4) || is_jalr_at(instr + 4) || is_load_at(instr + 4) || is_float_load_at(instr + 4)) &&
-      check_pc_relative_data_dependency(instr)) {
-    return true;
-  }
-  return false;
+  return (is_auipc_at(instr)) &&
+         (is_addi_at(instr + instruction_size) ||
+          is_jalr_at(instr + instruction_size) ||
+          is_load_at(instr + instruction_size) ||
+          is_float_load_at(instr + instruction_size)) &&
+         check_pc_relative_data_dependency(instr);
 }
 
 // ie:ld(Rd, Label)
 bool NativeInstruction::is_load_pc_relative_at(address instr) {
-  if (is_auipc_at(instr) && // auipc
-      is_ld_at(instr + 4) && // ld
-      check_load_pc_relative_data_dependency(instr)) {
-      return true;
-  }
-  return false;
+  return is_auipc_at(instr) && // auipc
+         is_ld_at(instr + instruction_size) && // ld
+         check_load_pc_relative_data_dependency(instr);
 }
 
 bool NativeInstruction::is_movptr_at(address instr) {
-  if (is_lui_at(instr) && // Lui
-      is_addi_at(instr + 4) && // Addi
-      is_slli_shift_at(instr + 8, 11) && // Slli Rd, Rs, 11
-      is_addi_at(instr + 12) && // Addi
-      is_slli_shift_at(instr + 16, 5) && // Slli Rd, Rs, 5
-      (is_addi_at(instr + 20) || is_jalr_at(instr + 20) || is_load_at(instr + 20)) && // Addi/Jalr/Load
-      check_movptr_data_dependency(instr)) {
-    return true;
-  }
-  return false;
+  return is_lui_at(instr) && // Lui
+         is_addi_at(instr + instruction_size) && // Addi
+         is_slli_shift_at(instr + instruction_size * 2, 11) && // Slli Rd, Rs, 11
+         is_addi_at(instr + instruction_size * 3) && // Addi
+         is_slli_shift_at(instr + instruction_size * 4, 5) && // Slli Rd, Rs, 5
+         (is_addi_at(instr + instruction_size * 5) ||
+          is_jalr_at(instr + instruction_size * 5) ||
+          is_load_at(instr + instruction_size * 5)) && // Addi/Jalr/Load
+         check_movptr_data_dependency(instr);
 }
 
 bool NativeInstruction::is_li32_at(address instr) {
-  if (is_lui_at(instr) && // lui
-      is_addiw_at(instr + 4) && // addiw
-      check_li32_data_dependency(instr)) {
-    return true;
-  }
-  return false;
+  return is_lui_at(instr) && // lui
+         is_addiw_at(instr + instruction_size) && // addiw
+         check_li32_data_dependency(instr);
 }
 
 bool NativeInstruction::is_li64_at(address instr) {
-  if (is_lui_at(instr) && // lui
-      is_addi_at(instr + 4) && // addi
-      is_slli_shift_at(instr + 8, 12)&&  // Slli Rd, Rs, 12
-      is_addi_at(instr + 12) && // addi
-      is_slli_shift_at(instr + 16, 12) && // Slli Rd, Rs, 12
-      is_addi_at(instr + 20) && // addi
-      is_slli_shift_at(instr + 24, 8) && // Slli Rd, Rs, 8
-      is_addi_at(instr + 28) && // addi
-      check_li64_data_dependency(instr)) {
-    return true;
-  }
-  return false;
+  return is_lui_at(instr) && // lui
+         is_addi_at(instr + instruction_size) && // addi
+         is_slli_shift_at(instr + instruction_size * 2, 12) &&  // Slli Rd, Rs, 12
+         is_addi_at(instr + instruction_size * 3) && // addi
+         is_slli_shift_at(instr + instruction_size * 4, 12) &&  // Slli Rd, Rs, 12
+         is_addi_at(instr + instruction_size * 5) && // addi
+         is_slli_shift_at(instr + instruction_size * 6, 8) &&   // Slli Rd, Rs, 8
+         is_addi_at(instr + instruction_size * 7) && // addi
+         check_li64_data_dependency(instr);
 }
 
 void NativeCall::verify() {
@@ -307,10 +322,9 @@ bool NativeInstruction::is_safepoint_poll() {
 
 bool NativeInstruction::is_lwu_to_zr(address instr) {
   assert_cond(instr != NULL);
-  unsigned insn = *(unsigned*)instr;
-  return (Assembler::extract(insn, 6, 0) == 0b0000011 &&
-          Assembler::extract(insn, 14, 12) == 0b110 &&
-          Assembler::extract(insn, 11, 7) == 0b00000); // zr
+  return (extract_opcode(instr) == 0b0000011 &&
+          extract_funct3(instr) == 0b110 &&
+          extract_rd(instr) == zr);         // zr
 }
 
 // A 16-bit instruction with all bits ones is permanently reserved as an illegal instruction.
@@ -365,8 +379,6 @@ void NativeJump::patch_verified_entry(address entry, address verified_entry, add
 }
 
 void NativeGeneralJump::insert_unconditional(address code_pos, address entry) {
-  NativeGeneralJump* n_jump = (NativeGeneralJump*)code_pos;
-
   CodeBuffer cb(code_pos, instruction_size);
   MacroAssembler a(&cb);
 
