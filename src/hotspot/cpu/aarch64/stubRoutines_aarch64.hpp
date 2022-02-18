@@ -58,8 +58,6 @@ class aarch64 {
 
   static address _zero_blocks;
 
-  static address _has_negatives;
-  static address _has_negatives_long;
   static address _large_array_equals;
   static address _compare_long_string_LL;
   static address _compare_long_string_LU;
@@ -75,6 +73,9 @@ class aarch64 {
   static bool _completed;
 
  public:
+
+  static address _has_negatives;
+  static address _has_negatives_long;
 
   static address get_previous_sp_entry()
   {
