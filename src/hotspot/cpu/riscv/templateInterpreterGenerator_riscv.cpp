@@ -895,16 +895,36 @@ address TemplateInterpreterGenerator::generate_CRC32C_updateBytes_entry(Abstract
 }
 
 void TemplateInterpreterGenerator::bang_stack_shadow_pages(bool native_call) {
-  // Bang each page in the shadow zone. We can't assume it's been done for
-  // an interpreter frame with greater than a page of locals, so each page
-  // needs to be checked.  Only true for non-native.
-  const int n_shadow_pages = StackOverflow::stack_shadow_zone_size() / os::vm_page_size();
-  const int start_page = native_call ? n_shadow_pages : 1;
+  // See more discussion in stackOverflow.hpp.
+
+  const int shadow_zone_size = checked_cast<int>(StackOverflow::stack_shadow_zone_size());
   const int page_size = os::vm_page_size();
-  for (int pages = start_page; pages <= n_shadow_pages ; pages++) {
-    __ sub(t1, sp, pages * page_size);
-    __ sd(zr, Address(t1));
+  const int n_shadow_pages = shadow_zone_size / page_size;
+
+#ifdef ASSERT
+  Label L_good_limit;
+  __ ld(t0, Address(xthread, JavaThread::shadow_zone_safe_limit()));
+  __ bnez(t0, L_good_limit);
+  __ stop("shadow zone safe limit is not initialized");
+  __ bind(L_good_limit);
+#endif
+
+  Label L_done;
+
+  __ ld(t0, Address(xthread, JavaThread::shadow_zone_growth_watermark()));
+  __ bgtu(sp, t0, L_done);
+
+  for (int p = 1; p <= n_shadow_pages ; p++) {
+    __ bang_stack_with_offset(p * page_size);
   }
+
+  // Record a new watermark, unless the update is above the safe limit.
+  // Otherwise, the next time around a check above would pass the safe limit.
+  __ ld(t0, Address(xthread, JavaThread::shadow_zone_safe_limit()));
+  __ bleu(sp, t0, L_done);
+  __ sd(sp, Address(xthread, JavaThread::shadow_zone_growth_watermark()));
+
+  __ bind(L_done);
 }
 
 // Interpreter stub for calling a native method. (asm interpreter)
