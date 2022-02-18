@@ -258,27 +258,24 @@ class NativeCall: public NativeInstruction {
   address return_address() const            { return addr_at(return_address_offset); }
   address destination() const;
 
-  void set_destination(address dest)      {
-    if (is_jal()) {
-      intptr_t offset = (intptr_t)(dest - instruction_address());
-      assert((offset & 0x1) == 0, "should be aligned");
-      assert(is_imm_in_range(offset, 20, 1), "set_destination, offset is too large to be patched in one jal insrusction\n");
-      unsigned int insn = 0b1101111; // jal
-      address pInsn = (address)(&insn);
-      Assembler::patch(pInsn, 31, 31, (offset >> 20) & 0x1);
-      Assembler::patch(pInsn, 30, 21, (offset >> 1) & 0x3ff);
-      Assembler::patch(pInsn, 20, 20, (offset >> 11) & 0x1);
-      Assembler::patch(pInsn, 19, 12, (offset >> 12) & 0xff);
-      Assembler::patch(pInsn, 11, 7, ra->encoding()); // Rd must be x1, need ra
-      set_int_at(displacement_offset, insn);
-      return;
-    }
-    ShouldNotReachHere();
+  void set_destination(address dest) {
+    assert(is_jal(), "Should be jal instruction!");
+    intptr_t offset = (intptr_t)(dest - instruction_address());
+    assert((offset & 0x1) == 0, "bad alignment");
+    assert(is_imm_in_range(offset, 20, 1), "encoding constraint");
+    unsigned int insn = 0b1101111; // jal
+    address pInsn = (address)(&insn);
+    Assembler::patch(pInsn, 31, 31, (offset >> 20) & 0x1);
+    Assembler::patch(pInsn, 30, 21, (offset >> 1) & 0x3ff);
+    Assembler::patch(pInsn, 20, 20, (offset >> 11) & 0x1);
+    Assembler::patch(pInsn, 19, 12, (offset >> 12) & 0xff);
+    Assembler::patch(pInsn, 11, 7, ra->encoding()); // Rd must be x1, need ra
+    set_int_at(displacement_offset, insn);
   }
 
-  void  verify_alignment()                       { ; }
-  void  verify();
-  void  print();
+  void verify_alignment() {} // do nothing on riscv
+  void verify();
+  void print();
 
   // Creation
   inline friend NativeCall* nativeCall_at(address addr);
@@ -533,7 +530,9 @@ inline bool is_NativeCallTrampolineStub_at(address addr) {
   // 3). check if the offset in ld[31:20] equals the data_offset
   assert_cond(addr != NULL);
   const int instr_size = NativeInstruction::instruction_size;
-  if (NativeInstruction::is_auipc_at(addr) && NativeInstruction::is_ld_at(addr + instr_size) && NativeInstruction::is_jalr_at(addr + 2 * instr_size) &&
+  if (NativeInstruction::is_auipc_at(addr) &&
+      NativeInstruction::is_ld_at(addr + instr_size) &&
+      NativeInstruction::is_jalr_at(addr + 2 * instr_size) &&
       (NativeInstruction::extract_rd(addr)                    == x5) &&
       (NativeInstruction::extract_rd(addr + instr_size)       == x5) &&
       (NativeInstruction::extract_rs1(addr + instr_size)      == x5) &&

@@ -424,9 +424,7 @@ OopMapSet* Runtime1::generate_handle_exception(StubID id, StubAssembler *sasm) {
       sasm->set_frame_size(frame_size);
       break;
     }
-    default:
-      ShouldNotReachHere();
-      break;
+    default: ShouldNotReachHere();
   }
 
   // verify that only x10 and x13 are valid at this time
@@ -483,7 +481,7 @@ OopMapSet* Runtime1::generate_handle_exception(StubID id, StubAssembler *sasm) {
       break;
     case handle_exception_from_callee_id:
       break;
-    default:  ShouldNotReachHere();
+    default: ShouldNotReachHere();
   }
 
   return oop_maps;
