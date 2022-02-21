@@ -60,6 +60,7 @@ inline bool LinearScan::is_caller_save(int assigned_reg) {
 
 
 inline void LinearScan::pd_add_temps(LIR_Op* op) {
+  // No special case behaviours yet
 }
 
 
