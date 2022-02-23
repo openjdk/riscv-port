@@ -182,7 +182,7 @@ class Address {
   Address()
     : _base(noreg), _index(noreg), _offset(0), _mode(no_mode), _target(NULL) { }
   Address(Register r)
-    : _base(r),     _index(noreg), _offset(0), _mode(base_plus_offset), _target(NULL) { }
+    : _base(r), _index(noreg), _offset(0), _mode(base_plus_offset), _target(NULL) { }
 
   template<typename T, ENABLE_IF(std::is_integral<T>::value)>
   Address(Register r, T o)

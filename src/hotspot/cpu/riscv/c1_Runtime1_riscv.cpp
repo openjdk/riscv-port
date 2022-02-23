@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1999, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -258,11 +258,12 @@ static OopMap* generate_oop_map(StubAssembler* sasm, bool save_fpu_registers) {
   OopMap* oop_map = new OopMap(frame_size_in_slots, 0);
   assert_cond(oop_map != NULL);
 
-  // cpu_regs, caller save registers only, see FrameMap::initialize
+  // caller save registers only, see FrameMap::initialize
   // in c1_FrameMap_riscv.cpp for detail.
-  const static Register caller_save_cpu_regs[FrameMap::max_nof_caller_save_cpu_regs] = {x7, x10, x11, x12,
-                                                                                        x13, x14, x15, x16, x17,
-                                                                                        x28, x29, x30, x31};
+  const static Register caller_save_cpu_regs[FrameMap::max_nof_caller_save_cpu_regs] = {
+    x7, x10, x11, x12, x13, x14, x15, x16, x17, x28, x29, x30, x31
+  };
+
   for (int i = 0; i < FrameMap::max_nof_caller_save_cpu_regs; i++) {
     Register r = caller_save_cpu_regs[i];
     int sp_offset = cpu_reg_save_offsets[r->encoding()];

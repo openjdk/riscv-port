@@ -364,7 +364,7 @@ void LIRGenerator::do_ArithmeticOp_FPU(ArithmeticOp* x) {
 void LIRGenerator::do_ArithmeticOp_Long(ArithmeticOp* x) {
 
   // missing test if instr is commutative and if we should swap
-  LIRItem left(x->x(),  this);
+  LIRItem left(x->x(), this);
   LIRItem right(x->y(), this);
 
   if (x->op() == Bytecodes::_ldiv || x->op() == Bytecodes::_lrem) {

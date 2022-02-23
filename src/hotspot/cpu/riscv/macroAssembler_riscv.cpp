@@ -1148,8 +1148,8 @@ void MacroAssembler::push_CPU_state(bool save_vectors, int vector_size_in_bytes)
     sub(sp, sp, vector_size_in_bytes * VectorRegisterImpl::number_of_registers);
     vsetvli(t0, x0, Assembler::e64, Assembler::m8);
     for (int i = 0; i < VectorRegisterImpl::number_of_registers; i += 8) {
-        add(t0, sp, vector_size_in_bytes * i);
-        vse64_v(as_VectorRegister(i), t0);
+      add(t0, sp, vector_size_in_bytes * i);
+      vse64_v(as_VectorRegister(i), t0);
     }
   }
 }
