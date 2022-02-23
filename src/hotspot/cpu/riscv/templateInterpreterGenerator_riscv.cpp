@@ -907,6 +907,12 @@ void TemplateInterpreterGenerator::bang_stack_shadow_pages(bool native_call) {
   __ bnez(t0, L_good_limit);
   __ stop("shadow zone safe limit is not initialized");
   __ bind(L_good_limit);
+
+  Label L_good_watermark;
+  __ ld(t0, Address(xthread, JavaThread::shadow_zone_growth_watermark()));
+  __ bnez(t0, L_good_watermark);
+  __ stop("shadow zone growth watermark is not initialized");
+  __ bind(L_good_watermark);
 #endif
 
   Label L_done;
@@ -918,8 +924,8 @@ void TemplateInterpreterGenerator::bang_stack_shadow_pages(bool native_call) {
     __ bang_stack_with_offset(p * page_size);
   }
 
-  // Record a new watermark, unless the update is above the safe limit.
-  // Otherwise, the next time around a check above would pass the safe limit.
+  // Record the new watermark, but only if the update is above the safe limit.
+  // Otherwise, the next time around the check above would pass the safe limit.
   __ ld(t0, Address(xthread, JavaThread::shadow_zone_safe_limit()));
   __ bleu(sp, t0, L_done);
   __ sd(sp, Address(xthread, JavaThread::shadow_zone_growth_watermark()));
