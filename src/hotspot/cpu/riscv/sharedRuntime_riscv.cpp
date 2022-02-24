@@ -216,8 +216,7 @@ void RegisterSaver::restore_live_registers(MacroAssembler* masm) {
 }
 
 // Is vector's size (in bytes) bigger than a size saved by default?
-// riscv do not ovlerlay the floating-point registers on vector registers.
-// vector registers are saved by default on riscv when RVV is enabled.
+// riscv does not ovlerlay the floating-point registers on vector registers like aarch64.
 bool SharedRuntime::is_wide_vector(int size) {
   return UseRVV;
 }
