@@ -216,9 +216,9 @@ void RegisterSaver::restore_live_registers(MacroAssembler* masm) {
 }
 
 // Is vector's size (in bytes) bigger than a size saved by default?
-// 8 bytes vector registers are saved by default on riscv64.
+// riscv does not ovlerlay the floating-point registers on vector registers like aarch64.
 bool SharedRuntime::is_wide_vector(int size) {
-  return size > 8;
+  return UseRVV;
 }
 
 // The java_calling_convention describes stack locations as ideal slots on
