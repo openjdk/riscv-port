@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,12 +19,20 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
 
-#ifndef CPU_RISCV_MACROASSEMBLER_RISCV_INLINE_HPP
-#define CPU_RISCV_MACROASSEMBLER_RISCV_INLINE_HPP
+package pkg8;
 
-// Still empty.
+public class P extends GP {
 
-#endif // CPU_RISCV_MACROASSEMBLER_RISCV_INLINE_HPP
+    // note that while m1() and m2() are parameterized, m3() is not
+
+    @Override
+    public <T> void m1() {}
+
+    @Override
+    public <T> void m2() {}
+
+    @Override
+    public void m3() {}
+}

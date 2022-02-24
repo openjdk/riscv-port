@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -78,6 +78,6 @@ define_pd_global(uintx, CodeCacheMinimumUseSpace,    400*K);
 // Ergonomics related flags
 define_pd_global(bool, NeverActAsServerClassMachine, false);
 
-define_pd_global(bool,  TrapBasedRangeChecks,        false); // Not needed.
+define_pd_global(bool, TrapBasedRangeChecks,         false); // Not needed.
 
 #endif // CPU_RISCV_C2_GLOBALS_RISCV_HPP

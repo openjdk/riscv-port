@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2003, 2017, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,7 +33,6 @@
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/macros.hpp"
-
 
 int AbstractInterpreter::BasicType_as_index(BasicType type) {
   int i = 0;
@@ -170,6 +169,7 @@ void AbstractInterpreter::layout_activation(Method* method,
     interpreter_frame->set_interpreter_frame_sender_sp(caller->sp() +
                                                        extra_locals);
   }
+
   *interpreter_frame->interpreter_frame_cache_addr() =
     method->constants()->cache();
   *interpreter_frame->interpreter_frame_mirror_addr() =
