@@ -216,7 +216,6 @@ void RegisterSaver::restore_live_registers(MacroAssembler* masm) {
 }
 
 // Is vector's size (in bytes) bigger than a size saved by default?
-// on riscv, vector registers are awlays saved when RVV is enabled.
 bool SharedRuntime::is_wide_vector(int size) {
   return UseRVV;
 }
