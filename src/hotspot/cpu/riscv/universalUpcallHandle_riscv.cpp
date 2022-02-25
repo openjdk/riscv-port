@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +32,7 @@ address ProgrammableUpcallHandler::generate_upcall_stub(jobject jrec, jobject ja
 }
 
 address ProgrammableUpcallHandler::generate_optimized_upcall_stub(jobject mh, Method* entry, jobject jabi, jobject jconv) {
-  ShouldNotReachHere();
+  ShouldNotCallThis();
   return nullptr;
 }
 

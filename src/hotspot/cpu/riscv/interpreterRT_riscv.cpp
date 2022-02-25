@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2003, 2019, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2020, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -260,7 +260,7 @@ class SlowSignatureHandler
     _to   = to;
 
     _int_args = to - (method->is_static() ? 16 : 17);
-    _fp_args =  to - 8;
+    _fp_args  = to - 8;
     _fp_identifiers = to - 9;
     *(int*) _fp_identifiers = 0;
     _num_reg_int_args = (method->is_static() ? 1 : 0);

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1999, 2019, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,8 +29,7 @@
 #include "runtime/sharedRuntime.hpp"
 #include "vmreg_riscv.inline.hpp"
 
-LIR_Opr FrameMap::map_to_opr(BasicType type, VMRegPair* reg, bool)
-{
+LIR_Opr FrameMap::map_to_opr(BasicType type, VMRegPair* reg, bool) {
   LIR_Opr opr = LIR_OprFact::illegalOpr;
   VMReg r_1 = reg->first();
   VMReg r_2 = reg->second();
@@ -375,8 +374,7 @@ VMReg FrameMap::fpu_regname (int n) {
   return as_FloatRegister(n)->as_VMReg();
 }
 
-LIR_Opr FrameMap::stack_pointer()
-{
+LIR_Opr FrameMap::stack_pointer() {
   return FrameMap::sp_opr;
 }
 

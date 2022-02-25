@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,6 @@ void C2SafepointPollStubTable::emit_stub_impl(MacroAssembler& masm, C2SafepointP
   assert(SharedRuntime::polling_page_return_handler_blob() != NULL,
          "polling page return stub not created yet");
   address stub = SharedRuntime::polling_page_return_handler_blob()->entry_point();
-
   RuntimeAddress callback_addr(stub);
 
   __ bind(entry->_stub_label);
