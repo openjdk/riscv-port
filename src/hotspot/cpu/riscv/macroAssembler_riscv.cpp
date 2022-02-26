@@ -3647,9 +3647,9 @@ address MacroAssembler::zero_words(Register ptr, Register cnt)
   Label around, done, done16;
   bltu(cnt, t0, around);
   {
-    RuntimeAddress zero_blocks = RuntimeAddress(StubRoutines::riscv64::zero_blocks());
+    RuntimeAddress zero_blocks = RuntimeAddress(StubRoutines::riscv::zero_blocks());
     assert(zero_blocks.target() != NULL, "zero_blocks stub has not been generated");
-    if (StubRoutines::riscv64::complete()) {
+    if (StubRoutines::riscv::complete()) {
       address tpc = trampoline_call(zero_blocks);
       if (tpc == NULL) {
         DEBUG_ONLY(reset_labels(around));

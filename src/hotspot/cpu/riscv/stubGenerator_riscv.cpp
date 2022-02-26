@@ -2094,7 +2094,7 @@ class StubGenerator: public StubCodeGenerator {
     generate_copy_longs(copy_f, c_rarg0, c_rarg1, t1, copy_forwards);
     generate_copy_longs(copy_b, c_rarg0, c_rarg1, t1, copy_backwards);
 
-    StubRoutines::riscv64::_zero_blocks = generate_zero_blocks();
+    StubRoutines::riscv::_zero_blocks = generate_zero_blocks();
 
     //*** jbyte
     // Always need aligned and unaligned versions
@@ -2513,10 +2513,10 @@ class StubGenerator: public StubCodeGenerator {
   }
 
   void generate_compare_long_strings() {
-    StubRoutines::riscv64::_compare_long_string_LL = generate_compare_long_string_same_encoding(true);
-    StubRoutines::riscv64::_compare_long_string_UU = generate_compare_long_string_same_encoding(false);
-    StubRoutines::riscv64::_compare_long_string_LU = generate_compare_long_string_different_encoding(true);
-    StubRoutines::riscv64::_compare_long_string_UL = generate_compare_long_string_different_encoding(false);
+    StubRoutines::riscv::_compare_long_string_LL = generate_compare_long_string_same_encoding(true);
+    StubRoutines::riscv::_compare_long_string_UU = generate_compare_long_string_same_encoding(false);
+    StubRoutines::riscv::_compare_long_string_LU = generate_compare_long_string_different_encoding(true);
+    StubRoutines::riscv::_compare_long_string_UL = generate_compare_long_string_different_encoding(false);
   }
 
   // x10 result
@@ -2752,9 +2752,9 @@ class StubGenerator: public StubCodeGenerator {
 
   void generate_string_indexof_stubs()
   {
-    StubRoutines::riscv64::_string_indexof_linear_ll = generate_string_indexof_linear(true, true);
-    StubRoutines::riscv64::_string_indexof_linear_uu = generate_string_indexof_linear(false, false);
-    StubRoutines::riscv64::_string_indexof_linear_ul = generate_string_indexof_linear(true, false);
+    StubRoutines::riscv::_string_indexof_linear_ll = generate_string_indexof_linear(true, true);
+    StubRoutines::riscv::_string_indexof_linear_uu = generate_string_indexof_linear(false, false);
+    StubRoutines::riscv::_string_indexof_linear_ul = generate_string_indexof_linear(true, false);
   }
 
 #ifdef COMPILER2
@@ -3551,7 +3551,7 @@ class StubGenerator: public StubCodeGenerator {
     // Note that we only have to preserve callee-saved registers since
     // the compilers are responsible for supplying a continuation point
     // if they expect all registers to be preserved.
-    // n.b. riscv64 asserts that frame::arg_reg_save_area_bytes == 0
+    // n.b. riscv asserts that frame::arg_reg_save_area_bytes == 0
     assert_cond(runtime_entry != NULL);
     enum layout {
       fp_off = 0,
@@ -3726,10 +3726,10 @@ class StubGenerator: public StubCodeGenerator {
 
     BarrierSetNMethod* bs_nm = BarrierSet::barrier_set()->barrier_set_nmethod();
     if (bs_nm != NULL) {
-      StubRoutines::riscv64::_method_entry_barrier = generate_method_entry_barrier();
+      StubRoutines::riscv::_method_entry_barrier = generate_method_entry_barrier();
     }
 
-    StubRoutines::riscv64::set_completed();
+    StubRoutines::riscv::set_completed();
   }
 
  public:

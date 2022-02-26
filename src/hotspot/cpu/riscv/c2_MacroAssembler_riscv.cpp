@@ -551,13 +551,13 @@ void C2_MacroAssembler::string_indexof(Register haystack, Register needle,
   mv(result, zr);
   RuntimeAddress stub = NULL;
   if (isLL) {
-    stub = RuntimeAddress(StubRoutines::riscv64::string_indexof_linear_ll());
+    stub = RuntimeAddress(StubRoutines::riscv::string_indexof_linear_ll());
     assert(stub.target() != NULL, "string_indexof_linear_ll stub has not been generated");
   } else if (needle_isL) {
-    stub = RuntimeAddress(StubRoutines::riscv64::string_indexof_linear_ul());
+    stub = RuntimeAddress(StubRoutines::riscv::string_indexof_linear_ul());
     assert(stub.target() != NULL, "string_indexof_linear_ul stub has not been generated");
   } else {
-    stub = RuntimeAddress(StubRoutines::riscv64::string_indexof_linear_uu());
+    stub = RuntimeAddress(StubRoutines::riscv::string_indexof_linear_uu());
     assert(stub.target() != NULL, "string_indexof_linear_uu stub has not been generated");
   }
   trampoline_call(stub);
@@ -948,16 +948,16 @@ void C2_MacroAssembler::string_compare(Register str1, Register str2,
   RuntimeAddress stub = NULL;
   switch (ae) {
     case StrIntrinsicNode::LL:
-      stub = RuntimeAddress(StubRoutines::riscv64::compare_long_string_LL());
+      stub = RuntimeAddress(StubRoutines::riscv::compare_long_string_LL());
       break;
     case StrIntrinsicNode::UU:
-      stub = RuntimeAddress(StubRoutines::riscv64::compare_long_string_UU());
+      stub = RuntimeAddress(StubRoutines::riscv::compare_long_string_UU());
       break;
     case StrIntrinsicNode::LU:
-      stub = RuntimeAddress(StubRoutines::riscv64::compare_long_string_LU());
+      stub = RuntimeAddress(StubRoutines::riscv::compare_long_string_LU());
       break;
     case StrIntrinsicNode::UL:
-      stub = RuntimeAddress(StubRoutines::riscv64::compare_long_string_UL());
+      stub = RuntimeAddress(StubRoutines::riscv::compare_long_string_UL());
       break;
     default:
       ShouldNotReachHere();
