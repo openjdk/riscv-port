@@ -40,7 +40,7 @@ enum platform_dependent_constants {
   code_size2 = 28000           // simply increase if too small (assembler will crash if too small)
 };
 
-class riscv64 {
+class riscv {
  friend class StubGenerator;
 
  private:

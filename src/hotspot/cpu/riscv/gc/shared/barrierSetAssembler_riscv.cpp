@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -253,7 +253,7 @@ void BarrierSetAssembler::nmethod_entry_barrier(MacroAssembler* masm) {
   __ beq(t0, t1, skip);
 
   int32_t offset = 0;
-  __ movptr_with_offset(t0, StubRoutines::riscv64::method_entry_barrier(), offset);
+  __ movptr_with_offset(t0, StubRoutines::riscv::method_entry_barrier(), offset);
   __ jalr(ra, t0, offset);
   __ j(skip);
 
