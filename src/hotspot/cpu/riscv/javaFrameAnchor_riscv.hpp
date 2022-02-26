@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2002, 2019, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,7 @@
 private:
 
   // FP value associated with _last_Java_sp:
-  intptr_t* volatile        _last_Java_fp;           // pointer is volatile not what it points to
+  intptr_t* volatile _last_Java_fp; // pointer is volatile not what it points to
 
 public:
   // Each arch must define reset, save, restore
@@ -81,6 +81,6 @@ public:
 
   void set_last_Java_sp(intptr_t* java_sp)       { _last_Java_sp = java_sp; OrderAccess::release(); }
 
-  intptr_t*   last_Java_fp(void)                 { return _last_Java_fp; }
+  intptr_t* last_Java_fp(void)                   { return _last_Java_fp; }
 
 #endif // CPU_RISCV_JAVAFRAMEANCHOR_RISCV_HPP
