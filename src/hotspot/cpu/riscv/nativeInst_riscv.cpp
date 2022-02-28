@@ -353,7 +353,7 @@ void NativeJump::patch_verified_entry(address entry, address verified_entry, add
 
   assert(nativeInstruction_at(verified_entry)->is_jump_or_nop() ||
          nativeInstruction_at(verified_entry)->is_sigill_zombie_not_entrant(),
-         "riscv64 cannot replace non-jump with jump");
+         "riscv cannot replace non-jump with jump");
 
   // Patch this nmethod atomically.
   if (Assembler::reachable_from_branch_at(verified_entry, dest)) {

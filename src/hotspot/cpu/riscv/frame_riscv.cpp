@@ -388,7 +388,7 @@ void frame::verify_deopt_original_pc(CompiledMethod* nm, intptr_t* unextended_sp
 //------------------------------------------------------------------------------
 // frame::adjust_unextended_sp
 void frame::adjust_unextended_sp() {
-  // On riscv64, sites calling method handle intrinsics and lambda forms are treated
+  // On riscv, sites calling method handle intrinsics and lambda forms are treated
   // as any other call site. Therefore, no special action is needed when we are
   // returning to any of these call sites.
 
@@ -651,7 +651,7 @@ void frame::describe_pd(FrameValues& values, int frame_no) {
 #endif
 
 intptr_t *frame::initial_deoptimization_info() {
-  // Not used on riscv64, but we must return something.
+  // Not used on riscv, but we must return something.
   return NULL;
 }
 

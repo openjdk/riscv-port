@@ -224,7 +224,7 @@ void InterpreterMacroAssembler::get_cache_and_index_at_bcp(Register cache,
   get_cache_index_at_bcp(index, bcp_offset, index_size);
   assert(sizeof(ConstantPoolCacheEntry) == 4 * wordSize, "adjust code below");
   // Convert from field index to ConstantPoolCacheEntry
-  // riscv64 already has the cache in xcpool so there is no need to
+  // riscv already has the cache in xcpool so there is no need to
   // install it in cache. Instead we pre-add the indexed offset to
   // xcpool and return it in cache. All clients of this method need to
   // be modified accordingly.

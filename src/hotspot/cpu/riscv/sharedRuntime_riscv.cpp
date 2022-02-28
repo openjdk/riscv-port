@@ -71,7 +71,7 @@ public:
     // The frame sender code expects that fp will be in the "natural" place and
     // will override any oopMap setting for it. We must therefore force the layout
     // so that it agrees with the frame sender code.
-    // we don't expect any arg reg save area so riscv64 asserts that
+    // we don't expect any arg reg save area so riscv asserts that
     // frame::arg_reg_save_area_bytes == 0
     fp_off = 0, fp_off2,
     return_off, return_off2,
@@ -685,7 +685,7 @@ int SharedRuntime::c_calling_convention(const BasicType *sig_bt,
                                          VMRegPair *regs,
                                          VMRegPair *regs2,
                                          int total_args_passed) {
-  assert(regs2 == NULL, "not needed on riscv64");
+  assert(regs2 == NULL, "not needed on riscv");
 
   // We return the amount of VMRegImpl stack slots we need to reserve for all
   // the arguments NOT counting out_preserve_stack_slots.
@@ -2199,7 +2199,7 @@ void SharedRuntime::generate_deopt_blob() {
 // Number of stack slots between incoming argument block and the start of
 // a new frame. The PROLOG must add this many slots to the stack. The
 // EPILOG must remove this many slots.
-// RISCV64 needs two words for RA (return address) and FP (frame pointer).
+// RISCV needs two words for RA (return address) and FP (frame pointer).
 uint SharedRuntime::in_preserve_stack_slots() {
   return 2 * VMRegImpl::slots_per_word;
 }

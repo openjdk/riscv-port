@@ -3034,7 +3034,7 @@ public:
     return is_imm_in_range(imm, 12, 0);
   }
 
-  // The maximum range of a branch is fixed for the riscv64
+  // The maximum range of a branch is fixed for the riscv
   // architecture.
   static const unsigned long branch_range = 1 * M;
 

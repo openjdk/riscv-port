@@ -214,7 +214,7 @@ class StubGenerator: public StubCodeGenerator {
 
     // stub code
 
-    address riscv64_entry = __ pc();
+    address riscv_entry = __ pc();
 
     // set up frame and move sp to end of save area
     __ enter();
