@@ -2896,7 +2896,7 @@ class StubGenerator: public StubCodeGenerator {
     __ vse32_v(v0, newArr);
     __ sub(numIter, numIter, t0);
     __ shadd(oldArr, t0, oldArr, t1, 2);
-    __ shadd(newArr, t0, oldArr, t1, 2);
+    __ shadd(newArr, t0, newArr, t1, 2);
     __ bnez(numIter, loop);
 
     __ bind(exit);
