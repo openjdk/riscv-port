@@ -3770,7 +3770,7 @@ class StubGenerator: public StubCodeGenerator {
       StubRoutines::_montgomerySquare = g.generate_square();
     }
 
-    if (UseRVV) {
+    if (UseRVVForBigIntegerShiftIntrinsics) {
       StubRoutines::_bigIntegerLeftShiftWorker = generate_bigIntegerLeftShift();
     }
 #endif
