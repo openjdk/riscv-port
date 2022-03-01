@@ -30,7 +30,7 @@
 #include "code/codeCache.hpp"
 #include "code/vmreg.inline.hpp"
 
-// Inline functions for RISCV64 frames:
+// Inline functions for RISCV frames:
 
 // Constructors:
 

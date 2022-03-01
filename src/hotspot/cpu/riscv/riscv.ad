@@ -24,7 +24,7 @@
 //
 //
 
-// RISCV64 Architecture Description File
+// RISCV Architecture Description File
 
 //----------REGISTER DEFINITION BLOCK------------------------------------------
 // This information is used by the matcher and the register allocator to
@@ -154,7 +154,7 @@ reg_def R31_H   ( SOC, SOC, Op_RegI, 31, x31->as_VMReg()->next());
 // CPU stores such a register pair to memory, the word associated with
 // the lower ADLC-assigned number must be stored to the lower address.
 
-// RISCV64 has 32 floating-point registers. Each can store a single
+// RISCV has 32 floating-point registers. Each can store a single
 // or double precision floating-point value.
 
 // for Java use float registers f0-f31 are always save on call whereas
@@ -1171,7 +1171,7 @@ int MachCallRuntimeNode::ret_addr_offset() {
   // or with far branches
   //   jal(trampoline_stub)
   // for real runtime callouts it will be 11 instructions
-  // see riscv64_enc_java_to_runtime
+  // see riscv_enc_java_to_runtime
   //   la(t1, retaddr)                ->  auipc + addi
   //   la(t0, RuntimeAddress(addr))   ->  lui + addi + slli + addi + slli + addi
   //   addi(sp, sp, -2 * wordSize)    ->  addi
@@ -2073,7 +2073,7 @@ bool Matcher::pd_clone_address_expressions(AddPNode* m, Matcher::MStack& mstack,
 encode %{
   // BEGIN Non-volatile memory access
 
-  enc_class riscv64_enc_li_imm(iRegIorL dst, immIorL src) %{
+  enc_class riscv_enc_li_imm(iRegIorL dst, immIorL src) %{
     C2_MacroAssembler _masm(&cbuf);
     Assembler::CompressibleRegion cr(&_masm);
     int64_t con = (int64_t)$src$$constant;
@@ -2081,7 +2081,7 @@ encode %{
     __ li(dst_reg, con);
   %}
 
-  enc_class riscv64_enc_mov_p(iRegP dst, immP src) %{
+  enc_class riscv_enc_mov_p(iRegP dst, immP src) %{
     C2_MacroAssembler _masm(&cbuf);
     Register dst_reg = as_Register($dst$$reg);
     address con = (address)$src$$constant;
@@ -2100,19 +2100,19 @@ encode %{
     }
   %}
 
-  enc_class riscv64_enc_mov_p1(iRegP dst) %{
+  enc_class riscv_enc_mov_p1(iRegP dst) %{
     C2_MacroAssembler _masm(&cbuf);
     Assembler::CompressibleRegion cr(&_masm);
     Register dst_reg = as_Register($dst$$reg);
     __ li(dst_reg, 1);
   %}
 
-  enc_class riscv64_enc_mov_byte_map_base(iRegP dst) %{
+  enc_class riscv_enc_mov_byte_map_base(iRegP dst) %{
     C2_MacroAssembler _masm(&cbuf);
     __ load_byte_map_base($dst$$Register);
   %}
 
-  enc_class riscv64_enc_mov_n(iRegN dst, immN src) %{
+  enc_class riscv_enc_mov_n(iRegN dst, immN src) %{
     C2_MacroAssembler _masm(&cbuf);
     Register dst_reg = as_Register($dst$$reg);
     address con = (address)$src$$constant;
@@ -2125,13 +2125,13 @@ encode %{
     }
   %}
 
-  enc_class riscv64_enc_mov_zero(iRegNorP dst) %{
+  enc_class riscv_enc_mov_zero(iRegNorP dst) %{
     C2_MacroAssembler _masm(&cbuf);
     Register dst_reg = as_Register($dst$$reg);
     __ mv(dst_reg, zr);
   %}
 
-  enc_class riscv64_enc_mov_nk(iRegN dst, immNKlass src) %{
+  enc_class riscv_enc_mov_nk(iRegN dst, immNKlass src) %{
     C2_MacroAssembler _masm(&cbuf);
     Register dst_reg = as_Register($dst$$reg);
     address con = (address)$src$$constant;
@@ -2144,42 +2144,42 @@ encode %{
     }
   %}
 
-  enc_class riscv64_enc_cmpxchgw(iRegINoSp res, memory mem, iRegINoSp oldval, iRegINoSp newval) %{
+  enc_class riscv_enc_cmpxchgw(iRegINoSp res, memory mem, iRegINoSp oldval, iRegINoSp newval) %{
     C2_MacroAssembler _masm(&cbuf);
     __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int32,
                /*acquire*/ Assembler::relaxed, /*release*/ Assembler::rl, $res$$Register,
                /*result as bool*/ true);
   %}
 
-  enc_class riscv64_enc_cmpxchgn(iRegINoSp res, memory mem, iRegINoSp oldval, iRegINoSp newval) %{
+  enc_class riscv_enc_cmpxchgn(iRegINoSp res, memory mem, iRegINoSp oldval, iRegINoSp newval) %{
     C2_MacroAssembler _masm(&cbuf);
     __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::uint32,
                /*acquire*/ Assembler::relaxed, /*release*/ Assembler::rl, $res$$Register,
                /*result as bool*/ true);
   %}
 
-  enc_class riscv64_enc_cmpxchg(iRegINoSp res, memory mem, iRegLNoSp oldval, iRegLNoSp newval) %{
+  enc_class riscv_enc_cmpxchg(iRegINoSp res, memory mem, iRegLNoSp oldval, iRegLNoSp newval) %{
     C2_MacroAssembler _masm(&cbuf);
     __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int64,
                /*acquire*/ Assembler::relaxed, /*release*/ Assembler::rl, $res$$Register,
                /*result as bool*/ true);
   %}
 
-  enc_class riscv64_enc_cmpxchgw_acq(iRegINoSp res, memory mem, iRegINoSp oldval, iRegINoSp newval) %{
+  enc_class riscv_enc_cmpxchgw_acq(iRegINoSp res, memory mem, iRegINoSp oldval, iRegINoSp newval) %{
     C2_MacroAssembler _masm(&cbuf);
     __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int32,
                /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register,
                /*result as bool*/ true);
   %}
 
-  enc_class riscv64_enc_cmpxchgn_acq(iRegINoSp res, memory mem, iRegINoSp oldval, iRegINoSp newval) %{
+  enc_class riscv_enc_cmpxchgn_acq(iRegINoSp res, memory mem, iRegINoSp oldval, iRegINoSp newval) %{
     C2_MacroAssembler _masm(&cbuf);
     __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::uint32,
                /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register,
                /*result as bool*/ true);
   %}
 
-  enc_class riscv64_enc_cmpxchg_acq(iRegINoSp res, memory mem, iRegLNoSp oldval, iRegLNoSp newval) %{
+  enc_class riscv_enc_cmpxchg_acq(iRegINoSp res, memory mem, iRegLNoSp oldval, iRegLNoSp newval) %{
     C2_MacroAssembler _masm(&cbuf);
     __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int64,
                /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register,
@@ -2188,13 +2188,13 @@ encode %{
 
   // compare and branch instruction encodings
 
-  enc_class riscv64_enc_j(label lbl) %{
+  enc_class riscv_enc_j(label lbl) %{
     C2_MacroAssembler _masm(&cbuf);
     Label* L = $lbl$$label;
     __ j(*L);
   %}
 
-  enc_class riscv64_enc_far_cmpULtGe_imm0_branch(cmpOpULtGe cmp, iRegIorL op1, label lbl) %{
+  enc_class riscv_enc_far_cmpULtGe_imm0_branch(cmpOpULtGe cmp, iRegIorL op1, label lbl) %{
     C2_MacroAssembler _masm(&cbuf);
     Label* L = $lbl$$label;
     switch ($cmp$$cmpcode) {
@@ -2210,7 +2210,7 @@ encode %{
 
   // call instruction encodings
 
-  enc_class riscv64_enc_partial_subtype_check(iRegP sub, iRegP super, iRegP temp, iRegP result) %{
+  enc_class riscv_enc_partial_subtype_check(iRegP sub, iRegP super, iRegP temp, iRegP result) %{
     Register sub_reg = as_Register($sub$$reg);
     Register super_reg = as_Register($super$$reg);
     Register temp_reg = as_Register($temp$$reg);
@@ -2237,7 +2237,7 @@ encode %{
     __ bind(done);
   %}
 
-  enc_class riscv64_enc_java_static_call(method meth) %{
+  enc_class riscv_enc_java_static_call(method meth) %{
     C2_MacroAssembler _masm(&cbuf);
 
     address addr = (address)$meth$$method;
@@ -2269,7 +2269,7 @@ encode %{
     }
   %}
 
-  enc_class riscv64_enc_java_dynamic_call(method meth) %{
+  enc_class riscv_enc_java_dynamic_call(method meth) %{
     C2_MacroAssembler _masm(&cbuf);
     int method_index = resolved_method_index(cbuf);
     address call = __ ic_call((address)$meth$$method, method_index);
@@ -2279,7 +2279,7 @@ encode %{
     }
   %}
 
-  enc_class riscv64_enc_call_epilog() %{
+  enc_class riscv_enc_call_epilog() %{
     C2_MacroAssembler _masm(&cbuf);
     if (VerifyStackAtCalls) {
       // Check that stack depth is unchanged: find majik cookie on stack
@@ -2287,7 +2287,7 @@ encode %{
     }
   %}
 
-  enc_class riscv64_enc_java_to_runtime(method meth) %{
+  enc_class riscv_enc_java_to_runtime(method meth) %{
     C2_MacroAssembler _masm(&cbuf);
 
     // some calls to generated routines (arraycopy code) are scheduled
@@ -2316,7 +2316,7 @@ encode %{
   %}
 
   // using the cr register as the bool result: 0 for success; others failed.
-  enc_class riscv64_enc_fast_lock(iRegP object, iRegP box, iRegP tmp1, iRegP tmp2) %{
+  enc_class riscv_enc_fast_lock(iRegP object, iRegP box, iRegP tmp1, iRegP tmp2) %{
     C2_MacroAssembler _masm(&cbuf);
     Register flag = t1;
     Register oop = as_Register($object$$reg);
@@ -2410,7 +2410,7 @@ encode %{
   %}
 
   // using cr flag to indicate the fast_unlock result: 0 for success; others failed.
-  enc_class riscv64_enc_fast_unlock(iRegP object, iRegP box, iRegP tmp1, iRegP tmp2) %{
+  enc_class riscv_enc_fast_unlock(iRegP object, iRegP box, iRegP tmp1, iRegP tmp2) %{
     C2_MacroAssembler _masm(&cbuf);
     Register flag = t1;
     Register oop = as_Register($object$$reg);
@@ -2481,7 +2481,7 @@ encode %{
 
   // arithmetic encodings
 
-  enc_class riscv64_enc_divw(iRegI dst, iRegI src1, iRegI src2) %{
+  enc_class riscv_enc_divw(iRegI dst, iRegI src1, iRegI src2) %{
     C2_MacroAssembler _masm(&cbuf);
     Register dst_reg = as_Register($dst$$reg);
     Register src1_reg = as_Register($src1$$reg);
@@ -2489,7 +2489,7 @@ encode %{
     __ corrected_idivl(dst_reg, src1_reg, src2_reg, false);
   %}
 
-  enc_class riscv64_enc_div(iRegI dst, iRegI src1, iRegI src2) %{
+  enc_class riscv_enc_div(iRegI dst, iRegI src1, iRegI src2) %{
     C2_MacroAssembler _masm(&cbuf);
     Register dst_reg = as_Register($dst$$reg);
     Register src1_reg = as_Register($src1$$reg);
@@ -2497,7 +2497,7 @@ encode %{
     __ corrected_idivq(dst_reg, src1_reg, src2_reg, false);
   %}
 
-  enc_class riscv64_enc_modw(iRegI dst, iRegI src1, iRegI src2) %{
+  enc_class riscv_enc_modw(iRegI dst, iRegI src1, iRegI src2) %{
     C2_MacroAssembler _masm(&cbuf);
     Register dst_reg = as_Register($dst$$reg);
     Register src1_reg = as_Register($src1$$reg);
@@ -2505,7 +2505,7 @@ encode %{
     __ corrected_idivl(dst_reg, src1_reg, src2_reg, true);
   %}
 
-  enc_class riscv64_enc_mod(iRegI dst, iRegI src1, iRegI src2) %{
+  enc_class riscv_enc_mod(iRegI dst, iRegI src1, iRegI src2) %{
     C2_MacroAssembler _masm(&cbuf);
     Register dst_reg = as_Register($dst$$reg);
     Register src1_reg = as_Register($src1$$reg);
@@ -2513,14 +2513,14 @@ encode %{
     __ corrected_idivq(dst_reg, src1_reg, src2_reg, true);
   %}
 
-  enc_class riscv64_enc_tail_call(iRegP jump_target) %{
+  enc_class riscv_enc_tail_call(iRegP jump_target) %{
     C2_MacroAssembler _masm(&cbuf);
     Assembler::CompressibleRegion cr(&_masm);
     Register target_reg = as_Register($jump_target$$reg);
     __ jr(target_reg);
   %}
 
-  enc_class riscv64_enc_tail_jmp(iRegP jump_target) %{
+  enc_class riscv_enc_tail_jmp(iRegP jump_target) %{
     C2_MacroAssembler _masm(&cbuf);
     Assembler::CompressibleRegion cr(&_masm);
     Register target_reg = as_Register($jump_target$$reg);
@@ -2531,12 +2531,12 @@ encode %{
     __ jr(target_reg);
   %}
 
-  enc_class riscv64_enc_rethrow() %{
+  enc_class riscv_enc_rethrow() %{
     C2_MacroAssembler _masm(&cbuf);
     __ far_jump(RuntimeAddress(OptoRuntime::rethrow_stub()));
   %}
 
-  enc_class riscv64_enc_ret() %{
+  enc_class riscv_enc_ret() %{
     C2_MacroAssembler _masm(&cbuf);
     Assembler::CompressibleRegion cr(&_masm);
     __ ret();
@@ -2595,7 +2595,7 @@ encode %{
 // Note 3: Region 0-3 is even aligned, with pad2 as needed.  Region 3-5 is
 //         even aligned with pad0 as needed.
 //         Region 6 is even aligned.  Region 6-7 is NOT even aligned;
-//           (the latter is true on Intel but is it false on RISCV64?)
+//           (the latter is true on Intel but is it false on RISCV?)
 //         region 6-11 is even aligned; it may be padded out more so that
 //         the region from SP to FP meets the minimum stack alignment.
 // Note 4: For I2C adapters, the incoming FP may not meet the minimum stack
@@ -3541,7 +3541,7 @@ operand indOffLN(iRegN reg, immLOffset off)
   %}
 %}
 
-// RISCV64 opto stubs need to write to the pc slot in the thread anchor
+// RISCV opto stubs need to write to the pc slot in the thread anchor
 operand thread_anchor_pc(javaThread_RegP reg, immL_pc_off off)
 %{
   constraint(ALLOC_IN_RC(ptr_reg));
@@ -4694,7 +4694,7 @@ instruct loadConI(iRegINoSp dst, immI src)
   ins_cost(ALU_COST);
   format %{ "li $dst, $src\t# int, #@loadConI" %}
 
-  ins_encode(riscv64_enc_li_imm(dst, src));
+  ins_encode(riscv_enc_li_imm(dst, src));
 
   ins_pipe(ialu_imm);
 %}
@@ -4707,7 +4707,7 @@ instruct loadConL(iRegLNoSp dst, immL src)
   ins_cost(ALU_COST);
   format %{ "li $dst, $src\t# long, #@loadConL" %}
 
-  ins_encode(riscv64_enc_li_imm(dst, src));
+  ins_encode(riscv_enc_li_imm(dst, src));
 
   ins_pipe(ialu_imm);
 %}
@@ -4720,7 +4720,7 @@ instruct loadConP(iRegPNoSp dst, immP con)
   ins_cost(ALU_COST);
   format %{ "mv  $dst, $con\t# ptr, #@loadConP" %}
 
-  ins_encode(riscv64_enc_mov_p(dst, con));
+  ins_encode(riscv_enc_mov_p(dst, con));
 
   ins_pipe(ialu_imm);
 %}
@@ -4733,7 +4733,7 @@ instruct loadConP0(iRegPNoSp dst, immP0 con)
   ins_cost(ALU_COST);
   format %{ "mv  $dst, $con\t# NULL ptr, #@loadConP0" %}
 
-  ins_encode(riscv64_enc_mov_zero(dst));
+  ins_encode(riscv_enc_mov_zero(dst));
 
   ins_pipe(ialu_imm);
 %}
@@ -4746,7 +4746,7 @@ instruct loadConP1(iRegPNoSp dst, immP_1 con)
   ins_cost(ALU_COST);
   format %{ "mv  $dst, $con\t# load ptr constant one, #@loadConP1" %}
 
-  ins_encode(riscv64_enc_mov_p1(dst));
+  ins_encode(riscv_enc_mov_p1(dst));
 
   ins_pipe(ialu_imm);
 %}
@@ -4758,7 +4758,7 @@ instruct loadByteMapBase(iRegPNoSp dst, immByteMapBase con)
   ins_cost(ALU_COST);
   format %{ "mv  $dst, $con\t# Byte Map Base, #@loadByteMapBase" %}
 
-  ins_encode(riscv64_enc_mov_byte_map_base(dst));
+  ins_encode(riscv_enc_mov_byte_map_base(dst));
 
   ins_pipe(ialu_imm);
 %}
@@ -4771,7 +4771,7 @@ instruct loadConN(iRegNNoSp dst, immN con)
   ins_cost(ALU_COST * 4);
   format %{ "mv  $dst, $con\t# compressed ptr, #@loadConN" %}
 
-  ins_encode(riscv64_enc_mov_n(dst, con));
+  ins_encode(riscv_enc_mov_n(dst, con));
 
   ins_pipe(ialu_imm);
 %}
@@ -4784,7 +4784,7 @@ instruct loadConN0(iRegNNoSp dst, immN0 con)
   ins_cost(ALU_COST);
   format %{ "mv  $dst, $con\t# compressed NULL ptr, #@loadConN0" %}
 
-  ins_encode(riscv64_enc_mov_zero(dst));
+  ins_encode(riscv_enc_mov_zero(dst));
 
   ins_pipe(ialu_imm);
 %}
@@ -4797,7 +4797,7 @@ instruct loadConNKlass(iRegNNoSp dst, immNKlass con)
   ins_cost(ALU_COST * 6);
   format %{ "mv  $dst, $con\t# compressed klass ptr, #@loadConNKlass" %}
 
-  ins_encode(riscv64_enc_mov_nk(dst, con));
+  ins_encode(riscv_enc_mov_nk(dst, con));
 
   ins_pipe(ialu_imm);
 %}
@@ -5141,7 +5141,7 @@ instruct storeNKlass(iRegN src, memory mem)
 // only for 64-bit.
 //
 // We implement LoadPLocked and storePConditional instructions using,
-// respectively the RISCV64 hw load-reserve and store-conditional
+// respectively the RISCV hw load-reserve and store-conditional
 // instructions. Whereas we must implement each of
 // Store{IL}Conditional using a CAS which employs a pair of
 // instructions comprising a load-reserve followed by a
@@ -5289,7 +5289,7 @@ instruct compareAndSwapI(iRegINoSp res, indirect mem, iRegINoSp oldval, iRegINoS
     "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapI"
   %}
 
-  ins_encode(riscv64_enc_cmpxchgw(res, mem, oldval, newval));
+  ins_encode(riscv_enc_cmpxchgw(res, mem, oldval, newval));
 
   ins_pipe(pipe_slow);
 %}
@@ -5305,7 +5305,7 @@ instruct compareAndSwapL(iRegINoSp res, indirect mem, iRegLNoSp oldval, iRegLNoS
     "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapL"
   %}
 
-  ins_encode(riscv64_enc_cmpxchg(res, mem, oldval, newval));
+  ins_encode(riscv_enc_cmpxchg(res, mem, oldval, newval));
 
   ins_pipe(pipe_slow);
 %}
@@ -5323,7 +5323,7 @@ instruct compareAndSwapP(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval
     "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapP"
   %}
 
-  ins_encode(riscv64_enc_cmpxchg(res, mem, oldval, newval));
+  ins_encode(riscv_enc_cmpxchg(res, mem, oldval, newval));
 
   ins_pipe(pipe_slow);
 %}
@@ -5339,7 +5339,7 @@ instruct compareAndSwapN(iRegINoSp res, indirect mem, iRegNNoSp oldval, iRegNNoS
     "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapN"
   %}
 
-  ins_encode(riscv64_enc_cmpxchgn(res, mem, oldval, newval));
+  ins_encode(riscv_enc_cmpxchgn(res, mem, oldval, newval));
 
   ins_pipe(pipe_slow);
 %}
@@ -5408,7 +5408,7 @@ instruct compareAndSwapIAcq(iRegINoSp res, indirect mem, iRegINoSp oldval, iRegI
     "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapIAcq"
   %}
 
-  ins_encode(riscv64_enc_cmpxchgw_acq(res, mem, oldval, newval));
+  ins_encode(riscv_enc_cmpxchgw_acq(res, mem, oldval, newval));
 
   ins_pipe(pipe_slow);
 %}
@@ -5426,7 +5426,7 @@ instruct compareAndSwapLAcq(iRegINoSp res, indirect mem, iRegLNoSp oldval, iRegL
     "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapLAcq"
   %}
 
-  ins_encode(riscv64_enc_cmpxchg_acq(res, mem, oldval, newval));
+  ins_encode(riscv_enc_cmpxchg_acq(res, mem, oldval, newval));
 
   ins_pipe(pipe_slow);
 %}
@@ -5444,7 +5444,7 @@ instruct compareAndSwapPAcq(iRegINoSp res, indirect mem, iRegP oldval, iRegP new
     "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapPAcq"
   %}
 
-  ins_encode(riscv64_enc_cmpxchg_acq(res, mem, oldval, newval));
+  ins_encode(riscv_enc_cmpxchg_acq(res, mem, oldval, newval));
 
   ins_pipe(pipe_slow);
 %}
@@ -5462,7 +5462,7 @@ instruct compareAndSwapNAcq(iRegINoSp res, indirect mem, iRegNNoSp oldval, iRegN
     "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapNAcq"
   %}
 
-  ins_encode(riscv64_enc_cmpxchgn_acq(res, mem, oldval, newval));
+  ins_encode(riscv_enc_cmpxchgn_acq(res, mem, oldval, newval));
 
   ins_pipe(pipe_slow);
 %}
@@ -6694,7 +6694,7 @@ instruct divI(iRegINoSp dst, iRegIorL2I src1, iRegIorL2I src2) %{
   ins_cost(IDIVSI_COST);
   format %{ "divw  $dst, $src1, $src2\t#@divI"%}
 
-  ins_encode(riscv64_enc_divw(dst, src1, src2));
+  ins_encode(riscv_enc_divw(dst, src1, src2));
   ins_pipe(idiv_reg_reg);
 %}
 
@@ -6716,7 +6716,7 @@ instruct divL(iRegLNoSp dst, iRegL src1, iRegL src2) %{
   ins_cost(IDIVDI_COST);
   format %{ "div  $dst, $src1, $src2\t#@divL" %}
 
-  ins_encode(riscv64_enc_div(dst, src1, src2));
+  ins_encode(riscv_enc_div(dst, src1, src2));
   ins_pipe(ldiv_reg_reg);
 %}
 
@@ -6739,7 +6739,7 @@ instruct modI(iRegINoSp dst, iRegIorL2I src1, iRegIorL2I src2) %{
   ins_cost(IDIVSI_COST);
   format %{ "remw  $dst, $src1, $src2\t#@modI" %}
 
-  ins_encode(riscv64_enc_modw(dst, src1, src2));
+  ins_encode(riscv_enc_modw(dst, src1, src2));
   ins_pipe(ialu_reg_reg);
 %}
 
@@ -6750,7 +6750,7 @@ instruct modL(iRegLNoSp dst, iRegL src1, iRegL src2) %{
   ins_cost(IDIVDI_COST);
   format %{ "rem  $dst, $src1, $src2\t#@modL" %}
 
-  ins_encode(riscv64_enc_mod(dst, src1, src2));
+  ins_encode(riscv_enc_mod(dst, src1, src2));
   ins_pipe(ialu_reg_reg);
 %}
 
@@ -8663,7 +8663,7 @@ instruct branch(label lbl)
   ins_cost(BRANCH_COST);
   format %{ "j  $lbl\t#@branch" %}
 
-  ins_encode(riscv64_enc_j(lbl));
+  ins_encode(riscv_enc_j(lbl));
 
   ins_pipe(pipe_branch);
 %}
@@ -9613,7 +9613,7 @@ instruct far_cmpULtGe_reg_imm0_branch(cmpOpULtGe cmp, iRegI op1, immI0 zero, lab
 
   format %{ "j  $lbl if $cmp == ge\t#@far_cmpULtGe_reg_imm0_branch" %}
 
-  ins_encode(riscv64_enc_far_cmpULtGe_imm0_branch(cmp, op1, lbl));
+  ins_encode(riscv_enc_far_cmpULtGe_imm0_branch(cmp, op1, lbl));
 
   ins_pipe(pipe_cmpz_branch);
 %}
@@ -9628,7 +9628,7 @@ instruct far_cmpULtGe_reg_imm0_loop(cmpOpULtGe cmp, iRegI op1, immI0 zero, label
 
   format %{ "j  $lbl if $cmp == ge\t#@far_cmpULtGe_reg_imm0_loop" %}
 
-  ins_encode(riscv64_enc_far_cmpULtGe_imm0_branch(cmp, op1, lbl));
+  ins_encode(riscv_enc_far_cmpULtGe_imm0_branch(cmp, op1, lbl));
 
   ins_pipe(pipe_cmpz_branch);
 %}
@@ -9712,7 +9712,7 @@ instruct far_cmpULLtGe_reg_imm0_branch(cmpOpULtGe cmp, iRegL op1, immL0 zero, la
 
   format %{ "j  $lbl if $cmp == ge\t#@far_cmpULLtGe_reg_imm0_branch" %}
 
-  ins_encode(riscv64_enc_far_cmpULtGe_imm0_branch(cmp, op1, lbl));
+  ins_encode(riscv_enc_far_cmpULtGe_imm0_branch(cmp, op1, lbl));
 
   ins_pipe(pipe_cmpz_branch);
 %}
@@ -9727,7 +9727,7 @@ instruct far_cmpULLtGe_reg_imm0_loop(cmpOpULtGe cmp, iRegL op1, immL0 zero, labe
 
   format %{ "j  $lbl if $cmp == ge\t#@far_cmpULLtGe_reg_imm0_loop" %}
 
-  ins_encode(riscv64_enc_far_cmpULtGe_imm0_branch(cmp, op1, lbl));
+  ins_encode(riscv_enc_far_cmpULtGe_imm0_branch(cmp, op1, lbl));
 
   ins_pipe(pipe_cmpz_branch);
 %}
@@ -9950,8 +9950,8 @@ instruct CallStaticJavaDirect(method meth)
 
   format %{ "CALL,static $meth\t#@CallStaticJavaDirect" %}
 
-  ins_encode( riscv64_enc_java_static_call(meth),
-              riscv64_enc_call_epilog );
+  ins_encode(riscv_enc_java_static_call(meth),
+             riscv_enc_call_epilog);
 
   ins_pipe(pipe_class_call);
   ins_alignment(4);
@@ -9972,8 +9972,8 @@ instruct CallDynamicJavaDirect(method meth, rFlagsReg cr)
 
   format %{ "CALL,dynamic $meth\t#@CallDynamicJavaDirect" %}
 
-  ins_encode( riscv64_enc_java_dynamic_call(meth),
-              riscv64_enc_call_epilog );
+  ins_encode(riscv_enc_java_dynamic_call(meth),
+             riscv_enc_call_epilog);
 
   ins_pipe(pipe_class_call);
   ins_alignment(4);
@@ -9991,7 +9991,7 @@ instruct CallRuntimeDirect(method meth, rFlagsReg cr)
 
   format %{ "CALL, runtime $meth\t#@CallRuntimeDirect" %}
 
-  ins_encode( riscv64_enc_java_to_runtime(meth) );
+  ins_encode(riscv_enc_java_to_runtime(meth));
 
   ins_pipe(pipe_class_call);
 %}
@@ -10008,7 +10008,7 @@ instruct CallLeafDirect(method meth, rFlagsReg cr)
 
   format %{ "CALL, runtime leaf $meth\t#@CallLeafDirect" %}
 
-  ins_encode( riscv64_enc_java_to_runtime(meth) );
+  ins_encode(riscv_enc_java_to_runtime(meth));
 
   ins_pipe(pipe_class_call);
 %}
@@ -10025,7 +10025,7 @@ instruct CallLeafNoFPDirect(method meth, rFlagsReg cr)
 
   format %{ "CALL, runtime leaf nofp $meth\t#@CallLeafNoFPDirect" %}
 
-  ins_encode( riscv64_enc_java_to_runtime(meth) );
+  ins_encode(riscv_enc_java_to_runtime(meth));
 
   ins_pipe(pipe_class_call);
 %}
@@ -10046,7 +10046,7 @@ instruct partialSubtypeCheck(iRegP_R15 result, iRegP_R14 sub, iRegP_R10 super, i
   ins_cost(2 * STORE_COST + 3 * LOAD_COST + 4 * ALU_COST + BRANCH_COST * 4);
   format %{ "partialSubtypeCheck $result, $sub, $super\t#@partialSubtypeCheck" %}
 
-  ins_encode(riscv64_enc_partial_subtype_check(sub, super, tmp, result));
+  ins_encode(riscv_enc_partial_subtype_check(sub, super, tmp, result));
 
   opcode(0x1); // Force zero of result reg on hit
 
@@ -10062,7 +10062,7 @@ instruct partialSubtypeCheckVsZero(iRegP_R15 result, iRegP_R14 sub, iRegP_R10 su
   ins_cost(2 * STORE_COST + 3 * LOAD_COST + 4 * ALU_COST + BRANCH_COST * 4);
   format %{ "partialSubtypeCheck $result, $sub, $super == 0\t#@partialSubtypeCheckVsZero" %}
 
-  ins_encode(riscv64_enc_partial_subtype_check(sub, super, tmp, result));
+  ins_encode(riscv_enc_partial_subtype_check(sub, super, tmp, result));
 
   opcode(0x0); // Don't zero result reg on hit
 
@@ -10453,7 +10453,7 @@ instruct cmpFastLock(rFlagsReg cr, iRegP object, iRegP box, iRegPNoSp tmp1, iReg
   ins_cost(LOAD_COST * 2 + STORE_COST * 3 + ALU_COST * 6 + BRANCH_COST * 3);
   format %{ "fastlock $object,$box\t! kills $tmp1,$tmp2, #@cmpFastLock" %}
 
-  ins_encode(riscv64_enc_fast_lock(object, box, tmp1, tmp2));
+  ins_encode(riscv_enc_fast_lock(object, box, tmp1, tmp2));
 
   ins_pipe(pipe_serial);
 %}
@@ -10467,7 +10467,7 @@ instruct cmpFastUnlock(rFlagsReg cr, iRegP object, iRegP box, iRegPNoSp tmp1, iR
   ins_cost(LOAD_COST * 2 + STORE_COST + ALU_COST * 2 + BRANCH_COST * 4);
   format %{ "fastunlock $object,$box\t! kills $tmp1, $tmp2, #@cmpFastUnlock" %}
 
-  ins_encode(riscv64_enc_fast_unlock(object, box, tmp1, tmp2));
+  ins_encode(riscv_enc_fast_unlock(object, box, tmp1, tmp2));
 
   ins_pipe(pipe_serial);
 %}
@@ -10484,7 +10484,7 @@ instruct TailCalljmpInd(iRegPNoSp jump_target, inline_cache_RegP method_oop)
 
   format %{ "jalr $jump_target\t# $method_oop holds method oop, #@TailCalljmpInd." %}
 
-  ins_encode(riscv64_enc_tail_call(jump_target));
+  ins_encode(riscv_enc_tail_call(jump_target));
 
   ins_pipe(pipe_class_call);
 %}
@@ -10497,7 +10497,7 @@ instruct TailjmpInd(iRegPNoSp jump_target, iRegP_R10 ex_oop)
 
   format %{ "jalr $jump_target\t# $ex_oop holds exception oop, #@TailjmpInd." %}
 
-  ins_encode(riscv64_enc_tail_jmp(jump_target));
+  ins_encode(riscv_enc_tail_jmp(jump_target));
 
   ins_pipe(pipe_class_call);
 %}
@@ -10529,7 +10529,7 @@ instruct RethrowException()
 
   format %{ "j rethrow_stub\t#@RethrowException" %}
 
-  ins_encode( riscv64_enc_rethrow() );
+  ins_encode(riscv_enc_rethrow());
 
   ins_pipe(pipe_class_call);
 %}
@@ -10543,7 +10543,7 @@ instruct Ret()
   ins_cost(BRANCH_COST);
   format %{ "ret\t// return register, #@Ret" %}
 
-  ins_encode(riscv64_enc_ret());
+  ins_encode(riscv_enc_ret());
 
   ins_pipe(pipe_branch);
 %}

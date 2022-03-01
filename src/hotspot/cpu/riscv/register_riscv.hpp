@@ -97,7 +97,7 @@ class RegisterImpl: public AbstractRegisterImpl {
 
 REGISTER_IMPL_DECLARATION(Register, RegisterImpl, RegisterImpl::number_of_registers);
 
-// The integer registers of the RISCV64 architecture
+// The integer registers of the RISCV architecture
 
 CONSTANT_REGISTER_DECLARATION(Register, noreg, (-1));
 
@@ -188,7 +188,7 @@ class FloatRegisterImpl: public AbstractRegisterImpl {
 
 REGISTER_IMPL_DECLARATION(FloatRegister, FloatRegisterImpl, FloatRegisterImpl::number_of_registers);
 
-// The float registers of the RISCV64 architecture
+// The float registers of the RISCV architecture
 
 CONSTANT_REGISTER_DECLARATION(FloatRegister, fnoreg , (-1));
 

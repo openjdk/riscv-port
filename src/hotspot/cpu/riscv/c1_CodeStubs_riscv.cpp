@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1999, 2020, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, Red Hat Inc. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -261,10 +261,10 @@ int PatchingStub::_patch_info_offset = -NativeGeneralJump::instruction_size;
 
 void PatchingStub::align_patch_site(MacroAssembler* masm) {}
 
-// RISCV64 don't use C1 runtime patching. When need patch, just deoptimize.
+// RISCV don't use C1 runtime patching. When need patch, just deoptimize.
 void PatchingStub::emit_code(LIR_Assembler* ce)
 {
-  assert(false, "RISCV64 should not use C1 runtime patching");
+  assert(false, "RISCV should not use C1 runtime patching");
 }
 
 void DeoptimizeStub::emit_code(LIR_Assembler* ce)
