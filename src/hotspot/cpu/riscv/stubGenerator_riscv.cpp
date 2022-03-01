@@ -2865,7 +2865,7 @@ class StubGenerator: public StubCodeGenerator {
   //
   address generate_bigIntegerLeftShift() {
     __ align(CodeEntryAlignment);
-    StubCodeMark mark(this,  "StubRoutines", "bigIntegerLeftShiftWorker");
+    StubCodeMark mark(this, "StubRoutines", "bigIntegerLeftShiftWorker");
     address entry = __ pc();
 
     Label loop, exit;
@@ -2895,14 +2895,8 @@ class StubGenerator: public StubCodeGenerator {
     __ vor_vv(v0, v0, v4);
     __ vse32_v(v0, newArr);
     __ sub(numIter, numIter, t0);
-    if (UseRVB) {
-      __ sh2add(oldArr, t0, oldArr);
-      __ sh2add(newArr, t0, newArr);
-    } else {
-      __ slli(t0, t0, 2);
-      __ add(oldArr, oldArr, t0);
-      __ add(newArr, newArr, t0);
-    }
+    __ shadd(oldArr, t0, oldArr, t1, 2);
+    __ shadd(newArr, t0, oldArr, t1, 2);
     __ bnez(numIter, loop);
 
     __ bind(exit);
@@ -3777,7 +3771,7 @@ class StubGenerator: public StubCodeGenerator {
     }
 
     if (UseRVV) {
-      StubRoutines::_bigIntegerLeftShiftWorker  = generate_bigIntegerLeftShift();
+      StubRoutines::_bigIntegerLeftShiftWorker = generate_bigIntegerLeftShift();
     }
 #endif
 
