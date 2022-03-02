@@ -57,7 +57,7 @@ static void pd_conjoint_words(const HeapWord* from, HeapWord* to, size_t count) 
   (void)memmove(to, from, count * HeapWordSize);
 }
 
-static inline void pd_disjoint_words_helper(const HeapWord* from, HeapWord* to, size_t count, bool is_atomic) {
+static void pd_disjoint_words(const HeapWord* from, HeapWord* to, size_t count) {
   switch (count) {
     case 8:  to[7] = from[7];   // fall through
     case 7:  to[6] = from[6];   // fall through
@@ -69,20 +69,13 @@ static inline void pd_disjoint_words_helper(const HeapWord* from, HeapWord* to, 
     case 1:  to[0] = from[0];   // fall through
     case 0:  break;
     default:
-      if (is_atomic) {
-        while (count-- > 0) { *to++ = *from++; }
-      } else {
-        memcpy(to, from, count * HeapWordSize);
-      }
+      memcpy(to, from, count * HeapWordSize);
+      break;
   }
 }
 
-static void pd_disjoint_words(const HeapWord* from, HeapWord* to, size_t count) {
-  pd_disjoint_words_helper(from, to, count, false);
-}
-
 static void pd_disjoint_words_atomic(const HeapWord* from, HeapWord* to, size_t count) {
-  pd_disjoint_words_helper(from, to, count, true);
+  shared_disjoint_words_atomic(from, to, count);
 }
 
 static void pd_aligned_conjoint_words(const HeapWord* from, HeapWord* to, size_t count) {
