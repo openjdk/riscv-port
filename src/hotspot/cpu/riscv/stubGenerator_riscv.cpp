@@ -2916,7 +2916,7 @@ class StubGenerator: public StubCodeGenerator {
   //
   address generate_bigIntegerRightShift() {
     __ align(CodeEntryAlignment);
-    StubCodeMark mark(this,  "StubRoutines", "bigIntegerRightShiftWorker");
+    StubCodeMark mark(this, "StubRoutines", "bigIntegerRightShiftWorker");
     address entry = __ pc();
 
     Label loop, exit;
