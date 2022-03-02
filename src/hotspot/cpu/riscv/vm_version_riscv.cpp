@@ -167,6 +167,10 @@ void VM_Version::c2_initialize() {
     FLAG_SET_DEFAULT(MaxVectorSize, 0);
   }
 
+  if (!UseRVV) {
+    FLAG_SET_DEFAULT(UseRVVForBigIntegerShiftIntrinsics, false);
+  }
+
   if (UseRVV) {
     if (FLAG_IS_DEFAULT(MaxVectorSize)) {
       MaxVectorSize = _initial_vector_length;

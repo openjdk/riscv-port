@@ -2853,6 +2853,57 @@ class StubGenerator: public StubCodeGenerator {
 
     return entry;
   }
+
+  // Arguments:
+  //
+  // Input:
+  //   c_rarg0   - newArr address
+  //   c_rarg1   - oldArr address
+  //   c_rarg2   - newIdx
+  //   c_rarg3   - shiftCount
+  //   c_rarg4   - numIter
+  //
+  address generate_bigIntegerLeftShift() {
+    __ align(CodeEntryAlignment);
+    StubCodeMark mark(this, "StubRoutines", "bigIntegerLeftShiftWorker");
+    address entry = __ pc();
+
+    Label loop, exit;
+
+    Register newArr        = c_rarg0;
+    Register oldArr        = c_rarg1;
+    Register newIdx        = c_rarg2;
+    Register shiftCount    = c_rarg3;
+    Register numIter       = c_rarg4;
+
+    Register shiftRevCount = c_rarg5;
+    Register oldArrNext    = t1;
+
+    __ beqz(numIter, exit);
+    __ shadd(newArr, newIdx, newArr, t0, 2);
+
+    __ li(shiftRevCount, 32);
+    __ sub(shiftRevCount, shiftRevCount, shiftCount);
+
+    __ bind(loop);
+    __ addi(oldArrNext, oldArr, 4);
+    __ vsetvli(t0, numIter, Assembler::e32, Assembler::m4);
+    __ vle32_v(v0, oldArr);
+    __ vle32_v(v4, oldArrNext);
+    __ vsll_vx(v0, v0, shiftCount);
+    __ vsrl_vx(v4, v4, shiftRevCount);
+    __ vor_vv(v0, v0, v4);
+    __ vse32_v(v0, newArr);
+    __ sub(numIter, numIter, t0);
+    __ shadd(oldArr, t0, oldArr, t1, 2);
+    __ shadd(newArr, t0, newArr, t1, 2);
+    __ bnez(numIter, loop);
+
+    __ bind(exit);
+    __ ret();
+
+    return entry;
+  }
 #endif
 
 #ifdef COMPILER2
@@ -3717,6 +3768,10 @@ class StubGenerator: public StubCodeGenerator {
       StubCodeMark mark(this, "StubRoutines", "montgomerySquare");
       MontgomeryMultiplyGenerator g(_masm, /*squaring*/true);
       StubRoutines::_montgomerySquare = g.generate_square();
+    }
+
+    if (UseRVVForBigIntegerShiftIntrinsics) {
+      StubRoutines::_bigIntegerLeftShiftWorker = generate_bigIntegerLeftShift();
     }
 #endif
 
