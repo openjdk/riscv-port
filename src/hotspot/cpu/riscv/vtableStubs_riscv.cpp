@@ -254,7 +254,7 @@ VtableStub* VtableStubs::create_itable_stub(int itable_index) {
 }
 
 int VtableStub::pd_code_alignment() {
-  // riscv cache line size is 64 bytes, but we want to limit alignment loss.
+  // RISCV cache line size is not an architected constant. We just align on word size.
   const unsigned int icache_line_size = wordSize;
   return icache_line_size;
 }

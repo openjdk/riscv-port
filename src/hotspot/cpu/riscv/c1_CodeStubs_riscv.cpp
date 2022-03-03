@@ -39,8 +39,7 @@
 
 #define __ ce->masm()->
 
-void C1SafepointPollStub::emit_code(LIR_Assembler* ce)
-{
+void C1SafepointPollStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
   InternalAddress safepoint_pc(__ pc() - __ offset() + safepoint_offset());
   __ code_section()->relocate(__ pc(), safepoint_pc.rspec());
@@ -54,8 +53,7 @@ void C1SafepointPollStub::emit_code(LIR_Assembler* ce)
   __ far_jump(RuntimeAddress(stub));
 }
 
-void CounterOverflowStub::emit_code(LIR_Assembler* ce)
-{
+void CounterOverflowStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
   Metadata *m = _method->as_constant_ptr()->as_metadata();
   __ mov_metadata(t0, m);
@@ -68,21 +66,18 @@ void CounterOverflowStub::emit_code(LIR_Assembler* ce)
 }
 
 RangeCheckStub::RangeCheckStub(CodeEmitInfo* info, LIR_Opr index, LIR_Opr array)
-  : _index(index), _array(array), _throw_index_out_of_bounds_exception(false)
-{
+  : _index(index), _array(array), _throw_index_out_of_bounds_exception(false) {
   assert(info != NULL, "must have info");
   _info = new CodeEmitInfo(info);
 }
 
 RangeCheckStub::RangeCheckStub(CodeEmitInfo* info, LIR_Opr index)
-  : _index(index), _array(), _throw_index_out_of_bounds_exception(true)
-{
+  : _index(index), _array(), _throw_index_out_of_bounds_exception(true) {
   assert(info != NULL, "must have info");
   _info = new CodeEmitInfo(info);
 }
 
-void RangeCheckStub::emit_code(LIR_Assembler* ce)
-{
+void RangeCheckStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
   if (_info->deoptimize_on_exception()) {
     address a = Runtime1::entry_for(Runtime1::predicate_failed_trap_id);
@@ -114,13 +109,11 @@ void RangeCheckStub::emit_code(LIR_Assembler* ce)
   debug_only(__ should_not_reach_here());
 }
 
-PredicateFailedStub::PredicateFailedStub(CodeEmitInfo* info)
-{
+PredicateFailedStub::PredicateFailedStub(CodeEmitInfo* info) {
   _info = new CodeEmitInfo(info);
 }
 
-void PredicateFailedStub::emit_code(LIR_Assembler* ce)
-{
+void PredicateFailedStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
   address a = Runtime1::entry_for(Runtime1::predicate_failed_trap_id);
   __ far_call(RuntimeAddress(a));
@@ -129,8 +122,7 @@ void PredicateFailedStub::emit_code(LIR_Assembler* ce)
   debug_only(__ should_not_reach_here());
 }
 
-void DivByZeroStub::emit_code(LIR_Assembler* ce)
-{
+void DivByZeroStub::emit_code(LIR_Assembler* ce) {
   if (_offset != -1) {
     ce->compilation()->implicit_exception_table()->append(_offset, __ offset());
   }
@@ -144,21 +136,19 @@ void DivByZeroStub::emit_code(LIR_Assembler* ce)
 }
 
 // Implementation of NewInstanceStub
-NewInstanceStub::NewInstanceStub(LIR_Opr klass_reg, LIR_Opr result, ciInstanceKlass* klass, CodeEmitInfo* info, Runtime1::StubID stub_id)
-{
+NewInstanceStub::NewInstanceStub(LIR_Opr klass_reg, LIR_Opr result, ciInstanceKlass* klass, CodeEmitInfo* info, Runtime1::StubID stub_id) {
   _result = result;
   _klass = klass;
   _klass_reg = klass_reg;
   _info = new CodeEmitInfo(info);
-  assert(stub_id == Runtime1::new_instance_id ||
-         stub_id == Runtime1::fast_new_instance_id ||
+  assert(stub_id == Runtime1::new_instance_id                 ||
+         stub_id == Runtime1::fast_new_instance_id            ||
          stub_id == Runtime1::fast_new_instance_init_check_id,
          "need new_instance id");
   _stub_id = stub_id;
 }
 
-void NewInstanceStub::emit_code(LIR_Assembler* ce)
-{
+void NewInstanceStub::emit_code(LIR_Assembler* ce) {
   assert(__ rsp_offset() == 0, "frame size should be fixed");
   __ bind(_entry);
   __ mv(x13, _klass_reg->as_register());
@@ -170,16 +160,14 @@ void NewInstanceStub::emit_code(LIR_Assembler* ce)
 }
 
 // Implementation of NewTypeArrayStub
-NewTypeArrayStub::NewTypeArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info)
-{
+NewTypeArrayStub::NewTypeArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info) {
   _klass_reg = klass_reg;
   _length = length;
   _result = result;
   _info = new CodeEmitInfo(info);
 }
 
-void NewTypeArrayStub::emit_code(LIR_Assembler* ce)
-{
+void NewTypeArrayStub::emit_code(LIR_Assembler* ce) {
   assert(__ rsp_offset() == 0, "frame size should be fixed");
   __ bind(_entry);
   assert(_length->as_register() == x9, "length must in x9");
@@ -192,16 +180,14 @@ void NewTypeArrayStub::emit_code(LIR_Assembler* ce)
 }
 
 // Implementation of NewObjectArrayStub
-NewObjectArrayStub::NewObjectArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info)
-{
+NewObjectArrayStub::NewObjectArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info) {
   _klass_reg = klass_reg;
   _result = result;
   _length = length;
   _info = new CodeEmitInfo(info);
 }
 
-void NewObjectArrayStub::emit_code(LIR_Assembler* ce)
-{
+void NewObjectArrayStub::emit_code(LIR_Assembler* ce) {
   assert(__ rsp_offset() == 0, "frame size should be fixed");
   __ bind(_entry);
   assert(_length->as_register() == x9, "length must in x9");
@@ -215,13 +201,11 @@ void NewObjectArrayStub::emit_code(LIR_Assembler* ce)
 
 // Implementation of MonitorAccessStubs
 MonitorEnterStub::MonitorEnterStub(LIR_Opr obj_reg, LIR_Opr lock_reg, CodeEmitInfo* info)
-: MonitorAccessStub(obj_reg, lock_reg)
-{
+: MonitorAccessStub(obj_reg, lock_reg) {
   _info = new CodeEmitInfo(info);
 }
 
-void MonitorEnterStub::emit_code(LIR_Assembler* ce)
-{
+void MonitorEnterStub::emit_code(LIR_Assembler* ce) {
   assert(__ rsp_offset() == 0, "frame size should be fixed");
   __ bind(_entry);
   ce->store_parameter(_obj_reg->as_register(),  1);
@@ -238,8 +222,7 @@ void MonitorEnterStub::emit_code(LIR_Assembler* ce)
   __ j(_continuation);
 }
 
-void MonitorExitStub::emit_code(LIR_Assembler* ce)
-{
+void MonitorExitStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
   if (_compute_lock) {
     // lock_reg was destroyed by fast unlocking attempt => recompute it
@@ -257,18 +240,23 @@ void MonitorExitStub::emit_code(LIR_Assembler* ce)
   __ far_jump(RuntimeAddress(Runtime1::entry_for(exit_id)));
 }
 
+// Implementation of patching:
+// - Copy the code at given offset to an inlined buffer (first the bytes, then the number of bytes)
+// - Replace original code with a call to the stub
+// At Runtime:
+// - call to stub, jump to runtime
+// - in runtime: preserve all registers (rspecially objects, i.e., source and destination object)
+// - in runtime: after initializing class, restore original code, reexecute instruction
+
 int PatchingStub::_patch_info_offset = -NativeGeneralJump::instruction_size;
 
 void PatchingStub::align_patch_site(MacroAssembler* masm) {}
 
-// RISCV don't use C1 runtime patching. When need patch, just deoptimize.
-void PatchingStub::emit_code(LIR_Assembler* ce)
-{
+void PatchingStub::emit_code(LIR_Assembler* ce) {
   assert(false, "RISCV should not use C1 runtime patching");
 }
 
-void DeoptimizeStub::emit_code(LIR_Assembler* ce)
-{
+void DeoptimizeStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
   ce->store_parameter(_trap_request, 0);
   __ far_call(RuntimeAddress(Runtime1::entry_for(Runtime1::deoptimize_id)));
@@ -276,8 +264,7 @@ void DeoptimizeStub::emit_code(LIR_Assembler* ce)
   DEBUG_ONLY(__ should_not_reach_here());
 }
 
-void ImplicitNullCheckStub::emit_code(LIR_Assembler* ce)
-{
+void ImplicitNullCheckStub::emit_code(LIR_Assembler* ce) {
   address a = NULL;
   if (_info->deoptimize_on_exception()) {
     // Deoptimize, do not throw the exception, because it is probably wrong to do it here.
@@ -294,8 +281,7 @@ void ImplicitNullCheckStub::emit_code(LIR_Assembler* ce)
   debug_only(__ should_not_reach_here());
 }
 
-void SimpleExceptionStub::emit_code(LIR_Assembler* ce)
-{
+void SimpleExceptionStub::emit_code(LIR_Assembler* ce) {
   assert(__ rsp_offset() == 0, "frame size should be fixed");
 
   __ bind(_entry);
@@ -309,14 +295,12 @@ void SimpleExceptionStub::emit_code(LIR_Assembler* ce)
   debug_only(__ should_not_reach_here());
 }
 
-void ArrayCopyStub::emit_code(LIR_Assembler* ce)
-{
+void ArrayCopyStub::emit_code(LIR_Assembler* ce) {
   // ---------------slow case: call to native-----------------
   __ bind(_entry);
   // Figure out where the args should go
   // This should really convert the IntrinsicID to the Method* and signature
   // but I don't know how to do that.
-  //
   const int args_num = 5;
   VMRegPair args[args_num];
   BasicType signature[args_num] = { T_OBJECT, T_INT, T_OBJECT, T_INT, T_INT };
@@ -324,12 +308,11 @@ void ArrayCopyStub::emit_code(LIR_Assembler* ce)
 
   // push parameters
   Register r[args_num];
-  int i = 0;
-  r[i++] = src()->as_register();
-  r[i++] = src_pos()->as_register();
-  r[i++] = dst()->as_register();
-  r[i++] = dst_pos()->as_register();
-  r[i++] = length()->as_register();
+  r[0] = src()->as_register();
+  r[1] = src_pos()->as_register();
+  r[2] = dst()->as_register();
+  r[3] = dst_pos()->as_register();
+  r[4] = length()->as_register();
 
   // next registers will get stored on the stack
   for (int j = 0; j < args_num; j++) {
@@ -338,7 +321,7 @@ void ArrayCopyStub::emit_code(LIR_Assembler* ce)
       int st_off = r_1->reg2stack() * wordSize;
       __ sd(r[j], Address(sp, st_off));
     } else {
-      assert(r[j] == args[j].first()->as_Register(), "Wrong register for arg ");
+      assert(r[j] == args[j].first()->as_Register(), "Wrong register for arg");
     }
   }
 
