@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,23 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+import javax.swing.SwingUtilities;
+import javax.swing.JTextField;
 
 /*
  * @test
- * @bug 8022585 8277055
- * @summary VM crashes when ran with -XX:+PrintInlining
- * @run main/othervm -Xcomp -XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining
- *                   compiler.print.PrintInlining
- * @run main/othervm -Xcomp -XX:-TieredCompilation -XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining
- *                   compiler.print.PrintInlining
- * @run main/othervm -Xcomp -XX:-TieredCompilation -XX:+UnlockDiagnosticVMOptions -XX:+PrintIntrinsics
- *                   compiler.print.PrintInlining
+ * @bug 8037965
+ * @summary Verifies NPE in TextLayout.getBaselineFromGraphic() for invalid
+ *          Unicode characters
  */
-
-package compiler.print;
-
-public class PrintInlining {
-    public static void main(String[] args) {
-        System.out.println("Passed");
+public class SwingUnicodeTest {
+    public static void main(String[] args) throws Exception {
+        SwingUtilities.invokeAndWait(() ->
+            new JTextField(new StringBuilder().appendCodePoint(0xFFFF).
+                            appendCodePoint(0x10000).toString()));
     }
 }

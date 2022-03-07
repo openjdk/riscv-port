@@ -3034,8 +3034,7 @@ public:
     return is_imm_in_range(imm, 12, 0);
   }
 
-  // The maximum range of a branch is fixed for the riscv
-  // architecture.
+  // The maximum range of a branch is fixed for the RISCV architecture.
   static const unsigned long branch_range = 1 * M;
 
   static bool reachable_from_branch_at(address branch, address target) {
