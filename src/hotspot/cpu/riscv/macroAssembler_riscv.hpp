@@ -613,8 +613,8 @@ class MacroAssembler: public Assembler {
   void bang_stack_with_offset(int offset) {
     // stack grows down, caller passes positive offset
     assert(offset > 0, "must bang with negative offset");
-    sub(t1, sp, offset);
-    sd(zr, Address(t1));
+    sub(t0, sp, offset);
+    sd(zr, Address(t0));
   }
 
   void la_patchable(Register reg1, const Address &dest, int32_t &offset);
