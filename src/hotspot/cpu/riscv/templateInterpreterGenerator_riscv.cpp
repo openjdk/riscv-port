@@ -920,7 +920,7 @@ void TemplateInterpreterGenerator::bang_stack_shadow_pages(bool native_call) {
   __ ld(t0, Address(xthread, JavaThread::shadow_zone_growth_watermark()));
   __ bgtu(sp, t0, L_done);
 
-  for (int p = 1; p <= n_shadow_pages ; p++) {
+  for (int p = 1; p <= n_shadow_pages; p++) {
     __ bang_stack_with_offset(p * page_size);
   }
 
