@@ -173,6 +173,9 @@
                          Register len, Register result,
                          Register tmp);
 
+ void count_positives_v(Register ary, Register len,
+                        Register result, Register tmp);
+
  void string_indexof_char_v(Register str1, Register cnt1,
                             Register ch, Register result,
                             Register tmp1, Register tmp2,
