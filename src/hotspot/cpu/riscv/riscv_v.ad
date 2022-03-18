@@ -1993,18 +1993,6 @@ instruct vstring_compress(iRegP_R12 src, iRegP_R11 dst, iRegI_R13 len, iRegI_R10
   ins_pipe( pipe_slow );
 %}
 
-instruct vhas_negatives(iRegP_R11 ary1, iRegI_R12 len, iRegI_R10 result, iRegL tmp)
-%{
-  predicate(UseRVV);
-  match(Set result (HasNegatives ary1 len));
-  effect(USE_KILL ary1, USE_KILL len, TEMP tmp);
-  format %{ "has negatives byte[] $ary1,$len -> $result" %}
-  ins_encode %{
-    __ has_negatives_v($ary1$$Register, $len$$Register, $result$$Register, $tmp$$Register);
-  %}
-  ins_pipe( pipe_slow );
-%}
-
 instruct vstringU_indexof_char(iRegP_R11 str1, iRegI_R12 cnt1, iRegI_R13 ch,
                                iRegI_R10 result, iRegINoSp tmp1, iRegINoSp tmp2,
                                vReg_V1 v1, vReg_V2 v2, vReg_V3 v3)

@@ -1542,27 +1542,6 @@ void C2_MacroAssembler::encode_iso_array_v(Register src, Register dst, Register 
   BLOCK_COMMENT("} encode_iso_array_v");
 }
 
-void C2_MacroAssembler::has_negatives_v(Register ary1, Register len, Register result, Register tmp) {
-  Label loop, DONE;
-
-  mv(result, true);
-
-  bind(loop);
-  vsetvli(t0, len, Assembler::e8, Assembler::m4);
-  vle8_v(v0, ary1);
-  // if element highest bit is set, return true
-  vmslt_vx(v0, v0, zr);
-  vfirst_m(tmp, v0);
-  bgez(tmp, DONE);
-
-  sub(len, len, t0);
-  add(ary1, ary1, t0);
-  bnez(len, loop);
-  mv(result, false);
-
-  bind(DONE);
-}
-
 void C2_MacroAssembler::string_indexof_char_v(Register str1, Register cnt1,
                                               Register ch, Register result,
                                               Register tmp1, Register tmp2,

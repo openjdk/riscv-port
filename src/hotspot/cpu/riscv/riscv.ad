@@ -1797,7 +1797,6 @@ const bool Matcher::match_rule_supported(int opcode) {
       break;
     case Op_StrCompressedCopy: // fall through
     case Op_StrInflatedCopy:   // fall through
-    case Op_HasNegatives:
       return UseRVV;
     case Op_EncodeISOArray:
       return UseRVV && SpecialEncodeISOArray;

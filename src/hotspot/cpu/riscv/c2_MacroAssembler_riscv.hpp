@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2020, 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -172,9 +172,6 @@
  void encode_iso_array_v(Register src, Register dst,
                          Register len, Register result,
                          Register tmp);
-
- void has_negatives_v(Register ary, Register len,
-                      Register result, Register tmp);
 
  void string_indexof_char_v(Register str1, Register cnt1,
                             Register ch, Register result,
