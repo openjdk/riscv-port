@@ -1993,6 +1993,20 @@ instruct vstring_compress(iRegP_R12 src, iRegP_R11 dst, iRegI_R13 len, iRegI_R10
   ins_pipe( pipe_slow );
 %}
 
+instruct vcount_positives(iRegP_R11 ary, iRegI_R12 len, iRegI_R10 result, iRegL tmp)
+%{
+  predicate(UseRVV);
+  match(Set result (CountPositives ary len));
+  effect(USE_KILL ary, USE_KILL len, TEMP tmp);
+
+  format %{ "count positives byte[] $ary, $len -> $result" %}
+  ins_encode %{
+    __ count_positives_v($ary$$Register, $len$$Register, $result$$Register, $tmp$$Register);
+  %}
+
+  ins_pipe(pipe_slow);
+%}
+
 instruct vstringU_indexof_char(iRegP_R11 str1, iRegI_R12 cnt1, iRegI_R13 ch,
                                iRegI_R10 result, iRegINoSp tmp1, iRegINoSp tmp2,
                                vReg_V1 v1, vReg_V2 v2, vReg_V3 v3)
