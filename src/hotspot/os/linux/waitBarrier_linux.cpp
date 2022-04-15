@@ -38,7 +38,7 @@
 
 #define guarantee_with_errno(cond, msg) check_with_errno(guarantee, cond, msg)
 
-// 32-bit RISC-V doesn't have SYS_futex syscall.
+// 32-bit RISC-V has no SYS_futex syscall.
 #ifndef SYS_futex
   #if defined(RISCV32) && defined(SYS_futex_time64)
     #define SYS_futex SYS_futex_time64
